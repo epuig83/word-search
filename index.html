@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ca">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generador de Sopes de Lletres per a Primària</title>
+    <meta
+      name="description"
+      content="Generador de sopes de lletres per a primària, preparat per fer servir a l'aula o imprimir."
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="data.js" defer></script>
+    <script src="i18n.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="lang-selector">
+            <button type="button" class="lang-btn is-active" data-lang="ca">CA</button>
+            <button type="button" class="lang-btn" data-lang="es">ES</button>
+            <button type="button" class="lang-btn" data-lang="en">EN</button>
+          </div>
+          <span class="eyebrow" data-t="hero_eyebrow">Recurs Educatiu</span>
+          <h1 data-t="hero_title">Generador de Sopes de Lletres</h1>
+          <p class="hero-text" data-t="hero_text">
+            Crea exercicis personalitzats en segons. Perfecte per usar a classe amb ratolí o per
+            imprimir en paper.
+          </p>
+        </div>
+
+        <div class="hero-card">
+          <div class="hero-stat">
+              <span class="stat-icon">🎓</span>
+              <div>
+                <span data-t="stat_age">Edat</span>
+                <strong data-t="stat_age_value">8 a 12 anys</strong>
+              </div>
+            </div>
+          <div class="hero-stat">
+              <span class="stat-icon">💻</span>
+              <div>
+              <span data-t="stat_use">Ús</span>
+              <strong data-t="stat_use_value">PC o Paper</strong>
+              </div>
+            </div>
+          <div class="hero-stat">
+            <span class="stat-icon">⚡</span>
+            <div>
+              <span data-t="stat_speed">Rapidesa</span>
+              <strong data-t="stat_speed_value">Generació a l'instant</strong>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <nav class="main-tabs">
+          <button type="button" id="tab-teacher" class="tab-btn is-active">
+            <span class="tab-icon">👩‍🏫</span>
+            <span data-t="tab_teacher">Panel Creació</span>
+          </button>
+          <button type="button" id="tab-student" class="tab-btn">
+            <span class="tab-icon">🎒</span>
+            <span data-t="tab_student">Zona Alumne</span>
+          </button>
+        </nav>
+
+        <section id="section-teacher" class="panel controls-panel" aria-labelledby="builder-title">
+          <div class="panel-heading">
+            <p class="section-kicker" data-t="config_kicker">Configuració</p>
+            <h2 id="builder-title" data-t="config_title">Crea la teva sopa</h2>
+          </div>
+
+          <form id="generator-form" class="generator-form">
+            <div class="field">
+              <label for="title-input" data-t="field_topic">Tema de l'exercici</label>
+              <input
+                id="title-input"
+                name="title"
+                type="text"
+                maxlength="60"
+                placeholder="Ex: Animals de la selva"
+                required
+              />
+            </div>
+
+            <!-- Llista de paraules + Biblioteca costat a costat -->
+            <div class="words-and-library">
+              <div class="field">
+                <label for="words-input" data-t="field_words">Llista de paraules (una per línia)</label>
+                <textarea
+                  id="words-input"
+                  name="words"
+                  placeholder="lleó&#10;tigre&#10;girafa&#10;mico"
+                  required
+                ></textarea>
+              </div>
+
+              <!-- Biblioteca de Vocabulari -->
+              <div class="vocabulary-library">
+                <div class="library-header">
+                  <span data-t="lib_title">Biblioteca de paraules</span>
+                  <input type="text" id="lib-search" placeholder="🔍 Cercar..." data-t="lib_search_placeholder">
+                </div>
+                <div class="library-categories" id="lib-categories">
+                  <!-- Categories dinàmiques -->
+                </div>
+                <div class="library-results" id="lib-results">
+                  <!-- Paraules dinàmiques -->
+                </div>
+              </div>
+            </div>
+
+            <div class="field sample-field">
+              <label for="sample-select" data-t="field_sample">Exemple guiat</label>
+              <div class="sample-picker">
+                <select id="sample-select" name="sample">
+                  <option value="">Selecciona un exemple</option>
+                </select>
+                <button type="button" id="load-sample-button" class="ghost-button" data-t="btn_example">
+                  Carregar exemple
+                </button>
+              </div>
+              <div class="sample-actions">
+                <button type="button" id="save-sample-button" class="sample-action-btn">
+                  💾 <span data-t="btn_save_sample">Guardar</span>
+                </button>
+                <button type="button" id="export-samples-button" class="sample-action-btn">
+                  📤 <span data-t="btn_export_samples">Exportar</span>
+                </button>
+                <button type="button" id="import-samples-button" class="sample-action-btn">
+                  📥 <span data-t="btn_import_samples">Importar</span>
+                </button>
+              </div>
+              <p class="sample-note" data-t="sample_note">
+                Els exemples guardats es desen en aquest portàtil.
+              </p>
+              <input id="import-samples-input" type="file" accept="application/json,.json" hidden />
+            </div>
+
+            <div class="field-grid">
+              <div class="field">
+                <label for="difficulty-input">🎯 <span data-t="field_difficulty">Dificultat</span></label>
+                <select id="difficulty-input" name="difficulty">
+                  <option value="easy" data-t="diff_easy">Fàcil</option>
+                  <option value="medium" data-t="diff_medium">Mitjana</option>
+                  <option value="hard" data-t="diff_hard">Difícil</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="size-input">📐 <span data-t="field_size">Mida</span></label>
+                <select id="size-input" name="size">
+                  <option value="auto" data-t="size_auto">Automàtic</option>
+                  <option value="10">10 x 10</option>
+                  <option value="12">12 x 12</option>
+                  <option value="14">14 x 14</option>
+                  <option value="16">16 x 16</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="timer-input">⏱️ <span data-t="timer_label">Temporitzador</span></label>
+                <select id="timer-input" name="timer">
+                  <option value="0" data-t="timer_none">Sense límit</option>
+                  <option value="300">5 min</option>
+                  <option value="600">10 min</option>
+                  <option value="900">15 min</option>
+                  <option value="1200">20 min</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="hints-input">💡 <span data-t="hints_label">Pistes</span></label>
+                <select id="hints-input" name="hints">
+                  <option value="0" data-t="hints_none">Sense pistes</option>
+                  <option value="1">1</option>
+                  <option value="3" selected>3</option>
+                  <option value="5">5</option>
+                  <option value="-1" data-t="hints_unlimited">Il·limitades</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button type="submit" class="primary-button" data-t="btn_generate">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                Generar nova sopa
+              </button>
+            </div>
+          </form>
+
+          <details id="pin-change-details" class="pin-change-section">
+            <summary class="teacher-tools-summary" data-t="pin_change_title">Canviar PIN</summary>
+            <div class="pin-change-form">
+              <div class="field">
+                <label for="new-pin-input">Nou PIN</label>
+                <input type="password" id="new-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" />
+              </div>
+              <div class="field">
+                <label for="confirm-pin-input">Confirmar PIN</label>
+                <input type="password" id="confirm-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" />
+              </div>
+              <button type="button" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Desar PIN</button>
+              <p id="pin-change-message" class="status-message" style="display:none; margin-top: 0;"></p>
+            </div>
+          </details>
+
+          <p id="status-message" class="status-message" role="status" aria-live="polite" data-t="status_default">
+            Escriu les teves paraules i prem "Generar".
+          </p>
+        </section>
+
+        <section id="section-student" class="panel board-panel" aria-labelledby="board-title" hidden>
+          <div class="board-topbar">
+            <div class="board-title-group">
+              <p id="topic-label" class="section-kicker" data-t="board_topic_kicker">Tema</p>
+              <h2 id="board-title">Sopa de lletres</h2>
+              <p id="board-instructions" class="board-instructions" data-t="board_instructions">
+                Arrossega una paraula o toca la primera i l'última lletra.
+              </p>
+            </div>
+
+            <div class="progress-container">
+              <span class="section-kicker" data-t="board_progress">Progrés</span>
+              <div id="timer-display" class="timer-pill" hidden>00:00</div>
+              <div id="progress-text" class="progress-pill">0 / 0</div>
+            </div>
+          </div>
+
+          <div class="puzzle-layout">
+            <div class="grid-container">
+              <div id="puzzle-grid" class="puzzle-grid" aria-label="Sopa de lletres"></div>
+              
+              <div id="completion-message" class="completion-message" hidden data-t="completion_msg">
+                🎉 Excel·lent treball! Has completat l'exercici.
+              </div>
+            </div>
+
+            <aside class="word-bank">
+              <h3 id="word-bank-title">
+                <span data-t="word_bank_title">Paraules</span>
+                <span id="word-bank-count" style="font-size: 0.8rem; color: var(--ink-soft);">0</span>
+              </h3>
+              <ul id="word-list" class="word-list"></ul>
+
+              <div class="student-actions" id="student-actions" hidden>
+                <button type="button" id="reset-progress-button" class="ghost-button student-action-button" data-t="btn_reset">
+                  Reiniciar joc
+                </button>
+                <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" hidden>
+                  💡 Pista (3)
+                </button>
+                <details id="teacher-tools" class="teacher-tools">
+                  <summary class="teacher-tools-summary" data-t="teacher_tools_summary">Per a la professora</summary>
+                  <div class="teacher-tools-actions">
+                    <button type="button" id="solution-toggle-button" class="ghost-button teacher-tool-button">
+                      Veure solució
+                    </button>
+                    <button type="button" id="share-button" class="ghost-button teacher-tool-button" data-t="btn_share">
+                      Compartir
+                    </button>
+                    <button type="button" id="print-button" class="ghost-button teacher-tool-button" data-t="btn_print">
+                      Imprimir / PDF
+                    </button>
+                  </div>
+                </details>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal de Seguretat per a la Professora -->
+    <div id="pin-modal" class="modal-overlay" hidden>
+      <div class="modal-content">
+        <h3 data-t="pin_title">Accés Restringit</h3>
+        <p data-t="pin_text">Introdueix el PIN per continuar.</p>
+        <form id="pin-form">
+          <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
+          <div class="pin-input-group">
+            <input type="password" id="pin-input" maxlength="4" placeholder="••••" inputmode="numeric" autocomplete="current-password">
+            <button type="submit" id="pin-submit" class="primary-button" data-t="pin_btn_validate">Validar PIN</button>
+          </div>
+          <button type="button" id="pin-cancel" class="ghost-button" style="width: 100%; margin-top: 1rem;" data-t="pin_btn_cancel">Cancel·lar</button>
+          <p id="pin-error" class="status-message is-error" style="margin-top: 1rem; display: none;" data-t="pin_error">PIN incorrecte. Torna-ho a intentar.</p>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
