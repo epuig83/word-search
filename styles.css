@@ -543,9 +543,8 @@ body {
   margin-top: 1.5rem;
 }
 
-.primary-button, 
-.ghost-button, 
-.mode-button {
+.primary-button,
+.ghost-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -594,40 +593,10 @@ body {
 .category-chip:focus-visible,
 .lib-word-chip:focus-visible,
 .grid-cell:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.28);
+  outline: 3px solid rgba(59, 130, 246, 0.6);
   outline-offset: 2px;
 }
 
-.mode-selector {
-  display: flex;
-  background: #f1f5f9;
-  padding: 0.4rem;
-  border-radius: var(--radius-lg);
-  margin-top: 1rem;
-}
-
-.mode-button {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--ink-soft);
-  padding: 0.6rem;
-  border-radius: var(--radius-md);
-}
-
-.mode-button.is-active {
-  background: white;
-  color: var(--ink-strong);
-  box-shadow: var(--shadow-sm);
-}
-
-body[data-mode="student"] .mode-button.is-active {
-  color: var(--student-primary);
-}
-
-body[data-mode="teacher"] .mode-button.is-active {
-  color: var(--teacher-primary);
-}
 
 /* Puzzle Board */
 .board-panel {
@@ -1191,6 +1160,8 @@ body[data-tab="student"] .page-shell {
 }
 
 /* Print Overrides */
+@page { size: A4 portrait; margin: 1.5cm; }
+
 @media print {
   .main-tabs,
   #timer-display,
@@ -1201,7 +1172,6 @@ body[data-tab="student"] .page-shell {
   .progress-container,
   .hero,
   .controls-panel,
-  .mode-selector,
   .ghost-button,
   .status-message {
     display: none !important;

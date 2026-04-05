@@ -80,6 +80,7 @@
 
     const timerDuration = typeof rawSample.timerDuration === "number" ? rawSample.timerDuration : 0;
     const hintsAllowed = typeof rawSample.hintsAllowed === "number" ? rawSample.hintsAllowed : 3;
+    const formTemplate = typeof rawSample.formTemplate === "string" ? rawSample.formTemplate : "";
 
     return {
       id: typeof rawSample.id === "string" && rawSample.id ? rawSample.id : generateSampleId(),
@@ -89,6 +90,7 @@
       size,
       timerDuration,
       hintsAllowed,
+      formTemplate,
     };
   }
 
@@ -186,6 +188,7 @@
       size: dom.sizeInput.value,
       timerDuration: Number(dom.timerInput?.value) || 0,
       hintsAllowed: Number(dom.hintsInput?.value) || 0,
+      formTemplate: dom.formTemplateInput?.value.trim() || "",
     };
   }
 
@@ -362,15 +365,21 @@
     return Array.from({ length: dist + 1 }, (_, i) => ({ row: start.row + sr * i, col: start.col + sc * i }));
   }
 
-  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, hintsRemaining: 0 };
+  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "" };
+
+  function resetPuzzleProgress() {
+    state.foundWordIds = new Set(); state.foundPlacementIds = new Set();
+    state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map();
+    state.clickAnchor = null; state.previewCells = []; state.celebrated = false;
+  }
   function encodePuzzleConfig(config) {
-    const json = JSON.stringify({ t: config.title, w: config.words, d: config.difficulty, s: config.size, l: config.lang, tm: config.timer, h: config.hints });
-    return btoa(unescape(encodeURIComponent(json)));
+    const json = JSON.stringify({ t: config.title, w: config.words, d: config.difficulty, s: config.size, l: config.lang, tm: config.timer, h: config.hints, f: config.formTemplate || "" });
+    return btoa(String.fromCharCode(...new TextEncoder().encode(json)));
   }
 
   function decodePuzzleConfig(encoded) {
     try {
-      const json = decodeURIComponent(escape(atob(encoded)));
+      const json = new TextDecoder().decode(Uint8Array.from(atob(encoded), c => c.charCodeAt(0)));
       const obj = JSON.parse(json);
       return {
         title: typeof obj.t === "string" ? obj.t : "",
@@ -380,8 +389,25 @@
         lang: SAMPLE_LANGS.includes(obj.l) ? obj.l : "ca",
         timer: Number(obj.tm) || 0,
         hints: Number(obj.h) || 0,
+        formTemplate: typeof obj.f === "string" ? obj.f : "",
       };
     } catch { return null; }
+  }
+
+  function parseFormEntries(templateUrl) {
+    try {
+      const url = new URL(templateUrl);
+      const entries = [...url.searchParams.keys()].filter(k => k.startsWith("entry."));
+      if (entries.length === 0) return null;
+      return { baseUrl: url.origin + url.pathname, entries };
+    } catch { return null; }
+  }
+
+  function buildFormSubmitUrl(parsed, nom, cognoms, resultat, puzzle) {
+    const url = new URL(parsed.baseUrl);
+    const vals = [nom, cognoms, resultat, puzzle];
+    parsed.entries.forEach((entry, i) => { if (vals[i] !== undefined) url.searchParams.set(entry, vals[i]); });
+    return url.toString();
   }
 
   const dom = {
@@ -427,6 +453,12 @@
     pinChangeMessage: document.querySelector("#pin-change-message"),
     pinChangeDetails: document.querySelector("#pin-change-details"),
     shareButton: document.querySelector("#share-button"),
+    formTemplateInput: document.querySelector("#form-template-input"),
+    sendResultsButton: document.querySelector("#send-results-button"),
+    studentNameModal: document.querySelector("#student-name-modal"),
+    studentNameForm: document.querySelector("#student-name-form"),
+    studentNomInput: document.querySelector("#student-nom-input"),
+    studentCognomsInput: document.querySelector("#student-cognoms-input"),
   };
 
   function setTab(tab) {
@@ -450,6 +482,14 @@
       }
       render();
       updateHintButton();
+      const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+      if (formParsed && !state.studentName.nom && dom.studentNameModal) {
+        const t = TRANSLATIONS[state.lang];
+        if (dom.studentNomInput) dom.studentNomInput.placeholder = t.name_nom_placeholder || "Nom";
+        if (dom.studentCognomsInput) dom.studentCognomsInput.placeholder = t.name_cognoms_placeholder || "Cognoms";
+        dom.studentNameModal.hidden = false;
+        if (dom.studentNomInput) dom.studentNomInput.focus();
+      }
     }
   }
 
@@ -525,6 +565,7 @@
     dom.sizeInput.value = sample.size;
     if (dom.timerInput && sample.timerDuration !== undefined) dom.timerInput.value = String(sample.timerDuration);
     if (dom.hintsInput && sample.hintsAllowed !== undefined) dom.hintsInput.value = String(sample.hintsAllowed);
+    if (dom.formTemplateInput) { dom.formTemplateInput.value = sample.formTemplate || ""; state.formTemplate = sample.formTemplate || ""; }
     dom.form.dispatchEvent(new Event("submit"));
   }
 
@@ -691,9 +732,15 @@
         dom.puzzleGrid.appendChild(btn);
       });
     });
-    dom.completionMessage.hidden = state.foundWordIds.size !== state.puzzle.words.length;
-    if (state.foundWordIds.size === state.puzzle.words.length && !state.celebrated) { celebrate(); state.celebrated = true; }
+    const isComplete = state.foundWordIds.size === state.puzzle.words.length;
+    dom.completionMessage.hidden = !isComplete;
+    if (isComplete && !state.celebrated) { celebrate(); state.celebrated = true; }
+    if (dom.sendResultsButton) {
+      const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+      dom.sendResultsButton.hidden = !(isComplete && formParsed);
+    }
     updateHintButton();
+    if (dom.shareButton) dom.shareButton.disabled = !state.puzzle;
   }
 
   function celebrate() {
@@ -728,7 +775,7 @@
     const submitBtn = dom.form.querySelector("[type=submit]");
     const originalHTML = submitBtn.innerHTML;
     submitBtn.disabled = true;
-    submitBtn.textContent = "...";
+    submitBtn.textContent = TRANSLATIONS[state.lang].btn_generating || "...";
     try {
       const parsed = parseWords(dom.wordsInput.value);
       state.puzzle = buildPuzzle(parsed.words, dom.sizeInput.value, dom.difficultyInput.value, {
@@ -737,11 +784,12 @@
         hintsAllowed: Number(dom.hintsInput?.value) || 0,
       });
       state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : state.puzzle.hintsAllowed;
+      state.studentName = { nom: "", cognoms: "" };
       stopTimer();
-      state.foundWordIds = new Set(); state.foundPlacementIds = new Set(); state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map(); state.clickAnchor = null; state.previewCells = []; state.celebrated = false;
+      resetPuzzleProgress();
       setStatus(TRANSLATIONS[state.lang].msg_success, "success");
       render();
-    } catch (err) { setStatus(err.message, "error"); }
+    } catch (err) { setStatus(TRANSLATIONS[state.lang].msg_puzzle_error || err.message, "error"); }
     finally { submitBtn.disabled = false; submitBtn.innerHTML = originalHTML; }
   });
 
@@ -824,7 +872,8 @@
   });
 
   dom.resetProgressButton.addEventListener("click", () => {
-    state.foundWordIds.clear(); state.foundPlacementIds.clear(); state.prevFoundPlacementIds.clear(); state.foundWordColors.clear(); state.clickAnchor = null; state.previewCells = []; state.celebrated = false;
+    if (!window.confirm(TRANSLATIONS[state.lang].msg_confirm_reset)) return;
+    resetPuzzleProgress();
     stopTimer();
     if (state.puzzle?.timerDuration > 0) startTimer(state.puzzle.timerDuration);
     else if (dom.timerDisplay) dom.timerDisplay.hidden = true;
@@ -926,6 +975,39 @@
   dom.langBtns.forEach(btn => btn.addEventListener("click", () => updateLanguage(btn.dataset.lang)));
   dom.libSearch.addEventListener("input", () => renderLibrary());
   dom.wordsInput.addEventListener("input", () => renderLibrary());
+  if (dom.formTemplateInput) {
+    dom.formTemplateInput.addEventListener("input", () => {
+      state.formTemplate = dom.formTemplateInput.value.trim();
+      const errorEl = document.querySelector("#form-url-error");
+      if (errorEl) {
+        const invalid = state.formTemplate && !parseFormEntries(state.formTemplate);
+        errorEl.style.display = invalid ? "block" : "none";
+        errorEl.textContent = invalid ? (TRANSLATIONS[state.lang].form_url_invalid || "URL no vàlida o sense camps entry.*") : "";
+      }
+    });
+  }
+
+  if (dom.studentNameForm) {
+    dom.studentNameForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const nom = dom.studentNomInput?.value.trim() || "";
+      if (!nom) return;
+      state.studentName = { nom, cognoms: dom.studentCognomsInput?.value.trim() || "" };
+      dom.studentNameModal.hidden = true;
+    });
+  }
+
+  if (dom.sendResultsButton) {
+    dom.sendResultsButton.addEventListener("click", () => {
+      const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+      if (!formParsed || !state.puzzle) return;
+      const total = state.puzzle.words.length;
+      const found = state.foundWordIds.size;
+      const resultat = `${found}/${total}`;
+      const url = buildFormSubmitUrl(formParsed, state.studentName.nom, state.studentName.cognoms, resultat, state.puzzle.title || "");
+      window.open(url, "_blank", "noopener");
+    });
+  }
 
   if (dom.shareButton) {
     dom.shareButton.addEventListener("click", () => {
@@ -938,6 +1020,7 @@
         lang: state.lang,
         timer: Number(dom.timerInput?.value) || 0,
         hints: Number(dom.hintsInput?.value) || 0,
+        formTemplate: dom.formTemplateInput?.value.trim() || "",
       };
       const encoded = encodePuzzleConfig(config);
       const url = `${window.location.origin}${window.location.pathname}?p=${encodeURIComponent(encoded)}`;
@@ -966,13 +1049,16 @@
       dom.sizeInput.value = config.size;
       if (dom.timerInput) dom.timerInput.value = config.timer;
       if (dom.hintsInput) dom.hintsInput.value = config.hints;
+      state.formTemplate = config.formTemplate || "";
+      state.studentName = { nom: "", cognoms: "" };
+      if (dom.formTemplateInput) dom.formTemplateInput.value = state.formTemplate;
       state.puzzle = buildPuzzle(parsed.words, config.size, config.difficulty, {
         title: config.title,
         timerDuration: config.timer,
         hintsAllowed: config.hints,
       });
       state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : state.puzzle.hintsAllowed;
-      state.foundWordIds = new Set(); state.foundPlacementIds = new Set(); state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map(); state.clickAnchor = null; state.previewCells = []; state.celebrated = false;
+      resetPuzzleProgress();
       setTab("student");
       return true;
     } catch { return false; }

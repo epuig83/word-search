@@ -193,6 +193,20 @@
             </div>
           </form>
 
+          <details id="form-config-details" class="pin-change-section">
+            <summary class="teacher-tools-summary" data-t="form_config_title">Resultats (Google Forms)</summary>
+            <div class="pin-change-form">
+              <div class="field">
+                <label for="form-template-input" data-t="form_url_label">URL plantilla pre-omplerta</label>
+                <input type="url" id="form-template-input" placeholder="https://docs.google.com/forms/d/..." style="width:100%;" />
+                <p id="form-url-error" class="status-message is-error" style="display:none; margin-top:0.25rem;"></p>
+              </div>
+              <p class="sample-note" data-t="form_config_note">
+                A Google Forms: "Obtén un enlace previamente completado" → omple els camps nom, cognoms, resultat i tema → copia l'URL i enganxa-la aquí.
+              </p>
+            </div>
+          </details>
+
           <details id="pin-change-details" class="pin-change-section">
             <summary class="teacher-tools-summary" data-t="pin_change_title">Canviar PIN</summary>
             <div class="pin-change-form">
@@ -235,8 +249,11 @@
             <div class="grid-container">
               <div id="puzzle-grid" class="puzzle-grid" aria-label="Sopa de lletres"></div>
               
-              <div id="completion-message" class="completion-message" hidden data-t="completion_msg">
-                🎉 Excel·lent treball! Has completat l'exercici.
+              <div id="completion-message" class="completion-message" hidden>
+                <span data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</span>
+                <button type="button" id="send-results-button" class="primary-button" data-t="btn_send_results" hidden style="margin-top:0.75rem; width:100%;">
+                  Enviar resultats
+                </button>
               </div>
             </div>
 
@@ -273,6 +290,25 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <!-- Modal nom alumne -->
+    <div id="student-name-modal" class="modal-overlay" hidden>
+      <div class="modal-content">
+        <h3 data-t="name_modal_title">Qui ets?</h3>
+        <p data-t="name_modal_text">Escriu el teu nom per començar el joc.</p>
+        <form id="student-name-form">
+          <div class="field" style="margin-bottom:0.75rem;">
+            <label for="student-nom-input" data-t="name_nom_placeholder">Nom</label>
+            <input type="text" id="student-nom-input" autocomplete="given-name" required style="width:100%;" />
+          </div>
+          <div class="field" style="margin-bottom:1rem;">
+            <label for="student-cognoms-input" data-t="name_cognoms_placeholder">Cognoms</label>
+            <input type="text" id="student-cognoms-input" autocomplete="family-name" style="width:100%;" />
+          </div>
+          <button type="submit" class="primary-button" style="width:100%;" data-t="btn_start_game">Començar</button>
+        </form>
+      </div>
     </div>
 
     <!-- Modal de Seguretat per a la Professora -->

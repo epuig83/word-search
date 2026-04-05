@@ -23,6 +23,8 @@
             "caballo",
             "vaca",
             "oveja",
+            "ardilla",
+            "tejón",
           ]),
         }),
         fruits: Object.freeze({
@@ -164,6 +166,8 @@
             "cavall",
             "vaca",
             "ovella",
+            "esquirol",
+            "teixó",
           ]),
         }),
         fruits: Object.freeze({
@@ -232,7 +236,7 @@
           words: Object.freeze([
             "poma",
             "pera",
-            "platan",
+            "plàtan",
             "pa",
             "llet",
             "ou",
