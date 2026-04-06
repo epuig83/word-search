@@ -105,6 +105,9 @@
       pin_change_success: "PIN cambiado correctamente.",
       pin_change_mismatch: "Los PINs no coinciden.",
       pin_too_short: "El PIN debe tener al menos 4 dígitos.",
+      pin_label_new: "Nuevo PIN",
+      pin_label_confirm: "Confirmar PIN",
+      grid_label: "Sopa de letras",
     }),
     ca: Object.freeze({
       page_title: "Generador de Sopes de Lletres per a Primària",
@@ -208,6 +211,9 @@
       pin_change_success: "PIN canviat correctament.",
       pin_change_mismatch: "Els PINs no coincideixen.",
       pin_too_short: "El PIN ha de tenir almenys 4 dígits.",
+      pin_label_new: "Nou PIN",
+      pin_label_confirm: "Confirmar PIN",
+      grid_label: "Sopa de lletres",
     }),
     en: Object.freeze({
       page_title: "Word Search Generator for Primary School",
@@ -311,6 +317,9 @@
       pin_change_success: "PIN changed successfully.",
       pin_change_mismatch: "PINs do not match.",
       pin_too_short: "PIN must be at least 4 digits.",
+      pin_label_new: "New PIN",
+      pin_label_confirm: "Confirm PIN",
+      grid_label: "Word search",
     }),
   });
 })(typeof window !== "undefined" ? window : globalThis);

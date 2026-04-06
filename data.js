@@ -35,7 +35,7 @@
             "plátano",
             "naranja",
             "kiwi",
-            "melon",
+            "melón",
             "uva",
             "cereza",
             "fresa",
@@ -309,6 +309,8 @@
             "horse",
             "cow",
             "sheep",
+            "squirrel",
+            "badger",
           ]),
         }),
         fruits: Object.freeze({
@@ -450,7 +452,7 @@
           title: "Frutas del mercado",
           difficulty: "easy",
           size: "auto",
-          words: ["manzana", "pera", "plátano", "naranja", "kiwi", "melon", "uva", "cereza"].join("\n"),
+          words: ["manzana", "pera", "plátano", "naranja", "kiwi", "melón", "uva", "cereza"].join("\n"),
         }),
         Object.freeze({
           title: "Verduras del huerto",
@@ -518,7 +520,7 @@
           title: "Sistema solar",
           difficulty: "medium",
           size: "auto",
-          words: ["sol", "planeta", "órbita", "mart", "venus", "lluna", "coet", "estrella"].join("\n"),
+          words: ["sol", "planeta", "òrbita", "mart", "venus", "lluna", "coet", "estrella"].join("\n"),
         }),
       ]),
       en: Object.freeze([

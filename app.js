@@ -273,7 +273,7 @@
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) if (!grid[r][c]) grid[r][c] = LETTERS[Math.floor(Math.random() * LETTERS.length)];
         }
-        return { ...metadata, grid, placements, actualSize: size, words, difficultyLabel: TRANSLATIONS[state.lang][`diff_${difficultyKey}`] };
+        return { ...metadata, grid, placements, actualSize: size, words, difficulty: difficultyKey, difficultyLabel: TRANSLATIONS[state.lang][`diff_${difficultyKey}`] };
       }
     }
     throw new Error("Error generating puzzle.");
@@ -314,6 +314,10 @@
         updateTimerDisplay();
       } else {
         stopTimer();
+        state.timerExpired = true;
+        state.clickAnchor = null;
+        state.previewCells = [];
+        render();
       }
     }, 1000);
   }
@@ -365,12 +369,13 @@
     return Array.from({ length: dist + 1 }, (_, i) => ({ row: start.row + sr * i, col: start.col + sc * i }));
   }
 
-  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "" };
+  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, timerStarted: false, timerExpired: false, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "" };
 
   function resetPuzzleProgress() {
     state.foundWordIds = new Set(); state.foundPlacementIds = new Set();
     state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map();
     state.clickAnchor = null; state.previewCells = []; state.celebrated = false;
+    state.timerStarted = false; state.timerExpired = false;
   }
   function encodePuzzleConfig(config) {
     const json = JSON.stringify({ t: config.title, w: config.words, d: config.difficulty, s: config.size, l: config.lang, tm: config.timer, h: config.hints, f: config.formTemplate || "" });
@@ -469,24 +474,22 @@
     dom.sectionTeacher.hidden = tab !== "teacher";
     dom.sectionStudent.hidden = tab !== "student";
     if (tab === "student") {
-      state.mode = "student"; // Al entrar en zona alumno, modo limpio por defecto
+      state.mode = "student";
       if (dom.teacherTools) dom.teacherTools.open = false;
-      stopTimer();
-      if (state.puzzle && state.puzzle.timerDuration > 0) {
+      if (state.puzzle && state.puzzle.timerDuration > 0 && !state.timerStarted && !state.timerExpired) {
+        state.timerStarted = true;
         startTimer(state.puzzle.timerDuration);
-      } else {
+      } else if (!state.puzzle || state.puzzle.timerDuration === 0) {
+        stopTimer();
         if (dom.timerDisplay) dom.timerDisplay.hidden = true;
-      }
-      if (state.puzzle) {
-        state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : (state.puzzle.hintsAllowed || 0);
       }
       render();
       updateHintButton();
       const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
       if (formParsed && !state.studentName.nom && dom.studentNameModal) {
         const t = TRANSLATIONS[state.lang];
-        if (dom.studentNomInput) dom.studentNomInput.placeholder = t.name_nom_placeholder || "Nom";
-        if (dom.studentCognomsInput) dom.studentCognomsInput.placeholder = t.name_cognoms_placeholder || "Cognoms";
+        if (dom.studentNomInput) dom.studentNomInput.placeholder = t.name_nom_placeholder;
+        if (dom.studentCognomsInput) dom.studentCognomsInput.placeholder = t.name_cognoms_placeholder;
         dom.studentNameModal.hidden = false;
         if (dom.studentNomInput) dom.studentNomInput.focus();
       }
@@ -662,6 +665,7 @@
     dom.titleInput.placeholder = TRANSLATIONS[lang].field_topic_placeholder;
     dom.wordsInput.placeholder = TRANSLATIONS[lang].field_words_placeholder;
     dom.libSearch.placeholder = TRANSLATIONS[lang].lib_search_placeholder;
+    if (dom.puzzleGrid) dom.puzzleGrid.setAttribute("aria-label", TRANSLATIONS[lang].grid_label);
     dom.langBtns.forEach(btn => btn.classList.toggle("is-active", btn.dataset.lang === lang));
     state.activeCategory = null;
     renderSampleOptions();
@@ -709,7 +713,13 @@
       const colorClass = solved ? (state.foundWordColors.get(word.id) || "wc-0") : "";
       const li = document.createElement("li");
       li.className = "word-item" + (solved ? ` is-found ${colorClass}` : "");
-      li.innerHTML = `<span>${word.display}</span><span class="check-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>`;
+      const textSpan = document.createElement("span");
+      textSpan.textContent = word.display;
+      const checkSpan = document.createElement("span");
+      checkSpan.className = "check-icon";
+      checkSpan.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7"/></svg>`;
+      li.appendChild(textSpan);
+      li.appendChild(checkSpan);
       dom.wordList.appendChild(li);
     });
     dom.puzzleGrid.innerHTML = "";
@@ -734,7 +744,10 @@
     });
     const isComplete = state.foundWordIds.size === state.puzzle.words.length;
     dom.completionMessage.hidden = !isComplete;
-    if (isComplete && !state.celebrated) { celebrate(); state.celebrated = true; }
+    if (isComplete) {
+      stopTimer();
+      if (!state.celebrated) { celebrate(); state.celebrated = true; }
+    }
     if (dom.sendResultsButton) {
       const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
       dom.sendResultsButton.hidden = !(isComplete && formParsed);
@@ -756,7 +769,6 @@
   function checkMatch(path) {
     if (!path || path.length < 2) return false;
     const key = path.map(c => `${c.row}:${c.col}`).join("|");
-    const rev = [...path].reverse().map(c => `${c.row}:${c.col}`).join("|");
     const match = state.puzzle.placements.find(p => (p.key === key || p.reversedKey === key) && !state.foundPlacementIds.has(p.placementId));
     if (match) {
       state.foundPlacementIds.add(match.placementId);
@@ -778,6 +790,7 @@
     submitBtn.textContent = TRANSLATIONS[state.lang].btn_generating || "...";
     try {
       const parsed = parseWords(dom.wordsInput.value);
+      if (parsed.words.length < 1) throw new Error("no_words");
       state.puzzle = buildPuzzle(parsed.words, dom.sizeInput.value, dom.difficultyInput.value, {
         title: dom.titleInput.value,
         timerDuration: Number(dom.timerInput?.value) || 0,
@@ -946,7 +959,7 @@
   
   dom.puzzleGrid.addEventListener("pointerdown", e => {
     const btn = e.target.closest(".grid-cell");
-    if (!btn || !state.puzzle) return;
+    if (!btn || !state.puzzle || state.timerExpired) return;
     const cell = { row: +btn.dataset.row, col: +btn.dataset.col };
     state.dragSelection = { start: cell, end: cell, moved: false };
   });
@@ -982,7 +995,7 @@
       if (errorEl) {
         const invalid = state.formTemplate && !parseFormEntries(state.formTemplate);
         errorEl.style.display = invalid ? "block" : "none";
-        errorEl.textContent = invalid ? (TRANSLATIONS[state.lang].form_url_invalid || "URL no vàlida o sense camps entry.*") : "";
+        errorEl.textContent = invalid ? TRANSLATIONS[state.lang].form_url_invalid : "";
       }
     });
   }
@@ -1013,23 +1026,23 @@
     dom.shareButton.addEventListener("click", () => {
       if (!state.puzzle) return;
       const config = {
-        title: dom.titleInput.value,
-        words: dom.wordsInput.value,
-        difficulty: dom.difficultyInput.value,
-        size: dom.sizeInput.value,
+        title: state.puzzle.title,
+        words: state.puzzle.words.map(w => w.display).join("\n"),
+        difficulty: state.puzzle.difficulty,
+        size: String(state.puzzle.actualSize),
         lang: state.lang,
-        timer: Number(dom.timerInput?.value) || 0,
-        hints: Number(dom.hintsInput?.value) || 0,
-        formTemplate: dom.formTemplateInput?.value.trim() || "",
+        timer: state.puzzle.timerDuration,
+        hints: state.puzzle.hintsAllowed,
+        formTemplate: state.formTemplate || "",
       };
       const encoded = encodePuzzleConfig(config);
       const url = `${window.location.origin}${window.location.pathname}?p=${encodeURIComponent(encoded)}`;
       const t = TRANSLATIONS[state.lang];
       navigator.clipboard.writeText(url).then(() => {
-        dom.shareButton.textContent = t.btn_share_copied || "Copiat!";
-        setTimeout(() => { dom.shareButton.textContent = t.btn_share || "Compartir"; }, 2500);
+        dom.shareButton.textContent = t.btn_share_copied;
+        setTimeout(() => { dom.shareButton.textContent = t.btn_share; }, 2500);
       }).catch(() => {
-        window.prompt(t.btn_share || "Compartir", url);
+        window.prompt(t.btn_share, url);
       });
     });
   }

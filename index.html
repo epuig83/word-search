@@ -211,11 +211,11 @@
             <summary class="teacher-tools-summary" data-t="pin_change_title">Canviar PIN</summary>
             <div class="pin-change-form">
               <div class="field">
-                <label for="new-pin-input">Nou PIN</label>
+                <label for="new-pin-input" data-t="pin_label_new">Nou PIN</label>
                 <input type="password" id="new-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" />
               </div>
               <div class="field">
-                <label for="confirm-pin-input">Confirmar PIN</label>
+                <label for="confirm-pin-input" data-t="pin_label_confirm">Confirmar PIN</label>
                 <input type="password" id="confirm-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" />
               </div>
               <button type="button" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Desar PIN</button>
@@ -247,7 +247,7 @@
 
           <div class="puzzle-layout">
             <div class="grid-container">
-              <div id="puzzle-grid" class="puzzle-grid" aria-label="Sopa de lletres"></div>
+              <div id="puzzle-grid" class="puzzle-grid"></div>
               
               <div id="completion-message" class="completion-message" hidden>
                 <span data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</span>
@@ -319,7 +319,7 @@
         <form id="pin-form">
           <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
           <div class="pin-input-group">
-            <input type="password" id="pin-input" maxlength="4" placeholder="••••" inputmode="numeric" autocomplete="current-password">
+            <input type="password" id="pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password">
             <button type="submit" id="pin-submit" class="primary-button" data-t="pin_btn_validate">Validar PIN</button>
           </div>
           <button type="button" id="pin-cancel" class="ghost-button" style="width: 100%; margin-top: 1rem;" data-t="pin_btn_cancel">Cancel·lar</button>
