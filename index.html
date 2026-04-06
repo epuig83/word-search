@@ -209,18 +209,19 @@
 
           <details id="pin-change-details" class="pin-change-section">
             <summary class="teacher-tools-summary" data-t="pin_change_title">Canviar PIN</summary>
-            <div class="pin-change-form">
+            <form id="pin-change-form" class="pin-change-form">
+              <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
               <div class="field">
                 <label for="new-pin-input" data-t="pin_label_new">Nou PIN</label>
-                <input type="password" id="new-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" />
+                <input type="password" id="new-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" pattern="[0-9]*" required />
               </div>
               <div class="field">
                 <label for="confirm-pin-input" data-t="pin_label_confirm">Confirmar PIN</label>
-                <input type="password" id="confirm-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" />
+                <input type="password" id="confirm-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" pattern="[0-9]*" required />
               </div>
-              <button type="button" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Desar PIN</button>
+              <button type="submit" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Desar PIN</button>
               <p id="pin-change-message" class="status-message" style="display:none; margin-top: 0;"></p>
-            </div>
+            </form>
           </details>
 
           <p id="status-message" class="status-message" role="status" aria-live="polite" data-t="status_default">
@@ -247,7 +248,7 @@
 
           <div class="puzzle-layout">
             <div class="grid-container">
-              <div id="puzzle-grid" class="puzzle-grid"></div>
+              <div id="puzzle-grid" class="puzzle-grid" aria-describedby="board-instructions"></div>
               
               <div id="completion-message" class="completion-message" hidden>
                 <span data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</span>
@@ -293,10 +294,18 @@
     </div>
 
     <!-- Modal nom alumne -->
-    <div id="student-name-modal" class="modal-overlay" hidden>
-      <div class="modal-content">
-        <h3 data-t="name_modal_title">Qui ets?</h3>
-        <p data-t="name_modal_text">Escriu el teu nom per començar el joc.</p>
+    <div
+      id="student-name-modal"
+      class="modal-overlay"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="student-name-title"
+      aria-describedby="student-name-text"
+    >
+      <div class="modal-content" tabindex="-1">
+        <h3 id="student-name-title" data-t="name_modal_title">Qui ets?</h3>
+        <p id="student-name-text" data-t="name_modal_text">Escriu el teu nom per començar el joc.</p>
         <form id="student-name-form">
           <div class="field" style="margin-bottom:0.75rem;">
             <label for="student-nom-input" data-t="name_nom_placeholder">Nom</label>
@@ -312,10 +321,18 @@
     </div>
 
     <!-- Modal de Seguretat per a la Professora -->
-    <div id="pin-modal" class="modal-overlay" hidden>
-      <div class="modal-content">
-        <h3 data-t="pin_title">Accés Restringit</h3>
-        <p data-t="pin_text">Introdueix el PIN per continuar.</p>
+    <div
+      id="pin-modal"
+      class="modal-overlay"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pin-modal-title"
+      aria-describedby="pin-modal-text"
+    >
+      <div class="modal-content" tabindex="-1">
+        <h3 id="pin-modal-title" data-t="pin_title">Accés Restringit</h3>
+        <p id="pin-modal-text" data-t="pin_text">Introdueix el PIN per continuar.</p>
         <form id="pin-form">
           <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
           <div class="pin-input-group">
