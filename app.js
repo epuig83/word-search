@@ -60,6 +60,10 @@
     return { words };
   }
 
+  function countValidWords(rawText) {
+    return parseWords(rawText).words.length;
+  }
+
   function normalizeSharedSize(value) {
     const size = String(value ?? "");
     if (SAMPLE_SIZES.has(size)) {
@@ -565,7 +569,11 @@
     return parts.join(", ");
   }
 
-  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, timerStarted: false, timerExpired: false, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "", focusedCell: null, lastFocusedElement: null };
+  function getDefaultBoardInputMode() {
+    return globalThis.matchMedia?.("(pointer: coarse)")?.matches ? "touch" : "pointer";
+  }
+
+  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, timerStarted: false, timerExpired: false, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "", focusedCell: null, lastFocusedElement: null, lastBoardInputMode: getDefaultBoardInputMode() };
 
   function resetPuzzleProgress() {
     state.foundWordIds = new Set(); state.foundPlacementIds = new Set();
@@ -649,8 +657,13 @@
   const dom = {
     metaDescription: document.querySelector('meta[name="description"]'),
     form: document.querySelector("#generator-form"),
+    generateButton: document.querySelector("#generate-button"),
+    generateOpenButton: document.querySelector("#generate-open-button"),
     titleInput: document.querySelector("#title-input"),
     wordsInput: document.querySelector("#words-input"),
+    clearWordsButton: document.querySelector("#clear-words-button"),
+    wordsCount: document.querySelector("#words-count"),
+    wordsFeedback: document.querySelector("#words-feedback"),
     difficultyInput: document.querySelector("#difficulty-input"),
     sizeInput: document.querySelector("#size-input"),
     sampleSelect: document.querySelector("#sample-select"),
@@ -664,7 +677,15 @@
     printButton: document.querySelector("#print-button"),
     teacherTools: document.querySelector("#teacher-tools"),
     statusMessage: document.querySelector("#status-message"),
+    teacherReadyCard: document.querySelector("#teacher-ready-card"),
+    teacherReadyTopic: document.querySelector("#teacher-ready-topic"),
+    teacherReadyMeta: document.querySelector("#teacher-ready-meta"),
+    teacherOpenStudentButton: document.querySelector("#teacher-open-student-button"),
+    teacherShareButton: document.querySelector("#teacher-share-button"),
+    teacherPrintButton: document.querySelector("#teacher-print-button"),
     boardTitle: document.querySelector("#board-title"),
+    boardInstructions: document.querySelector("#board-instructions"),
+    boardStatus: document.querySelector("#board-status"),
     progressText: document.querySelector("#progress-text"),
     puzzleGrid: document.querySelector("#puzzle-grid"),
     wordList: document.querySelector("#word-list"),
@@ -785,8 +806,54 @@
     openModal(dom.pinModal, dom.pinInput);
   }
 
+  function updateWordsHelper() {
+    if (!dom.wordsCount || !dom.wordsFeedback) return;
+    const t = TRANSLATIONS[state.lang];
+    const count = countValidWords(dom.wordsInput.value);
+    const countTone = count >= 3 ? "ready" : count > 0 ? "sparse" : "";
+    const feedbackKey = count >= 3 ? "words_summary_ready" : count > 0 ? "words_summary_sparse" : "words_summary_empty";
+
+    dom.wordsCount.textContent = t.words_count.replace("{count}", count);
+    dom.wordsCount.className = "words-count-pill" + (countTone ? ` is-${countTone}` : "");
+    dom.wordsFeedback.textContent = t[feedbackKey];
+    dom.wordsFeedback.className = "words-feedback" + (countTone ? ` is-${countTone}` : "");
+
+    if (dom.clearWordsButton) dom.clearWordsButton.disabled = count === 0;
+    if (dom.generateButton) dom.generateButton.disabled = count === 0;
+    if (dom.generateOpenButton) dom.generateOpenButton.disabled = count === 0;
+  }
+
+  function syncWordsUi() {
+    updateWordsHelper();
+    renderLibrary();
+  }
+
   function isFormDirty() {
     return Boolean(dom.titleInput.value.trim() || dom.wordsInput.value.trim());
+  }
+
+  function getBoardInstructionText() {
+    const t = TRANSLATIONS[state.lang];
+    if (state.lastBoardInputMode === "keyboard") return t.board_instructions_keyboard || t.board_instructions;
+    if (state.lastBoardInputMode === "touch") return t.board_instructions_touch || t.board_instructions;
+    return t.board_instructions_pointer || t.board_instructions;
+  }
+
+  function buildTeacherReadyMeta(puzzle) {
+    const t = TRANSLATIONS[state.lang];
+    const difficultyLabel = t[`diff_${puzzle.difficulty}`] || puzzle.difficultyLabel;
+    return t.teacher_ready_meta
+      .replace("{count}", puzzle.words.length)
+      .replace(/\{size\}/g, puzzle.actualSize)
+      .replace("{difficulty}", difficultyLabel);
+  }
+
+  function updateTeacherReadyCard() {
+    if (!dom.teacherReadyCard) return;
+    dom.teacherReadyCard.hidden = !state.puzzle;
+    if (!state.puzzle) return;
+    dom.teacherReadyTopic.textContent = state.puzzle.title;
+    dom.teacherReadyMeta.textContent = buildTeacherReadyMeta(state.puzzle);
   }
 
   function renderSampleOptions(selectedValue = "") {
@@ -850,7 +917,12 @@
     if (dom.timerInput && sample.timerDuration !== undefined) dom.timerInput.value = String(sample.timerDuration);
     if (dom.hintsInput && sample.hintsAllowed !== undefined) dom.hintsInput.value = String(sample.hintsAllowed);
     if (dom.formTemplateInput) { dom.formTemplateInput.value = sample.formTemplate || ""; state.formTemplate = sample.formTemplate || ""; }
-    dom.form.dispatchEvent(new Event("submit"));
+    syncWordsUi();
+    if (typeof dom.form.requestSubmit === "function") {
+      dom.form.requestSubmit(dom.generateButton || undefined);
+    } else {
+      dom.form.dispatchEvent(new Event("submit"));
+    }
   }
 
   function appendLibraryWord(word, chipBtn) {
@@ -866,11 +938,7 @@
 
     dom.wordsInput.value = [...currentWords, word].join("\n");
     setStatus(null);
-    // Update only this chip in-place — no full library re-render
-    if (chipBtn) {
-      chipBtn.classList.add("is-added");
-      chipBtn.disabled = true;
-    }
+    syncWordsUi();
   }
 
   function renderLibrary() {
@@ -950,6 +1018,7 @@
     dom.langBtns.forEach(btn => btn.classList.toggle("is-active", btn.dataset.lang === lang));
     state.activeCategory = null;
     renderSampleOptions();
+    updateWordsHelper();
     renderLibrary();
     render();
   }
@@ -963,15 +1032,24 @@
     document.body.dataset.mode = state.mode;
     document.body.dataset.tab = state.activeTab;
     dom.studentActions.hidden = !state.puzzle;
-    if (!state.puzzle) return;
+    if (!state.puzzle) {
+      if (dom.teacherReadyCard) dom.teacherReadyCard.hidden = true;
+      if (dom.boardStatus) {
+        dom.boardStatus.textContent = "";
+        dom.boardStatus.className = "board-status";
+      }
+      return;
+    }
     const t = TRANSLATIONS[state.lang];
     dom.solutionToggleButton.textContent =
       state.mode === "teacher" ? t.btn_hide_solution : t.btn_show_solution;
     dom.solutionToggleButton.classList.toggle("is-active", state.mode === "teacher");
     if (state.mode === "teacher" && dom.teacherTools) dom.teacherTools.open = true;
+    if (dom.boardInstructions) dom.boardInstructions.textContent = getBoardInstructionText();
     dom.boardTitle.textContent = state.puzzle.title;
     dom.progressText.textContent = `${state.foundWordIds.size} / ${state.puzzle.words.length}`;
     dom.wordBankCount.textContent = state.puzzle.words.length;
+    updateTeacherReadyCard();
     // Build per-word color map for grid cells, tracking newly found for animation
     const foundColorMap = new Map(); // "row:col" → "wc-N"
     const newlyFoundCells = new Set();
@@ -1038,6 +1116,26 @@
     });
     const isComplete = state.foundWordIds.size === state.puzzle.words.length;
     dom.completionMessage.hidden = !isComplete;
+    if (dom.boardStatus) {
+      const boardStatusTone = state.timerExpired
+        ? "expired"
+        : isComplete
+          ? "complete"
+          : state.foundWordIds.size > 0
+            ? "progress"
+            : "";
+      const boardStatusText = state.timerExpired
+        ? t.board_status_expired
+        : isComplete
+          ? t.board_status_complete
+          : state.foundWordIds.size > 0
+            ? t.board_status_progress
+              .replace("{found}", state.foundWordIds.size)
+              .replace("{total}", state.puzzle.words.length)
+            : t.board_status_start;
+      dom.boardStatus.textContent = boardStatusText;
+      dom.boardStatus.className = "board-status" + (boardStatusTone ? ` is-${boardStatusTone}` : "");
+    }
     if (isComplete) {
       stopTimer();
       if (!state.celebrated) { celebrate(); state.celebrated = true; }
@@ -1076,14 +1174,48 @@
     return false;
   }
 
-  dom.form.addEventListener("submit", e => {
-    e.preventDefault();
-    const submitBtn = dom.form.querySelector("[type=submit]");
-    const originalHTML = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.textContent = TRANSLATIONS[state.lang].btn_generating || "...";
+  function flashButtonText(button, temporaryText, resetText) {
+    if (!button) return;
+    button.textContent = temporaryText;
+    setTimeout(() => { button.textContent = resetText; }, 2500);
+  }
+
+  function shareCurrentPuzzle(button) {
+    if (!state.puzzle) return;
+    const config = buildShareConfigFromPuzzle(state.puzzle);
+    const encoded = encodePuzzleConfig(config);
+    const url = `${window.location.origin}${window.location.pathname}?p=${encodeURIComponent(encoded)}`;
+    const t = TRANSLATIONS[state.lang];
+    navigator.clipboard.writeText(url).then(() => {
+      flashButtonText(button, t.btn_share_copied, t.btn_share);
+      setStatus(t.btn_share_copied, "success");
+    }).catch(() => {
+      window.prompt(t.btn_share, url);
+    });
+  }
+
+  function printCurrentPuzzle() {
+    if (!state.puzzle) {
+      setStatus(TRANSLATIONS[state.lang].msg_print_without_puzzle, "error");
+      return;
+    }
+
+    window.print();
+  }
+
+  function generatePuzzle({ openStudent = false, triggerButton = dom.generateButton } = {}) {
+    const t = TRANSLATIONS[state.lang];
+    const parsed = parseWords(dom.wordsInput.value);
+    const originalTriggerText = triggerButton?.textContent || "";
+
+    [dom.generateButton, dom.generateOpenButton].forEach(button => {
+      if (button) button.disabled = true;
+    });
+    if (triggerButton) {
+      triggerButton.textContent = t.btn_generating || "...";
+    }
+
     try {
-      const parsed = parseWords(dom.wordsInput.value);
       if (parsed.words.length < 1) throw new Error("no_words");
       state.puzzle = buildPuzzle(parsed.words, dom.sizeInput.value, dom.difficultyInput.value, {
         title: dom.titleInput.value,
@@ -1095,10 +1227,22 @@
       state.studentName = { nom: "", cognoms: "" };
       stopTimer();
       resetPuzzleProgress();
-      setStatus(TRANSLATIONS[state.lang].msg_success, "success");
+      setStatus(t.msg_success, "success");
       render();
-    } catch (err) { setStatus(TRANSLATIONS[state.lang].msg_puzzle_error || err.message, "error"); }
-    finally { submitBtn.disabled = false; submitBtn.innerHTML = originalHTML; }
+      if (openStudent) setTab("student");
+    } catch (err) {
+      setStatus(t.msg_puzzle_error || err.message, "error");
+    } finally {
+      if (triggerButton) triggerButton.textContent = originalTriggerText;
+      if (dom.generateButton) dom.generateButton.textContent = t.btn_generate;
+      if (dom.generateOpenButton) dom.generateOpenButton.textContent = t.btn_generate_open_student;
+      updateWordsHelper();
+    }
+  }
+
+  dom.form.addEventListener("submit", e => {
+    e.preventDefault();
+    generatePuzzle({ triggerButton: e.submitter || dom.generateButton });
   });
 
   dom.loadSampleButton.addEventListener("click", () => {
@@ -1188,14 +1332,7 @@
     if (state.puzzle) state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : (state.puzzle.hintsAllowed || 0);
     render();
   });
-  dom.printButton.addEventListener("click", () => {
-    if (!state.puzzle) {
-      setStatus(TRANSLATIONS[state.lang].msg_print_without_puzzle, "error");
-      return;
-    }
-
-    window.print();
-  });
+  dom.printButton.addEventListener("click", () => printCurrentPuzzle());
   
   dom.tabTeacher.addEventListener("click", () => {
     if (state.activeTab === "teacher") return;
@@ -1203,6 +1340,21 @@
   });
   
   dom.tabStudent.addEventListener("click", () => setTab("student"));
+  dom.generateOpenButton?.addEventListener("click", () => {
+    if (!dom.form.reportValidity()) return;
+    generatePuzzle({ openStudent: true, triggerButton: dom.generateOpenButton });
+  });
+  dom.clearWordsButton?.addEventListener("click", () => {
+    dom.wordsInput.value = "";
+    setStatus(null);
+    syncWordsUi();
+    dom.wordsInput.focus();
+  });
+  dom.teacherOpenStudentButton?.addEventListener("click", () => {
+    if (state.puzzle) setTab("student");
+  });
+  dom.teacherShareButton?.addEventListener("click", () => shareCurrentPuzzle(dom.teacherShareButton));
+  dom.teacherPrintButton?.addEventListener("click", () => printCurrentPuzzle());
 
   dom.pinForm?.addEventListener("submit", event => {
     event.preventDefault();
@@ -1272,6 +1424,7 @@
   dom.puzzleGrid.addEventListener("pointerdown", e => {
     const btn = e.target.closest(".grid-cell");
     if (!btn || !state.puzzle || state.timerExpired) return;
+    state.lastBoardInputMode = e.pointerType === "touch" ? "touch" : "pointer";
     const cell = { row: +btn.dataset.row, col: +btn.dataset.col };
     setFocusedCell(cell);
     state.dragSelection = { start: cell, end: cell, moved: false };
@@ -1305,6 +1458,7 @@
   dom.puzzleGrid.addEventListener("keydown", event => {
     const cell = getGridCellFromElement(event.target);
     if (!cell || !state.puzzle) return;
+    state.lastBoardInputMode = "keyboard";
     setFocusedCell(cell);
 
     const focusMoves = {
@@ -1341,7 +1495,7 @@
 
   dom.langBtns.forEach(btn => btn.addEventListener("click", () => updateLanguage(btn.dataset.lang)));
   dom.libSearch.addEventListener("input", () => renderLibrary());
-  dom.wordsInput.addEventListener("input", () => renderLibrary());
+  dom.wordsInput.addEventListener("input", () => syncWordsUi());
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
       state.formTemplate = dom.formTemplateInput.value.trim();
@@ -1378,19 +1532,7 @@
   }
 
   if (dom.shareButton) {
-    dom.shareButton.addEventListener("click", () => {
-      if (!state.puzzle) return;
-      const config = buildShareConfigFromPuzzle(state.puzzle);
-      const encoded = encodePuzzleConfig(config);
-      const url = `${window.location.origin}${window.location.pathname}?p=${encodeURIComponent(encoded)}`;
-      const t = TRANSLATIONS[state.lang];
-      navigator.clipboard.writeText(url).then(() => {
-        dom.shareButton.textContent = t.btn_share_copied;
-        setTimeout(() => { dom.shareButton.textContent = t.btn_share; }, 2500);
-      }).catch(() => {
-        window.prompt(t.btn_share, url);
-      });
-    });
+    dom.shareButton.addEventListener("click", () => shareCurrentPuzzle(dom.shareButton));
   }
 
   function tryLoadFromUrl() {
@@ -1411,6 +1553,7 @@
       state.formTemplate = config.formTemplate || "";
       state.studentName = { nom: "", cognoms: "" };
       if (dom.formTemplateInput) dom.formTemplateInput.value = state.formTemplate;
+      syncWordsUi();
       const metadata = {
         title: config.title,
         requestedSize: config.requestedSize,
@@ -1429,6 +1572,7 @@
 
   if (!tryLoadFromUrl()) {
     updateLanguage("ca");
+    updateWordsHelper();
     setTab("teacher");
   }
 })();

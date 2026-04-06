@@ -97,6 +97,17 @@
                   placeholder="lleó&#10;tigre&#10;girafa&#10;mico"
                   required
                 ></textarea>
+                <div class="words-tools">
+                  <div class="words-tools-meta">
+                    <span id="words-count" class="words-count-pill">0 paraules vàlides</span>
+                    <p id="words-feedback" class="words-feedback" role="status" aria-live="polite">
+                      Afegeix paraules o toca la biblioteca.
+                    </p>
+                  </div>
+                  <button type="button" id="clear-words-button" class="ghost-button words-clear-button" data-t="btn_clear_words">
+                    Buidar llista
+                  </button>
+                </div>
               </div>
 
               <!-- Biblioteca de Vocabulari -->
@@ -186,9 +197,11 @@
             </div>
 
             <div class="action-row">
-              <button type="submit" class="primary-button" data-t="btn_generate">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+              <button type="submit" id="generate-button" class="primary-button" data-t="btn_generate">
                 Generar nova sopa
+              </button>
+              <button type="button" id="generate-open-button" class="ghost-button action-secondary-button" data-t="btn_generate_open_student">
+                Generar i obrir zona alumne
               </button>
             </div>
           </form>
@@ -227,6 +240,26 @@
           <p id="status-message" class="status-message" role="status" aria-live="polite" data-t="status_default">
             Escriu les teves paraules i prem "Generar".
           </p>
+
+          <section id="teacher-ready-card" class="teacher-ready-card" hidden>
+            <p class="section-kicker" data-t="teacher_ready_title">Activitat preparada</p>
+            <h3 id="teacher-ready-topic">Sopa de lletres</h3>
+            <p id="teacher-ready-meta" class="teacher-ready-meta"></p>
+            <p class="teacher-ready-note" data-t="teacher_ready_note">
+              Ja la pots obrir per a l'alumnat, compartir o imprimir.
+            </p>
+            <div class="teacher-ready-actions">
+              <button type="button" id="teacher-open-student-button" class="primary-button" data-t="btn_open_student">
+                Obrir zona alumne
+              </button>
+              <button type="button" id="teacher-share-button" class="ghost-button" data-t="btn_share">
+                Compartir
+              </button>
+              <button type="button" id="teacher-print-button" class="ghost-button" data-t="btn_print">
+                Imprimir / PDF
+              </button>
+            </div>
+          </section>
         </section>
 
         <section id="section-student" class="panel board-panel" aria-labelledby="board-title" hidden>
@@ -237,6 +270,7 @@
               <p id="board-instructions" class="board-instructions" data-t="board_instructions">
                 Arrossega una paraula o toca la primera i l'última lletra.
               </p>
+              <p id="board-status" class="board-status" role="status" aria-live="polite"></p>
             </div>
 
             <div class="progress-container">
