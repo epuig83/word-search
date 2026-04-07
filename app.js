@@ -405,6 +405,66 @@
     }
   }
 
+  function formatSecondsAsClock(totalSeconds) {
+    const mins = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+    const secs = (totalSeconds % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
+  }
+
+  function formatTimerSummary(totalSeconds) {
+    if (totalSeconds <= 0) return TRANSLATIONS[state.lang].timer_none;
+    if (totalSeconds % 60 === 0) return `${totalSeconds / 60} min`;
+    return formatSecondsAsClock(totalSeconds);
+  }
+
+  function formatHintsSummary(hintsAllowed) {
+    const t = TRANSLATIONS[state.lang];
+    if (hintsAllowed === -1) return t.hints_unlimited;
+    if (hintsAllowed === 0) return t.hints_none;
+    return String(hintsAllowed);
+  }
+
+  function shouldShowStudentStartOverlay() {
+    return Boolean(state.puzzle && state.activeTab === "student" && !state.studentSessionStarted && !state.timerExpired);
+  }
+
+  function canInteractWithPuzzle() {
+    return Boolean(state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired);
+  }
+
+  function syncStudentStartOverlay() {
+    if (dom.studentStartTimer) {
+      dom.studentStartTimer.textContent = state.puzzle
+        ? formatTimerSummary(state.puzzle.timerDuration)
+        : TRANSLATIONS[state.lang].timer_none;
+    }
+    if (dom.studentStartHints) {
+      dom.studentStartHints.textContent = state.puzzle
+        ? formatHintsSummary(state.puzzle.hintsAllowed)
+        : TRANSLATIONS[state.lang].hints_none;
+    }
+    const shouldShow = shouldShowStudentStartOverlay();
+    if (dom.studentStartOverlay) dom.studentStartOverlay.hidden = !shouldShow;
+    if (dom.studentPlaySurface) {
+      dom.studentPlaySurface.classList.toggle("is-blocked", shouldShow);
+      if ("inert" in dom.studentPlaySurface) dom.studentPlaySurface.inert = shouldShow;
+    }
+  }
+
+  function focusStudentStartButton() {
+    requestAnimationFrame(() => dom.studentStartButton?.focus());
+  }
+
+  function expireTimer() {
+    stopTimer();
+    state.timerSecondsLeft = 0;
+    state.timerExpired = true;
+    state.dragSelection = null;
+    state.clickAnchor = null;
+    state.previewCells = [];
+    render();
+  }
+
   function updateTimerDisplay() {
     if (!dom.timerDisplay) return;
     const t = state.timerSecondsLeft;
@@ -414,30 +474,25 @@
       dom.timerDisplay.classList.add("is-expired");
       return;
     }
-    const mins = Math.floor(t / 60).toString().padStart(2, "0");
-    const secs = (t % 60).toString().padStart(2, "0");
-    dom.timerDisplay.textContent = `${mins}:${secs}`;
+    dom.timerDisplay.textContent = formatSecondsAsClock(t);
     dom.timerDisplay.classList.toggle("is-warning", t <= 60);
     dom.timerDisplay.classList.remove("is-expired");
   }
 
   function startTimer(totalSeconds) {
     stopTimer();
-    state.timerSecondsLeft = totalSeconds;
+    state.timerSecondsLeft = Math.max(0, totalSeconds);
+    if (state.timerSecondsLeft <= 0) {
+      expireTimer();
+      return;
+    }
     dom.timerDisplay.hidden = false;
     dom.timerDisplay.classList.remove("is-warning", "is-expired");
     updateTimerDisplay();
     state.timerIntervalId = setInterval(() => {
-      if (state.timerSecondsLeft > 0) {
-        state.timerSecondsLeft--;
-        updateTimerDisplay();
-      } else {
-        stopTimer();
-        state.timerExpired = true;
-        state.clickAnchor = null;
-        state.previewCells = [];
-        render();
-      }
+      state.timerSecondsLeft = Math.max(0, state.timerSecondsLeft - 1);
+      updateTimerDisplay();
+      if (state.timerSecondsLeft <= 0) expireTimer();
     }, 1000);
   }
 
@@ -463,7 +518,7 @@
   }
 
   function useHint() {
-    if (!state.puzzle || (state.puzzle.hintsAllowed !== -1 && state.hintsRemaining <= 0)) return;
+    if (!canInteractWithPuzzle() || (state.puzzle.hintsAllowed !== -1 && state.hintsRemaining <= 0)) return;
     const unsolved = state.puzzle.placements.filter(p => !state.foundPlacementIds.has(p.placementId));
     if (!unsolved.length) return;
     const placement = unsolved[Math.floor(Math.random() * unsolved.length)];
@@ -523,7 +578,7 @@
   }
 
   function selectCell(cell) {
-    if (!state.puzzle || state.timerExpired) return;
+    if (!canInteractWithPuzzle()) return;
     setFocusedCell(cell);
     if (!state.clickAnchor) {
       state.clickAnchor = cell;
@@ -573,13 +628,15 @@
     return globalThis.matchMedia?.("(pointer: coarse)")?.matches ? "touch" : "pointer";
   }
 
-  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, timerStarted: false, timerExpired: false, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "", focusedCell: null, lastFocusedElement: null, lastBoardInputMode: getDefaultBoardInputMode() };
+  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, timerStarted: false, timerExpired: false, studentSessionStarted: false, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "", focusedCell: null, lastFocusedElement: null, lastBoardInputMode: getDefaultBoardInputMode() };
 
   function resetPuzzleProgress() {
+    stopTimer();
     state.foundWordIds = new Set(); state.foundPlacementIds = new Set();
     state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map();
-    state.clickAnchor = null; state.previewCells = []; state.celebrated = false;
-    state.timerStarted = false; state.timerExpired = false;
+    state.clickAnchor = null; state.previewCells = []; state.dragSelection = null; state.celebrated = false;
+    state.timerStarted = false; state.timerExpired = false; state.studentSessionStarted = false;
+    state.timerSecondsLeft = state.puzzle?.timerDuration || 0;
     state.focusedCell = null;
   }
 
@@ -691,6 +748,11 @@
     wordList: document.querySelector("#word-list"),
     wordBankCount: document.querySelector("#word-bank-count"),
     studentActions: document.querySelector("#student-actions"),
+    studentPlaySurface: document.querySelector("#student-play-surface"),
+    studentStartOverlay: document.querySelector("#student-start-overlay"),
+    studentStartTimer: document.querySelector("#student-start-timer"),
+    studentStartHints: document.querySelector("#student-start-hints"),
+    studentStartButton: document.querySelector("#student-start-button"),
     completionMessage: document.querySelector("#completion-message"),
     langBtns: document.querySelectorAll(".lang-btn"),
     libSearch: document.querySelector("#lib-search"),
@@ -770,6 +832,18 @@
     }
   }
 
+  function startStudentSession() {
+    if (!state.puzzle || state.studentSessionStarted) return;
+    state.studentSessionStarted = true;
+    clearSelection();
+    if (state.puzzle.timerDuration > 0 && !state.timerExpired) {
+      state.timerStarted = true;
+      startTimer(state.timerSecondsLeft || state.puzzle.timerDuration);
+    }
+    render();
+    focusGridCell(setFocusedCell(state.focusedCell || { row: 0, col: 0 }));
+  }
+
   function setTab(tab) {
     state.activeTab = tab;
     document.body.dataset.tab = tab;
@@ -780,12 +854,8 @@
     if (tab === "student") {
       state.mode = "student";
       if (dom.teacherTools) dom.teacherTools.open = false;
-      if (state.puzzle && state.puzzle.timerDuration > 0 && !state.timerStarted && !state.timerExpired) {
-        state.timerStarted = true;
-        startTimer(state.puzzle.timerDuration);
-      } else if (!state.puzzle || state.puzzle.timerDuration === 0) {
-        stopTimer();
-        if (dom.timerDisplay) dom.timerDisplay.hidden = true;
+      if (state.puzzle && state.studentSessionStarted && state.puzzle.timerDuration > 0 && !state.timerExpired && state.timerIntervalId === null && state.timerSecondsLeft > 0) {
+        startTimer(state.timerSecondsLeft);
       }
       render();
       updateHintButton();
@@ -795,6 +865,8 @@
         if (dom.studentNomInput) dom.studentNomInput.placeholder = t.name_nom_placeholder;
         if (dom.studentCognomsInput) dom.studentCognomsInput.placeholder = t.name_cognoms_placeholder;
         openModal(dom.studentNameModal, dom.studentNomInput);
+      } else if (shouldShowStudentStartOverlay()) {
+        focusStudentStartButton();
       }
     }
   }
@@ -842,10 +914,12 @@
   function buildTeacherReadyMeta(puzzle) {
     const t = TRANSLATIONS[state.lang];
     const difficultyLabel = t[`diff_${puzzle.difficulty}`] || puzzle.difficultyLabel;
-    return t.teacher_ready_meta
+    const parts = [t.teacher_ready_meta
       .replace("{count}", puzzle.words.length)
       .replace(/\{size\}/g, puzzle.actualSize)
-      .replace("{difficulty}", difficultyLabel);
+      .replace("{difficulty}", difficultyLabel)];
+    if (puzzle.timerDuration > 0) parts.push(formatTimerSummary(puzzle.timerDuration));
+    return parts.join(" · ");
   }
 
   function updateTeacherReadyCard() {
@@ -1033,11 +1107,13 @@
     document.body.dataset.tab = state.activeTab;
     dom.studentActions.hidden = !state.puzzle;
     if (!state.puzzle) {
+      if (dom.timerDisplay) dom.timerDisplay.hidden = true;
       if (dom.teacherReadyCard) dom.teacherReadyCard.hidden = true;
       if (dom.boardStatus) {
         dom.boardStatus.textContent = "";
         dom.boardStatus.className = "board-status";
       }
+      syncStudentStartOverlay();
       return;
     }
     const t = TRANSLATIONS[state.lang];
@@ -1050,6 +1126,16 @@
     dom.progressText.textContent = `${state.foundWordIds.size} / ${state.puzzle.words.length}`;
     dom.wordBankCount.textContent = state.puzzle.words.length;
     updateTeacherReadyCard();
+    if (dom.timerDisplay) {
+      const showTimer = state.puzzle.timerDuration > 0 && (state.studentSessionStarted || state.timerExpired);
+      dom.timerDisplay.hidden = !showTimer;
+      if (showTimer) updateTimerDisplay();
+      else {
+        dom.timerDisplay.textContent = "00:00";
+        dom.timerDisplay.classList.remove("is-warning", "is-expired");
+      }
+    }
+    syncStudentStartOverlay();
     // Build per-word color map for grid cells, tracking newly found for animation
     const foundColorMap = new Map(); // "row:col" → "wc-N"
     const newlyFoundCells = new Set();
@@ -1121,6 +1207,8 @@
         ? "expired"
         : isComplete
           ? "complete"
+          : !state.studentSessionStarted
+            ? "pending"
           : state.foundWordIds.size > 0
             ? "progress"
             : "";
@@ -1128,6 +1216,8 @@
         ? t.board_status_expired
         : isComplete
           ? t.board_status_complete
+          : !state.studentSessionStarted
+            ? t.board_status_pending
           : state.foundWordIds.size > 0
             ? t.board_status_progress
               .replace("{found}", state.foundWordIds.size)
@@ -1323,14 +1413,14 @@
     });
   });
 
+  dom.studentStartButton?.addEventListener("click", () => startStudentSession());
+
   dom.resetProgressButton.addEventListener("click", () => {
     if (!window.confirm(TRANSLATIONS[state.lang].msg_confirm_reset)) return;
     resetPuzzleProgress();
-    stopTimer();
-    if (state.puzzle?.timerDuration > 0) startTimer(state.puzzle.timerDuration);
-    else if (dom.timerDisplay) dom.timerDisplay.hidden = true;
     if (state.puzzle) state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : (state.puzzle.hintsAllowed || 0);
     render();
+    if (shouldShowStudentStartOverlay()) focusStudentStartButton();
   });
   dom.printButton.addEventListener("click", () => printCurrentPuzzle());
   
@@ -1423,7 +1513,7 @@
   
   dom.puzzleGrid.addEventListener("pointerdown", e => {
     const btn = e.target.closest(".grid-cell");
-    if (!btn || !state.puzzle || state.timerExpired) return;
+    if (!btn || !canInteractWithPuzzle()) return;
     state.lastBoardInputMode = e.pointerType === "touch" ? "touch" : "pointer";
     const cell = { row: +btn.dataset.row, col: +btn.dataset.col };
     setFocusedCell(cell);
@@ -1431,6 +1521,7 @@
   });
 
   window.addEventListener("pointermove", e => {
+    if (!canInteractWithPuzzle()) return;
     const hovered = document.elementFromPoint(e.clientX, e.clientY);
     const btn = hovered?.closest(".grid-cell");
     const cell = btn ? { row: +btn.dataset.row, col: +btn.dataset.col } : null;
@@ -1443,6 +1534,12 @@
 
   window.addEventListener("pointerup", () => {
     if (!state.dragSelection) return;
+    if (!canInteractWithPuzzle()) {
+      state.dragSelection = null;
+      clearSelection();
+      render();
+      return;
+    }
     const { start, end, moved } = state.dragSelection; state.dragSelection = null;
     completeSelection(start, end, moved);
     render();
@@ -1457,7 +1554,7 @@
 
   dom.puzzleGrid.addEventListener("keydown", event => {
     const cell = getGridCellFromElement(event.target);
-    if (!cell || !state.puzzle) return;
+    if (!cell || !canInteractWithPuzzle()) return;
     state.lastBoardInputMode = "keyboard";
     setFocusedCell(cell);
 
@@ -1515,7 +1612,9 @@
       if (!nom) return;
       state.studentName = { nom, cognoms: dom.studentCognomsInput?.value.trim() || "" };
       closeModal(dom.studentNameModal, { restoreFocus: false });
-      focusGridCell(setFocusedCell(state.focusedCell || { row: 0, col: 0 }));
+      render();
+      if (shouldShowStudentStartOverlay()) focusStudentStartButton();
+      else focusGridCell(setFocusedCell(state.focusedCell || { row: 0, col: 0 }));
     });
   }
 

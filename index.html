@@ -280,48 +280,75 @@
             </div>
           </div>
 
-          <div class="puzzle-layout">
-            <div class="grid-container">
-              <div id="puzzle-grid" class="puzzle-grid" aria-describedby="board-instructions"></div>
-              
-              <div id="completion-message" class="completion-message" hidden>
-                <span data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</span>
-                <button type="button" id="send-results-button" class="primary-button" data-t="btn_send_results" hidden style="margin-top:0.75rem; width:100%;">
-                  Enviar resultats
+          <div class="student-play-shell">
+            <div id="student-start-overlay" class="student-start-overlay" hidden>
+              <div class="student-start-card">
+                <p class="section-kicker" data-t="student_start_kicker">Preparats?</p>
+                <h3 id="student-start-title" data-t="student_start_title">Tot a punt per començar</h3>
+                <p id="student-start-text" data-t="student_start_text">
+                  Quan premeu començar es mostrarà la sopa i, si n'hi ha, s'activarà el temporitzador.
+                </p>
+                <div class="student-start-meta">
+                  <div class="student-start-chip">
+                    <span data-t="timer_label">Temporitzador</span>
+                    <strong id="student-start-timer">Sense límit</strong>
+                  </div>
+                  <div class="student-start-chip">
+                    <span data-t="hints_label">Pistes</span>
+                    <strong id="student-start-hints">3</strong>
+                  </div>
+                </div>
+                <button type="button" id="student-start-button" class="primary-button" data-t="btn_start_game">
+                  Començar
                 </button>
               </div>
             </div>
 
-            <aside class="word-bank">
-              <h3 id="word-bank-title">
-                <span data-t="word_bank_title">Paraules</span>
-                <span id="word-bank-count" style="font-size: 0.8rem; color: var(--ink-soft);">0</span>
-              </h3>
-              <ul id="word-list" class="word-list"></ul>
-
-              <div class="student-actions" id="student-actions" hidden>
-                <button type="button" id="reset-progress-button" class="ghost-button student-action-button" data-t="btn_reset">
-                  Reiniciar joc
-                </button>
-                <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" hidden>
-                  💡 Pista (3)
-                </button>
-                <details id="teacher-tools" class="teacher-tools">
-                  <summary class="teacher-tools-summary" data-t="teacher_tools_summary">Per a la professora</summary>
-                  <div class="teacher-tools-actions">
-                    <button type="button" id="solution-toggle-button" class="ghost-button teacher-tool-button">
-                      Veure solució
-                    </button>
-                    <button type="button" id="share-button" class="ghost-button teacher-tool-button" data-t="btn_share">
-                      Compartir
-                    </button>
-                    <button type="button" id="print-button" class="ghost-button teacher-tool-button" data-t="btn_print">
-                      Imprimir / PDF
+            <div id="student-play-surface" class="student-play-surface">
+              <div class="puzzle-layout">
+                <div class="grid-container">
+                  <div id="puzzle-grid" class="puzzle-grid" aria-describedby="board-instructions"></div>
+                  
+                  <div id="completion-message" class="completion-message" hidden>
+                    <span data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</span>
+                    <button type="button" id="send-results-button" class="primary-button" data-t="btn_send_results" hidden style="margin-top:0.75rem; width:100%;">
+                      Enviar resultats
                     </button>
                   </div>
-                </details>
+                </div>
+
+                <aside class="word-bank">
+                  <h3 id="word-bank-title">
+                    <span data-t="word_bank_title">Paraules</span>
+                    <span id="word-bank-count" style="font-size: 0.8rem; color: var(--ink-soft);">0</span>
+                  </h3>
+                  <ul id="word-list" class="word-list"></ul>
+
+                  <div class="student-actions" id="student-actions" hidden>
+                    <button type="button" id="reset-progress-button" class="ghost-button student-action-button" data-t="btn_reset">
+                      Reiniciar joc
+                    </button>
+                    <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" hidden>
+                      💡 Pista (3)
+                    </button>
+                    <details id="teacher-tools" class="teacher-tools">
+                      <summary class="teacher-tools-summary" data-t="teacher_tools_summary">Per a la professora</summary>
+                      <div class="teacher-tools-actions">
+                        <button type="button" id="solution-toggle-button" class="ghost-button teacher-tool-button">
+                          Veure solució
+                        </button>
+                        <button type="button" id="share-button" class="ghost-button teacher-tool-button" data-t="btn_share">
+                          Compartir
+                        </button>
+                        <button type="button" id="print-button" class="ghost-button teacher-tool-button" data-t="btn_print">
+                          Imprimir / PDF
+                        </button>
+                      </div>
+                    </details>
+                  </div>
+                </aside>
               </div>
-            </aside>
+            </div>
           </div>
         </section>
       </main>
@@ -349,7 +376,7 @@
             <label for="student-cognoms-input" data-t="name_cognoms_placeholder">Cognoms</label>
             <input type="text" id="student-cognoms-input" autocomplete="family-name" style="width:100%;" />
           </div>
-          <button type="submit" class="primary-button" style="width:100%;" data-t="btn_start_game">Començar</button>
+          <button type="submit" class="primary-button" style="width:100%;" data-t="btn_continue">Continuar</button>
         </form>
       </div>
     </div>
