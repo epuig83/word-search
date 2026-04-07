@@ -1,31 +1,10 @@
 const { test, expect } = require("@playwright/test");
-
-async function generatePuzzle(page) {
-  await page.goto("/index.html");
-  await page.getByLabel("Tema de l'exercici").fill("Animals del mar");
-  await page.getByLabel("Llista de paraules (una per línia)").fill("balena\ndofi\npeix\ntauro");
-  await page.locator("#timer-input").selectOption("300");
-  await page.getByRole("button", { name: "Generar i obrir zona alumne" }).click();
-}
-
-async function readTimerSeconds(page) {
-  const text = (await page.locator("#timer-display").textContent())?.trim() || "";
-  const match = text.match(/^(\d{2}):(\d{2})$/);
-  if (!match) return Number.NaN;
-  return Number(match[1]) * 60 + Number(match[2]);
-}
-
-async function startStudentSession(page) {
-  await expect(page.locator("#student-start-overlay")).toBeVisible();
-  await page.getByRole("button", { name: "Començar" }).click();
-  await expect(page.locator("#student-start-overlay")).toBeHidden();
-}
-
-async function unlockTeacherView(page) {
-  await page.getByRole("button", { name: /Panel Creació/ }).click();
-  await page.locator("#pin-input").fill("1234");
-  await page.getByRole("button", { name: "Validar PIN" }).click();
-}
+const {
+  generatePuzzle,
+  readTimerSeconds,
+  startStudentSession,
+  unlockTeacherView,
+} = require("./helpers");
 
 test("student overlay gates the start of the timer", async ({ page }) => {
   await generatePuzzle(page);

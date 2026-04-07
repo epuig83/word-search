@@ -83,6 +83,27 @@ test("encodePuzzleConfig and decodePuzzleConfig preserve shared puzzle data", ()
   });
 });
 
+test("decodePuzzleConfig returns null for invalid payloads", () => {
+  assert.equal(core.decodePuzzleConfig("not-base64"), null);
+});
+
+test("parseGridRows rejects inconsistent grid sizes", () => {
+  assert.equal(core.parseGridRows(["ABCD", "EFGH", "IJK"]), null);
+});
+
+test("buildPuzzleFromSnapshotData rejects corrupted snapshot data", () => {
+  const words = core.parseWords("balena\ndofi\npeix").words;
+
+  assert.throws(() => {
+    core.buildPuzzleFromSnapshotData(words, {
+      requestedSize: "10",
+      difficulty: "easy",
+      gridRows: ["ABC", "DEF", "GHI"],
+      placementPaths: ["0.0,0.1,0.2"],
+    }, { title: "Broken" });
+  }, /invalid_snapshot/);
+});
+
 test("parseFormEntries and buildFormSubmitUrl preserve the expected fields", () => {
   const parsed = core.parseFormEntries("https://docs.google.com/forms/d/e/test/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Resultat&entry.40=Tema");
   assert.deepEqual(parsed, {
