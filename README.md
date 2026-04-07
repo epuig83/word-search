@@ -49,3 +49,39 @@ Después abre `http://localhost:8000` en el navegador.
 - Vista de profesora con solución visible y acciones rápidas.
 - Enlaces compartibles que preservan la misma sopa.
 - Impresión o guardado en PDF desde el navegador.
+
+## Tests
+
+1. Instala dependencias:
+
+```bash
+pnpm install
+```
+
+2. Ejecuta unitarios:
+
+```bash
+pnpm test:unit
+```
+
+3. Ejecuta E2E en navegador headless:
+
+```bash
+pnpm test:e2e
+```
+
+4. Ejecuta toda la batería:
+
+```bash
+pnpm test
+```
+
+### Qué cubren
+
+- `tests/unit/core.test.js`: lógica pura de normalización, serialización, generación y URLs.
+- `tests/e2e/student-flow.spec.js`: flujo real de profesora/alumno, overlay de inicio, timer, reset y vuelta desde profesora.
+
+## CI
+
+- GitHub Actions ejecuta unitarios y E2E en cada `push` a `main` o `master` y en cada `pull request`.
+- El workflow está en `.github/workflows/test.yml`.

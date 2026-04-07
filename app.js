@@ -1,21 +1,37 @@
 (function () {
   "use strict";
 
-  const LETTERS = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
-  const MAX_GENERATION_ATTEMPTS = 180;
-  const MAX_GRID_SIZE = 22;
   const CUSTOM_SAMPLES_STORAGE_KEY = "word-search-custom-samples-v1";
   const TEACHER_PIN_STORAGE_KEY = "word-search-teacher-pin-v1";
-  const SAMPLE_LANGS = ["ca", "es", "en"];
-  const SAMPLE_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
-  const SAMPLE_SIZES = new Set(["auto", "10", "12", "14", "16"]);
-  const SHARED_PUZZLE_VERSION = 2;
   const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  const CORE = globalThis.WORD_SEARCH_CORE;
+  if (!CORE) throw new Error("WORD_SEARCH_CORE is required.");
 
   const APP_DATA = globalThis.WORD_SEARCH_DATA || { vocabulary: {}, samplePuzzles: {} };
   const TRANSLATIONS = globalThis.WORD_SEARCH_I18N || {};
   const VOCABULARY = APP_DATA.vocabulary || {};
   const SAMPLE_PUZZLES = APP_DATA.samplePuzzles || {};
+  const {
+    MAX_GRID_SIZE,
+    SAMPLE_LANGS,
+    SAMPLE_DIFFICULTIES,
+    SAMPLE_SIZES,
+    SHARED_PUZZLE_VERSION,
+    createEmptyCustomSamples,
+    normalizeWord,
+    parseWords,
+    countValidWords,
+    normalizeSharedSize,
+    sameCell,
+    serializeGridRows,
+    serializePlacementCells,
+    buildPuzzleData,
+    buildPuzzleFromSnapshotData,
+    encodePuzzleConfig,
+    decodePuzzleConfig,
+    parseFormEntries,
+    buildFormSubmitUrl,
+  } = CORE;
 
   function getVocabularyCategories(lang) {
     return VOCABULARY[lang] || {};
@@ -25,10 +41,6 @@
     return SAMPLE_PUZZLES[lang] || [];
   }
 
-  function createEmptyCustomSamples() {
-    return { ca: [], es: [], en: [] };
-  }
-
   function generateSampleId() {
     if (globalThis.crypto?.randomUUID) {
       return globalThis.crypto.randomUUID();
@@ -36,113 +48,10 @@
     return `sample-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  function normalizeWord(value) {
-    return value
-      .toUpperCase()
-      .replace(/Ñ/g, "\u0000")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\u0000/g, "Ñ")
-      .replace(/[^A-ZÑ]/g, "");
-  }
-
-  function parseWords(rawText) {
-    const tokens = rawText.split(/[\n,;]+/).map(t => t.trim()).filter(Boolean);
-    const words = [];
-    const seen = new Set();
-    for (const token of tokens) {
-      const cleaned = normalizeWord(token);
-      if (cleaned.length >= 3 && !seen.has(cleaned)) {
-        seen.add(cleaned);
-        words.push({ id: cleaned, cleaned, display: token });
-      }
-    }
-    return { words };
-  }
-
-  function countValidWords(rawText) {
-    return parseWords(rawText).words.length;
-  }
-
-  function normalizeSharedSize(value) {
-    const size = String(value ?? "");
-    if (SAMPLE_SIZES.has(size)) {
-      return size;
-    }
-    const numeric = Number(size);
-    if (Number.isInteger(numeric) && numeric >= 3 && numeric <= MAX_GRID_SIZE) {
-      return String(numeric);
-    }
-    return "auto";
-  }
-
-  function sameCell(left, right) {
-    return Boolean(left && right && left.row === right.row && left.col === right.col);
-  }
-
-  function buildPlacementRecord(word, cells, placementId) {
+  function composePuzzle(puzzle) {
     return {
-      wordId: word.id,
-      display: word.display,
-      cells,
-      key: cells.map(cell => `${cell.row}:${cell.col}`).join("|"),
-      reversedKey: [...cells].reverse().map(cell => `${cell.row}:${cell.col}`).join("|"),
-      placementId,
-    };
-  }
-
-  function serializeGridRows(grid) {
-    return grid.map(row => row.join(""));
-  }
-
-  function parseGridRows(rawRows) {
-    if (!Array.isArray(rawRows) || rawRows.length < 3 || rawRows.length > MAX_GRID_SIZE) {
-      return null;
-    }
-
-    const normalizedRows = rawRows.map(row => typeof row === "string" ? normalizeWord(row) : "");
-    const size = normalizedRows.length;
-    if (normalizedRows.some(row => row.length !== size)) {
-      return null;
-    }
-
-    return normalizedRows.map(row => row.split(""));
-  }
-
-  function serializePlacementCells(cells) {
-    return cells.map(cell => `${cell.row}.${cell.col}`).join(",");
-  }
-
-  function parsePlacementCells(rawPath, expectedLength, size) {
-    if (typeof rawPath !== "string" || !rawPath) {
-      return null;
-    }
-
-    const cells = rawPath.split(",").map(token => {
-      const [row, col] = token.split(".").map(Number);
-      if (!Number.isInteger(row) || !Number.isInteger(col) || row < 0 || col < 0 || row >= size || col >= size) {
-        return null;
-      }
-      return { row, col };
-    });
-
-    if (cells.length !== expectedLength || cells.some(cell => cell === null)) {
-      return null;
-    }
-
-    return cells;
-  }
-
-  function composePuzzle(words, requestedSize, difficultyKey, metadata, grid, placements) {
-    return {
-      ...metadata,
-      grid,
-      placements,
-      actualSize: grid.length,
-      requestedSize,
-      words,
-      difficulty: difficultyKey,
-      difficultyLabel: TRANSLATIONS[state.lang][`diff_${difficultyKey}`],
+      ...puzzle,
+      difficultyLabel: TRANSLATIONS[state.lang][`diff_${puzzle.difficulty}`],
     };
   }
 
@@ -317,85 +226,12 @@
     }
   }
 
-  function calculateAutoSize(words) {
-    const longest = words.reduce((max, w) => Math.max(max, w.cleaned.length), 0);
-    const total = words.reduce((sum, w) => sum + w.cleaned.length, 0);
-    return Math.min(MAX_GRID_SIZE, Math.max(longest + 2, Math.ceil(Math.sqrt(total * 1.6)) + 2));
-  }
-
-  function buildEmptyGrid(size) {
-    return Array.from({ length: size }, () => Array(size).fill(""));
-  }
-
   function buildPuzzle(words, requestedSize, difficultyKey, metadata) {
-    const size = requestedSize === "auto" ? calculateAutoSize(words) : Number(requestedSize);
-    const directions = [{ row: 0, col: 1 }, { row: 1, col: 0 }];
-    if (difficultyKey !== "easy") directions.push({ row: 1, col: 1 });
-    if (difficultyKey === "hard") directions.push({ row: 1, col: -1 }, { row: 0, col: -1 }, { row: -1, col: 0 }, { row: -1, col: -1 }, { row: -1, col: 1 });
-
-    for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
-      const grid = buildEmptyGrid(size);
-      const placements = [];
-      let success = true;
-
-      for (const word of words) {
-        let options = [];
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            for (const d of directions) {
-              let can = true;
-              for (let i = 0; i < word.cleaned.length; i++) {
-                const rr = r + d.row * i, cc = c + d.col * i;
-                if (rr < 0 || rr >= size || cc < 0 || cc >= size || (grid[rr][cc] && grid[rr][cc] !== word.cleaned[i])) { can = false; break; }
-              }
-              if (can) options.push({ r, c, d });
-            }
-          }
-        }
-        if (options.length === 0) { success = false; break; }
-        const opt = options[Math.floor(Math.random() * options.length)];
-        const cells = [];
-        for (let i = 0; i < word.cleaned.length; i++) {
-          const rr = opt.r + opt.d.row * i, cc = opt.c + opt.d.col * i;
-          grid[rr][cc] = word.cleaned[i];
-          cells.push({ row: rr, col: cc });
-        }
-        placements.push(buildPlacementRecord(word, cells, `${word.id}-${opt.r}-${opt.c}`));
-      }
-
-      if (success) {
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) if (!grid[r][c]) grid[r][c] = LETTERS[Math.floor(Math.random() * LETTERS.length)];
-        }
-        return composePuzzle(words, requestedSize, difficultyKey, metadata, grid, placements);
-      }
-    }
-    throw new Error("Error generating puzzle.");
+    return composePuzzle(buildPuzzleData(words, requestedSize, difficultyKey, metadata));
   }
 
   function buildPuzzleFromSnapshot(words, config, metadata) {
-    const grid = parseGridRows(config.gridRows);
-    if (!grid || !Array.isArray(config.placementPaths) || config.placementPaths.length !== words.length) {
-      throw new Error("invalid_snapshot");
-    }
-
-    const size = grid.length;
-    const placements = config.placementPaths.map((rawPath, index) => {
-      const word = words[index];
-      const cells = parsePlacementCells(rawPath, word.cleaned.length, size);
-      if (!cells) {
-        throw new Error("invalid_snapshot");
-      }
-
-      const letters = cells.map(cell => grid[cell.row]?.[cell.col]).join("");
-      if (letters !== word.cleaned) {
-        throw new Error("invalid_snapshot");
-      }
-
-      return buildPlacementRecord(word, cells, `${word.id}-${index}-${cells[0].row}-${cells[0].col}`);
-    });
-
-    return composePuzzle(words, config.requestedSize, config.difficulty, metadata, grid, placements);
+    return composePuzzle(buildPuzzleFromSnapshotData(words, config, metadata));
   }
 
   function stopTimer() {
@@ -654,61 +490,6 @@
       gridRows: serializeGridRows(puzzle.grid),
       placementPaths: puzzle.placements.map(placement => serializePlacementCells(placement.cells)),
     };
-  }
-
-  function encodePuzzleConfig(config) {
-    const json = JSON.stringify({
-      v: config.version ?? 1,
-      t: config.title,
-      w: config.words,
-      d: config.difficulty,
-      s: config.size,
-      l: config.lang,
-      tm: config.timer,
-      h: config.hints,
-      f: config.formTemplate || "",
-      g: config.gridRows,
-      p: config.placementPaths,
-    });
-    return btoa(String.fromCharCode(...new TextEncoder().encode(json)));
-  }
-
-  function decodePuzzleConfig(encoded) {
-    try {
-      const json = new TextDecoder().decode(Uint8Array.from(atob(encoded), c => c.charCodeAt(0)));
-      const obj = JSON.parse(json);
-      const requestedSize = normalizeSharedSize(obj.s);
-      return {
-        version: Number(obj.v) || 1,
-        title: typeof obj.t === "string" ? obj.t : "",
-        words: typeof obj.w === "string" ? obj.w : "",
-        difficulty: SAMPLE_DIFFICULTIES.has(obj.d) ? obj.d : "easy",
-        size: requestedSize,
-        requestedSize,
-        lang: SAMPLE_LANGS.includes(obj.l) ? obj.l : "ca",
-        timer: Number(obj.tm) || 0,
-        hints: Number(obj.h) || 0,
-        formTemplate: typeof obj.f === "string" ? obj.f : "",
-        gridRows: Array.isArray(obj.g) ? obj.g : null,
-        placementPaths: Array.isArray(obj.p) ? obj.p : null,
-      };
-    } catch { return null; }
-  }
-
-  function parseFormEntries(templateUrl) {
-    try {
-      const url = new URL(templateUrl);
-      const entries = [...url.searchParams.keys()].filter(k => k.startsWith("entry."));
-      if (entries.length === 0) return null;
-      return { baseUrl: url.origin + url.pathname, entries };
-    } catch { return null; }
-  }
-
-  function buildFormSubmitUrl(parsed, nom, cognoms, resultat, puzzle) {
-    const url = new URL(parsed.baseUrl);
-    const vals = [nom, cognoms, resultat, puzzle];
-    parsed.entries.forEach((entry, i) => { if (vals[i] !== undefined) url.searchParams.set(entry, vals[i]); });
-    return url.toString();
   }
 
   const dom = {
