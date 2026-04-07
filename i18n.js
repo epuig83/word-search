@@ -135,6 +135,7 @@
       grid_cell_preview: "selección actual",
       grid_cell_found: "palabra encontrada",
       grid_cell_solution: "solución visible",
+      msg_link_error: "El enlace compartido no es válido o está incompleto.",
     }),
     ca: Object.freeze({
       page_title: "Generador de Sopes de Lletres per a Primària",
@@ -197,7 +198,7 @@
       btn_send_results: "Enviar resultats",
       form_config_title: "Resultats (Google Forms)",
       form_url_label: "URL plantilla pre-omplerta",
-      form_config_note: "A Google Forms: \"Obtén un enlace previamente completado\" → omple els camps nom, cognoms, resultat i tema → copia l'URL i enganxa-la aquí.",
+      form_config_note: "A Google Forms: \"Obteniu un enllaç omplert prèviament\" → ompliu els camps nom, cognoms, resultat i tema → copieu l'URL i enganxeu-la aquí.",
       name_modal_title: "Qui ets?",
       name_modal_text: "Escriu el teu nom abans de començar el joc.",
       name_nom_placeholder: "Nom",
@@ -268,6 +269,7 @@
       grid_cell_preview: "selecció actual",
       grid_cell_found: "paraula trobada",
       grid_cell_solution: "solució visible",
+      msg_link_error: "L'enllaç compartit no és vàlid o està incomplet.",
     }),
     en: Object.freeze({
       page_title: "Word Search Generator for Primary School",
@@ -401,6 +403,7 @@
       grid_cell_preview: "current selection",
       grid_cell_found: "word found",
       grid_cell_solution: "solution visible",
+      msg_link_error: "The shared link is invalid or incomplete.",
     }),
   });
 })(typeof window !== "undefined" ? window : globalThis);

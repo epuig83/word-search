@@ -24,8 +24,6 @@
   --student-secondary: #8b5cf6;
   --student-bg: #f5f3ff;
   
-  --teacher-primary: #8b5cf6;
-  --teacher-secondary: #a78bfa;
   --teacher-bg: #f5f3ff;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -591,6 +589,11 @@ body {
 .library-results::-webkit-scrollbar-thumb {
   background: var(--panel-border);
   border-radius: 999px;
+}
+
+.library-results {
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border) transparent;
 }
 
 .status-message {

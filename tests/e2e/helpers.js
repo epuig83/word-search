@@ -42,7 +42,7 @@ async function startStudentSession(page) {
 }
 
 async function unlockTeacherView(page) {
-  await page.getByRole("button", { name: /Panel Creació/ }).click();
+  await page.getByRole("tab", { name: /Panel Creació/ }).click();
   await page.locator("#pin-input").fill("1234");
   await page.getByRole("button", { name: "Validar PIN" }).click();
 }

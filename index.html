@@ -8,7 +8,11 @@
       name="description"
       content="Generador de sopes de lletres per a primària, preparat per fer servir a l'aula o imprimir."
     />
-    <link rel="icon" href="data:," />
+    <meta property="og:title" content="Generador de Sopes de Lletres per a Primària" />
+    <meta property="og:description" content="Crea sopes de lletres personalitzades per a l'aula en segons. Perfecte per imprimir o usar amb ordinador." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#c2410c" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🔤</text></svg>" />
     <link rel="stylesheet" href="styles.css" />
     <script src="data.js" defer></script>
     <script src="i18n.js" defer></script>
@@ -19,10 +23,10 @@
     <div class="page-shell">
       <header class="hero">
         <div class="hero-copy">
-          <div class="lang-selector">
-            <button type="button" class="lang-btn is-active" data-lang="ca">CA</button>
-            <button type="button" class="lang-btn" data-lang="es">ES</button>
-            <button type="button" class="lang-btn" data-lang="en">EN</button>
+          <div class="lang-selector" role="group" aria-label="Idioma">
+            <button type="button" class="lang-btn is-active" data-lang="ca" aria-label="Català" aria-pressed="true">CA</button>
+            <button type="button" class="lang-btn" data-lang="es" aria-label="Castellano" aria-pressed="false">ES</button>
+            <button type="button" class="lang-btn" data-lang="en" aria-label="English" aria-pressed="false">EN</button>
           </div>
           <span class="eyebrow" data-t="hero_eyebrow">Recurs Educatiu</span>
           <h1 data-t="hero_title">Generador de Sopes de Lletres</h1>
@@ -58,12 +62,12 @@
       </header>
 
       <main class="workspace">
-        <nav class="main-tabs">
-          <button type="button" id="tab-teacher" class="tab-btn is-active">
+        <nav class="main-tabs" role="tablist" aria-label="Seccions">
+          <button type="button" id="tab-teacher" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="section-teacher">
             <span class="tab-icon">👩‍🏫</span>
             <span data-t="tab_teacher">Panel Creació</span>
           </button>
-          <button type="button" id="tab-student" class="tab-btn">
+          <button type="button" id="tab-student" class="tab-btn" role="tab" aria-selected="false" aria-controls="section-student">
             <span class="tab-icon">🎒</span>
             <span data-t="tab_student">Zona Alumne</span>
           </button>
@@ -308,7 +312,7 @@
             <div id="student-play-surface" class="student-play-surface">
               <div class="puzzle-layout">
                 <div class="grid-container">
-                  <div id="puzzle-grid" class="puzzle-grid" aria-describedby="board-instructions"></div>
+                  <div id="puzzle-grid" class="puzzle-grid" role="grid" aria-describedby="board-instructions"></div>
                   
                   <div id="completion-message" class="completion-message" hidden>
                     <span data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</span>

@@ -464,16 +464,50 @@
     return globalThis.matchMedia?.("(pointer: coarse)")?.matches ? "touch" : "pointer";
   }
 
-  const state = { lang: "ca", puzzle: null, foundWordIds: new Set(), foundPlacementIds: new Set(), prevFoundPlacementIds: new Set(), foundWordColors: new Map(), clickAnchor: null, previewCells: [], dragSelection: null, mode: "student", activeTab: "teacher", celebrated: false, activeCategory: null, pinCallback: null, customSamples: loadCustomSamples(), teacherPin: loadTeacherPin(), timerIntervalId: null, timerSecondsLeft: 0, timerStarted: false, timerExpired: false, studentSessionStarted: false, hintsRemaining: 0, studentName: { nom: "", cognoms: "" }, formTemplate: "", focusedCell: null, lastFocusedElement: null, lastBoardInputMode: getDefaultBoardInputMode() };
+  function debounce(fn, ms) {
+    let id;
+    return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), ms); };
+  }
+
+  const state = {
+    lang: "ca",
+    puzzle: null,
+    foundWordIds: new Set(),
+    foundPlacementIds: new Set(),
+    prevFoundPlacementIds: new Set(),
+    foundWordColors: new Map(),
+    clickAnchor: null,
+    previewCells: [],
+    dragSelection: null,
+    mode: "student",
+    activeTab: "teacher",
+    celebrated: false,
+    activeCategory: null,
+    pinCallback: null,
+    customSamples: loadCustomSamples(),
+    teacherPin: loadTeacherPin(),
+    timerIntervalId: null,
+    timerSecondsLeft: 0,
+    timerExpired: false,
+    studentSessionStarted: false,
+    hintsRemaining: 0,
+    studentName: { nom: "", cognoms: "" },
+    formTemplate: "",
+    focusedCell: null,
+    lastFocusedElement: null,
+    lastBoardInputMode: getDefaultBoardInputMode(),
+  };
 
   function resetPuzzleProgress() {
     stopTimer();
     state.foundWordIds = new Set(); state.foundPlacementIds = new Set();
     state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map();
     state.clickAnchor = null; state.previewCells = []; state.dragSelection = null; state.celebrated = false;
-    state.timerStarted = false; state.timerExpired = false; state.studentSessionStarted = false;
+    state.timerExpired = false; state.studentSessionStarted = false;
     state.timerSecondsLeft = state.puzzle?.timerDuration || 0;
     state.focusedCell = null;
+    dom.gridCells = null;
+    dom.wordListItems = null;
   }
 
   function buildShareConfigFromPuzzle(puzzle) {
@@ -618,7 +652,6 @@
     state.studentSessionStarted = true;
     clearSelection();
     if (state.puzzle.timerDuration > 0 && !state.timerExpired) {
-      state.timerStarted = true;
       startTimer(state.timerSecondsLeft || state.puzzle.timerDuration);
     }
     render();
@@ -629,7 +662,9 @@
     state.activeTab = tab;
     document.body.dataset.tab = tab;
     dom.tabTeacher.classList.toggle("is-active", tab === "teacher");
+    dom.tabTeacher.setAttribute("aria-selected", String(tab === "teacher"));
     dom.tabStudent.classList.toggle("is-active", tab === "student");
+    dom.tabStudent.setAttribute("aria-selected", String(tab === "student"));
     dom.sectionTeacher.hidden = tab !== "teacher";
     dom.sectionStudent.hidden = tab !== "student";
     if (tab === "student") {
@@ -870,7 +905,11 @@
     dom.wordsInput.placeholder = TRANSLATIONS[lang].field_words_placeholder;
     dom.libSearch.placeholder = TRANSLATIONS[lang].lib_search_placeholder;
     if (dom.puzzleGrid) dom.puzzleGrid.setAttribute("aria-label", TRANSLATIONS[lang].grid_label);
-    dom.langBtns.forEach(btn => btn.classList.toggle("is-active", btn.dataset.lang === lang));
+    dom.langBtns.forEach(btn => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-pressed", String(isActive));
+    });
     state.activeCategory = null;
     renderSampleOptions();
     updateWordsHelper();
@@ -881,6 +920,77 @@
   function setStatus(msg, tone) {
     dom.statusMessage.textContent = msg || TRANSLATIONS[state.lang].status_default;
     dom.statusMessage.className = "status-message" + (tone ? ` is-${tone}` : "");
+  }
+
+  function initGrid() {
+    if (!state.puzzle) return;
+    const size = state.puzzle.actualSize;
+    dom.puzzleGrid.innerHTML = "";
+    dom.puzzleGrid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    dom.gridCells = new Array(size * size);
+    state.puzzle.grid.forEach((row, r) => {
+      row.forEach((letter, c) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "grid-cell";
+        btn.textContent = letter;
+        btn.dataset.row = r;
+        btn.dataset.col = c;
+        btn.tabIndex = -1;
+        dom.puzzleGrid.appendChild(btn);
+        dom.gridCells[r * size + c] = btn;
+      });
+    });
+  }
+
+  function initWordList() {
+    if (!state.puzzle) return;
+    dom.wordList.innerHTML = "";
+    dom.wordListItems = new Map();
+    const svgCheck = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7"/></svg>`;
+    state.puzzle.words.forEach(word => {
+      const li = document.createElement("li");
+      li.className = "word-item";
+      const textSpan = document.createElement("span");
+      textSpan.textContent = word.display;
+      const checkSpan = document.createElement("span");
+      checkSpan.className = "check-icon";
+      checkSpan.innerHTML = svgCheck;
+      li.appendChild(textSpan);
+      li.appendChild(checkSpan);
+      dom.wordList.appendChild(li);
+      dom.wordListItems.set(word.id, li);
+    });
+  }
+
+  function renderGridHighlights() {
+    if (!state.puzzle || !dom.gridCells) return;
+    const foundColorMap = new Map();
+    state.puzzle.placements.forEach(p => {
+      if (state.foundPlacementIds.has(p.placementId)) {
+        const colorClass = state.foundWordColors.get(p.wordId) || "wc-0";
+        p.cells.forEach(c => foundColorMap.set(`${c.row}:${c.col}`, colorClass));
+      }
+    });
+    const previewSet = new Set(state.previewCells.map(c => `${c.row}:${c.col}`));
+    const solutionCells = new Set();
+    if (state.mode === "teacher") state.puzzle.placements.forEach(p => p.cells.forEach(c => solutionCells.add(`${c.row}:${c.col}`)));
+    const size = state.puzzle.actualSize;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const key = `${r}:${c}`;
+        const wordColor = foundColorMap.get(key) || "";
+        const isAnchor = Boolean(state.clickAnchor && state.clickAnchor.row === r && state.clickAnchor.col === c);
+        const isPreview = previewSet.has(key);
+        const isFound = foundColorMap.has(key);
+        const isSolution = solutionCells.has(key);
+        dom.gridCells[r * size + c].className = "grid-cell" +
+          (isFound ? ` is-found ${wordColor}` : "") +
+          (isPreview ? " is-preview" : "") +
+          (isAnchor ? " is-anchor" : "") +
+          (isSolution ? " is-solution" : "");
+      }
+    }
   }
 
   function render() {
@@ -933,23 +1043,17 @@
     });
     state.prevFoundPlacementIds = new Set(state.foundPlacementIds);
 
-    dom.wordList.innerHTML = "";
+    // Word list — build once, update classes in-place on subsequent renders
+    if (!dom.wordListItems) initWordList();
     state.puzzle.words.forEach(word => {
       const solved = state.foundWordIds.has(word.id);
       const colorClass = solved ? (state.foundWordColors.get(word.id) || "wc-0") : "";
-      const li = document.createElement("li");
-      li.className = "word-item" + (solved ? ` is-found ${colorClass}` : "");
-      const textSpan = document.createElement("span");
-      textSpan.textContent = word.display;
-      const checkSpan = document.createElement("span");
-      checkSpan.className = "check-icon";
-      checkSpan.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7"/></svg>`;
-      li.appendChild(textSpan);
-      li.appendChild(checkSpan);
-      dom.wordList.appendChild(li);
+      const li = dom.wordListItems.get(word.id);
+      if (li) li.className = "word-item" + (solved ? ` is-found ${colorClass}` : "");
     });
-    dom.puzzleGrid.innerHTML = "";
-    dom.puzzleGrid.style.gridTemplateColumns = `repeat(${state.puzzle.actualSize}, 1fr)`;
+
+    // Grid — build once, update attributes in-place on subsequent renders
+    if (!dom.gridCells) initGrid();
     dom.puzzleGrid.setAttribute("aria-label", t.grid_label);
     if (!state.focusedCell || state.focusedCell.row >= state.puzzle.actualSize || state.focusedCell.col >= state.puzzle.actualSize) {
       state.focusedCell = { row: 0, col: 0 };
@@ -957,6 +1061,7 @@
     const solutionCells = new Set();
     if (state.mode === "teacher") state.puzzle.placements.forEach(p => p.cells.forEach(c => solutionCells.add(`${c.row}:${c.col}`)));
     const previewSet = new Set(state.previewCells.map(c => `${c.row}:${c.col}`));
+    const gridSize = state.puzzle.actualSize;
     state.puzzle.grid.forEach((row, r) => {
       row.forEach((letter, c) => {
         const key = `${r}:${c}`;
@@ -965,20 +1070,15 @@
         const isPreview = previewSet.has(key);
         const isFound = foundColorMap.has(key);
         const isSolution = solutionCells.has(key);
-        const btn = document.createElement("button");
+        const btn = dom.gridCells[r * gridSize + c];
         btn.className = "grid-cell" +
           (isFound ? ` is-found ${wordColor}` : "") +
           (newlyFoundCells.has(key) ? " is-found-new" : "") +
           (isPreview ? " is-preview" : "") +
           (isAnchor ? " is-anchor" : "") +
           (isSolution ? " is-solution" : "");
-        btn.type = "button";
-        btn.textContent = letter;
-        btn.dataset.row = r;
-        btn.dataset.col = c;
         btn.tabIndex = sameCell(state.focusedCell, { row: r, col: c }) ? 0 : -1;
         btn.setAttribute("aria-label", buildGridCellLabel(letter, r, c, { isAnchor, isPreview, isFound, isSolution }));
-        dom.puzzleGrid.appendChild(btn);
       });
     });
     const isComplete = state.foundWordIds.size === state.puzzle.words.length;
@@ -1020,6 +1120,7 @@
   }
 
   function celebrate() {
+    if (globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
     const colors = ["#ff6b00", "#0d9488", "#3b82f6", "#8b5cf6"];
     for (let i = 0; i < 50; i++) {
       const p = document.createElement("div");
@@ -1308,9 +1409,9 @@
     const cell = btn ? { row: +btn.dataset.row, col: +btn.dataset.col } : null;
     if (state.dragSelection) {
       if (cell && (cell.row !== state.dragSelection.end.row || cell.col !== state.dragSelection.end.col)) {
-        state.dragSelection.end = cell; state.dragSelection.moved = true; state.previewCells = buildSelectionPath(state.dragSelection.start, state.dragSelection.end); render();
+        state.dragSelection.end = cell; state.dragSelection.moved = true; state.previewCells = buildSelectionPath(state.dragSelection.start, state.dragSelection.end); renderGridHighlights();
       }
-    } else if (state.clickAnchor && cell) { state.previewCells = buildSelectionPath(state.clickAnchor, cell); render(); }
+    } else if (state.clickAnchor && cell) { state.previewCells = buildSelectionPath(state.clickAnchor, cell); renderGridHighlights(); }
   });
 
   window.addEventListener("pointerup", () => {
@@ -1372,8 +1473,8 @@
   });
 
   dom.langBtns.forEach(btn => btn.addEventListener("click", () => updateLanguage(btn.dataset.lang)));
-  dom.libSearch.addEventListener("input", () => renderLibrary());
-  dom.wordsInput.addEventListener("input", () => syncWordsUi());
+  dom.libSearch.addEventListener("input", debounce(() => renderLibrary(), 150));
+  dom.wordsInput.addEventListener("input", debounce(() => syncWordsUi(), 200));
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
       state.formTemplate = dom.formTemplateInput.value.trim();
@@ -1447,12 +1548,18 @@
       resetPuzzleProgress();
       setTab("student");
       return true;
-    } catch { return false; }
+    } catch {
+      console.warn("[word-search] Failed to load puzzle from shared URL.");
+      return false;
+    }
   }
 
   if (!tryLoadFromUrl()) {
     updateLanguage("ca");
     updateWordsHelper();
     setTab("teacher");
+    if (new URLSearchParams(window.location.search).has("p")) {
+      setStatus(TRANSLATIONS["ca"].msg_link_error, "error");
+    }
   }
 })();
