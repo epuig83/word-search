@@ -48,13 +48,6 @@
     return `sample-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  function composePuzzle(puzzle) {
-    return {
-      ...puzzle,
-      difficultyLabel: TRANSLATIONS[state.lang][`diff_${puzzle.difficulty}`],
-    };
-  }
-
   function loadTeacherPin() {
     try {
       const stored = window.localStorage.getItem(TEACHER_PIN_STORAGE_KEY);
@@ -199,7 +192,15 @@
     if (!file) return;
 
     try {
-      const parsed = JSON.parse(await file.text());
+      const text = await file.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (parseErr) {
+        setStatus(TRANSLATIONS[state.lang].msg_import_invalid, "error");
+        return;
+      }
+
       const rawSamples = parsed && typeof parsed === "object" && parsed.samples ? parsed.samples : parsed;
       const importedSamples = sanitizeCustomSampleCollection(rawSamples);
       const totalImported = SAMPLE_LANGS.reduce((sum, lang) => sum + importedSamples[lang].length, 0);
@@ -220,7 +221,7 @@
       renderSampleOptions();
       setStatus(TRANSLATIONS[state.lang].msg_import_success.replace("{count}", totalImported), "success");
     } catch {
-      setStatus(TRANSLATIONS[state.lang].msg_import_invalid, "error");
+      setStatus("Error leyendo el archivo. Inténtalo de nuevo.", "error");
     } finally {
       dom.importSamplesInput.value = "";
     }
@@ -497,6 +498,13 @@
     lastFocusedElement: null,
     lastBoardInputMode: getDefaultBoardInputMode(),
   };
+
+  function composePuzzle(puzzle) {
+    return {
+      ...puzzle,
+      difficultyLabel: TRANSLATIONS[state.lang][`diff_${puzzle.difficulty}`],
+    };
+  }
 
   function resetPuzzleProgress() {
     stopTimer();
@@ -1122,12 +1130,19 @@
   function celebrate() {
     if (globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
     const colors = ["#ff6b00", "#0d9488", "#3b82f6", "#8b5cf6"];
+    const confettiElements = [];
     for (let i = 0; i < 50; i++) {
       const p = document.createElement("div");
       Object.assign(p.style, { position: "fixed", left: Math.random() * 100 + "vw", top: "-10px", width: "10px", height: "10px", backgroundColor: colors[Math.floor(Math.random() * colors.length)], borderRadius: "50%", zIndex: "1000", pointerEvents: "none" });
       document.body.appendChild(p);
-      p.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(100vh)", opacity: 0 }], { duration: 1000 + Math.random() * 2000 }).onfinish = () => p.remove();
+      confettiElements.push(p);
+      const anim = p.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(100vh)", opacity: 0 }], { duration: 1000 + Math.random() * 2000 });
+      anim.onfinish = () => p.remove();
     }
+    // Cleanup if page unloads before animations finish
+    window.addEventListener("beforeunload", () => {
+      confettiElements.forEach(el => { if (el.isConnected) el.remove(); });
+    }, { once: true });
   }
 
   function checkMatch(path) {
@@ -1195,7 +1210,7 @@
         timerDuration: Number(dom.timerInput?.value) || 0,
         hintsAllowed: Number(dom.hintsInput?.value) || 0,
       });
-      state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : state.puzzle.hintsAllowed;
+      state.hintsRemaining = state.puzzle.hintsAllowed;
       state.studentName = { nom: "", cognoms: "" };
       stopTimer();
       resetPuzzleProgress();
@@ -1300,7 +1315,7 @@
   dom.resetProgressButton.addEventListener("click", () => {
     if (!window.confirm(TRANSLATIONS[state.lang].msg_confirm_reset)) return;
     resetPuzzleProgress();
-    if (state.puzzle) state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : (state.puzzle.hintsAllowed || 0);
+    if (state.puzzle) state.hintsRemaining = state.puzzle.hintsAllowed;
     render();
     if (shouldShowStudentStartOverlay()) focusStudentStartButton();
   });
@@ -1409,9 +1424,15 @@
     const cell = btn ? { row: +btn.dataset.row, col: +btn.dataset.col } : null;
     if (state.dragSelection) {
       if (cell && (cell.row !== state.dragSelection.end.row || cell.col !== state.dragSelection.end.col)) {
-        state.dragSelection.end = cell; state.dragSelection.moved = true; state.previewCells = buildSelectionPath(state.dragSelection.start, state.dragSelection.end); renderGridHighlights();
+        state.dragSelection.end = cell;
+        state.dragSelection.moved = true;
+        state.previewCells = buildSelectionPath(state.dragSelection.start, state.dragSelection.end);
+        if (dom.gridCells) renderGridHighlights();
       }
-    } else if (state.clickAnchor && cell) { state.previewCells = buildSelectionPath(state.clickAnchor, cell); renderGridHighlights(); }
+    } else if (state.clickAnchor && cell) {
+      state.previewCells = buildSelectionPath(state.clickAnchor, cell);
+      if (dom.gridCells) renderGridHighlights();
+    }
   });
 
   window.addEventListener("pointerup", () => {
@@ -1521,6 +1542,17 @@
     if (!param) return false;
     const config = decodePuzzleConfig(param);
     if (!config) return false;
+
+    // Guardar estado previo para rollback
+    const prevTitle = dom.titleInput.value;
+    const prevWords = dom.wordsInput.value;
+    const prevDifficulty = dom.difficultyInput.value;
+    const prevSize = dom.sizeInput.value;
+    const prevTimer = dom.timerInput ? dom.timerInput.value : "0";
+    const prevHints = dom.hintsInput ? dom.hintsInput.value : "0";
+    const prevFormTemplate = state.formTemplate;
+    const prevPuzzle = state.puzzle;
+
     try {
       const parsed = parseWords(config.words);
       if (parsed.words.length < 1) return false;
@@ -1544,11 +1576,23 @@
       state.puzzle = config.version >= SHARED_PUZZLE_VERSION && config.gridRows && config.placementPaths
         ? buildPuzzleFromSnapshot(parsed.words, config, metadata)
         : buildPuzzle(parsed.words, config.size, config.difficulty, metadata);
-      state.hintsRemaining = state.puzzle.hintsAllowed === -1 ? Infinity : state.puzzle.hintsAllowed;
+      state.hintsRemaining = state.puzzle.hintsAllowed;
       resetPuzzleProgress();
       setTab("student");
       return true;
     } catch {
+      // Rollback al estado previo
+      updateLanguage("ca");
+      dom.titleInput.value = prevTitle;
+      dom.wordsInput.value = prevWords;
+      dom.difficultyInput.value = prevDifficulty;
+      dom.sizeInput.value = prevSize;
+      if (dom.timerInput) dom.timerInput.value = prevTimer;
+      if (dom.hintsInput) dom.hintsInput.value = prevHints;
+      state.formTemplate = prevFormTemplate;
+      state.puzzle = prevPuzzle;
+      if (dom.formTemplateInput) dom.formTemplateInput.value = state.formTemplate;
+      syncWordsUi();
       console.warn("[word-search] Failed to load puzzle from shared URL.");
       return false;
     }
