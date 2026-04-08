@@ -75,6 +75,7 @@ test("student name modal and send results use the configured form URL", async ({
   const formTemplate = "https://docs.google.com/forms/d/e/test/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Resultat&entry.40=Tema";
   const runtimeErrors = [];
 
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.addInitScript(() => {
     Math.random = () => 0;
     window.__openedUrls = [];
@@ -109,7 +110,10 @@ test("student name modal and send results use the configured form URL", async ({
   }
 
   await expect(page.locator("#completion-message")).toBeVisible();
+  await expect(page.locator("#completion-message")).toBeInViewport();
   await expect(page.locator("#send-results-button")).toBeVisible();
+  await expect(page.locator("#send-results-button")).toBeInViewport();
+  await expect.poll(() => page.evaluate(() => document.activeElement?.id || "")).toBe("send-results-button");
   expect(runtimeErrors).toEqual([]);
 
   await page.locator("#send-results-button").click();

@@ -267,6 +267,10 @@
     return String(hintsAllowed);
   }
 
+  function prefersReducedMotion() {
+    return Boolean(globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+  }
+
   function shouldShowStudentStartOverlay() {
     return Boolean(state.puzzle && state.activeTab === "student" && !state.studentSessionStarted && !state.timerExpired);
   }
@@ -296,6 +300,29 @@
 
   function focusStudentStartButton() {
     requestAnimationFrame(() => dom.studentStartButton?.focus());
+  }
+
+  function ensureCompletionMessageVisible() {
+    const target = dom.gridContainer || dom.completionMessage;
+    if (!(target instanceof HTMLElement)) return;
+    const rect = target.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const gutter = Math.min(72, Math.max(24, viewportHeight * 0.12));
+    if (rect.top >= gutter && rect.bottom <= viewportHeight - gutter) return;
+    target.scrollIntoView({
+      block: "center",
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }
+
+  function revealCompletionMessage() {
+    const focusTarget = dom.sendResultsButton && !dom.sendResultsButton.hidden
+      ? dom.sendResultsButton
+      : dom.completionMessage;
+    requestAnimationFrame(() => {
+      ensureCompletionMessageVisible();
+      focusTarget?.focus({ preventScroll: true });
+    });
   }
 
   function expireTimer() {
@@ -589,7 +616,9 @@
     studentStartTimer: document.querySelector("#student-start-timer"),
     studentStartHints: document.querySelector("#student-start-hints"),
     studentStartButton: document.querySelector("#student-start-button"),
+    gridContainer: document.querySelector("#grid-container"),
     completionMessage: document.querySelector("#completion-message"),
+    completionNote: document.querySelector("#completion-note"),
     langBtns: document.querySelectorAll(".lang-btn"),
     libSearch: document.querySelector("#lib-search"),
     libCategories: document.querySelector("#lib-categories"),
@@ -1112,6 +1141,8 @@
     if (!state.puzzle) {
       if (dom.timerDisplay) dom.timerDisplay.hidden = true;
       if (dom.teacherReadyCard) dom.teacherReadyCard.hidden = true;
+      if (dom.completionMessage) dom.completionMessage.hidden = true;
+      if (dom.gridContainer) dom.gridContainer.classList.remove("is-complete");
       if (dom.boardStatus) {
         dom.boardStatus.textContent = "";
         dom.boardStatus.className = "board-status";
@@ -1199,7 +1230,12 @@
       });
     });
     const isComplete = state.foundWordIds.size === state.puzzle.words.length;
+    const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+    const hasSendResults = Boolean(isComplete && formParsed);
+    if (dom.gridContainer) dom.gridContainer.classList.toggle("is-complete", isComplete);
     dom.completionMessage.hidden = !isComplete;
+    if (dom.completionNote) dom.completionNote.hidden = hasSendResults;
+    if (dom.sendResultsButton) dom.sendResultsButton.hidden = !hasSendResults;
     if (dom.boardStatus) {
       const boardStatusTone = state.timerExpired
         ? "expired"
@@ -1226,18 +1262,18 @@
     }
     if (isComplete) {
       stopTimer();
-      if (!state.celebrated) { celebrate(); state.celebrated = true; }
-    }
-    if (dom.sendResultsButton) {
-      const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
-      dom.sendResultsButton.hidden = !(isComplete && formParsed);
+      if (!state.celebrated) {
+        celebrate();
+        revealCompletionMessage();
+        state.celebrated = true;
+      }
     }
     updateHintButton();
     if (dom.shareButton) dom.shareButton.disabled = !state.puzzle;
   }
 
   function celebrate() {
-    if (globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+    if (prefersReducedMotion()) return;
     if (typeof globalThis.confetti !== "function") return;
 
     const baseOptions = {

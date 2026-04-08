@@ -312,14 +312,17 @@
 
             <div id="student-play-surface" class="student-play-surface">
               <div class="puzzle-layout">
-                <div class="grid-container">
+                <div id="grid-container" class="grid-container">
                   <div id="puzzle-grid" class="puzzle-grid" role="grid" aria-describedby="board-instructions"></div>
                   
-                  <div id="completion-message" class="completion-message" hidden>
-                    <span data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</span>
-                    <button type="button" id="send-results-button" class="primary-button" data-t="btn_send_results" hidden style="margin-top:0.75rem; width:100%;">
-                      Enviar resultats
-                    </button>
+                  <div id="completion-message" class="completion-message" hidden tabindex="-1" aria-labelledby="completion-message-title" aria-live="polite">
+                    <div class="completion-card">
+                      <p id="completion-message-title" class="completion-message-title" data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</p>
+                      <p id="completion-note" class="completion-note" data-t="completion_note">Ja pots revisar la sopa o reiniciar-la per tornar a jugar.</p>
+                      <button type="button" id="send-results-button" class="primary-button completion-message-button" data-t="btn_send_results" hidden>
+                        Enviar resultats
+                      </button>
+                    </div>
                   </div>
                 </div>
 
