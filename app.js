@@ -196,7 +196,7 @@
       let parsed;
       try {
         parsed = JSON.parse(text);
-      } catch (parseErr) {
+      } catch {
         setStatus(TRANSLATIONS[state.lang].msg_import_invalid, "error");
         return;
       }
@@ -221,7 +221,7 @@
       renderSampleOptions();
       setStatus(TRANSLATIONS[state.lang].msg_import_success.replace("{count}", totalImported), "success");
     } catch {
-      setStatus("Error leyendo el archivo. Inténtalo de nuevo.", "error");
+      setStatus(TRANSLATIONS[state.lang].msg_import_read_error, "error");
     } finally {
       dom.importSamplesInput.value = "";
     }

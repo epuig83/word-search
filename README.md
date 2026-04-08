@@ -1,87 +1,93 @@
-# Sopas de letras para primaria
+# Word Search Generator for Primary School
 
-Pequeña app web sin dependencias para crear sopas de letras para alumnado de primaria.
+Small dependency-free web app for creating word search activities for primary school students.
 
-## Uso
+## Usage
 
-1. Abre `index.html` en el navegador del portátil.
-2. Escribe un tema y una lista de palabras, o usa la biblioteca lateral para añadir vocabulario.
-3. Pulsa `Generar nova sopa` para prepararla en la vista de profesora, o `Generar i obrir zona alumne` para lanzarla directamente.
-4. En la zona de alumno se puede resolver con ratón, táctil o teclado (`flechas` + `Enter`).
-5. Cuando esté lista, usa `Compartir` o `Imprimir / PDF`.
+1. Open `index.html` in the laptop browser.
+2. Enter a topic and a list of words, or use the side library to add vocabulary.
+3. Click `Generate new puzzle` in the teacher view, or `Generate and open student view` to jump straight into the student area.
+4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`).
+5. When the activity is ready, use `Share` or `Print / PDF`.
 
-## Datos editables
+## Editable Data
 
-- El vocabulario de la biblioteca y los ejemplos viven en `data.js`.
-- Los textos multiidioma viven en `i18n.js`.
-- La lógica de generación e interacción vive en `app.js`.
+- Built-in vocabulary and guided examples live in `data.js`.
+- Translated UI copy lives in `i18n.js`.
+- Pure puzzle generation and sharing logic lives in `core.js`.
+- DOM behavior and app interaction logic live in `app.js`.
 
-## Ejemplos guardados por la profesora
+## Teacher-Saved Examples
 
-- `Guardar` no escribe en `data.js`.
-- Los ejemplos personalizados se guardan en el navegador del portátil usando `localStorage`.
-- Eso significa que siguen disponibles al recargar la página en ese mismo ordenador.
-- Para moverlos a otro portátil, usa `Exportar JSON` e `Importar JSON`.
+- `Save` does not write back to `data.js`.
+- Custom examples are stored in the laptop browser with `localStorage`.
+- That means they stay available after refreshing the page on the same computer.
+- To move them to another laptop, use `Export JSON` and `Import JSON`.
 
-## Flujo de aula
+## Classroom Flow
 
-- La tarjeta `Activitat preparada` resume la sopa activa y da acceso rápido a abrir la zona de alumno, compartir o imprimir.
-- Los enlaces de `Compartir` reconstruyen exactamente la misma sopa al abrirlos.
-- Si configuras Google Forms, al terminar la actividad se puede enviar el resultado desde la vista de alumno.
+- The `Activity ready` card summarizes the current puzzle and gives quick access to the student area, sharing, and printing.
+- Shared links rebuild the exact same puzzle when opened.
+- The student start overlay shows the timer and available hints before the activity begins.
+- If you configure Google Forms, students can submit their result from the student view after finishing.
 
-## Si el navegador muestra avisos con `file://`
+## If the Browser Shows Warnings with `file://`
 
-Algunos navegadores aplican restricciones extra cuando se abre un HTML local con doble clic. Si aparece alguna advertencia en consola, puedes abrir la carpeta con un servidor local muy simple:
+Some browsers add extra restrictions when a local HTML file is opened with a double click. If you see warnings in the console, start a very simple local server:
 
 ```bash
 cd /Users/edgardpuig/repos/rachel_exercises
 python3 -m http.server 8000
 ```
 
-Después abre `http://localhost:8000` en el navegador.
+Then open `http://localhost:8000` in the browser.
 
-## Qué incluye
+## Features
 
-- Generación automática de la rejilla.
-- Dificultad fácil, media y difícil.
-- Resolución en pantalla con ratón, táctil o teclado.
-- Apertura directa de la zona de alumno al generar.
-- Vista de profesora con solución visible y acciones rápidas.
-- Enlaces compartibles que preservan la misma sopa.
-- Impresión o guardado en PDF desde el navegador.
+- Automatic grid generation.
+- Easy, medium, and hard difficulty levels.
+- Mouse, touch, and keyboard solving.
+- Direct launch into the student area after generation.
+- Teacher view with visible solution and quick actions.
+- Optional timer and hint system.
+- Shareable links that preserve the exact puzzle.
+- Print or save as PDF from the browser.
+- Optional Google Forms result submission.
+- Catalan, Spanish, and English UI.
 
 ## Tests
 
-1. Instala dependencias:
+1. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-2. Ejecuta unitarios:
+2. Run unit tests:
 
 ```bash
 pnpm test:unit
 ```
 
-3. Ejecuta E2E en navegador headless:
+3. Run headless E2E tests:
 
 ```bash
 pnpm test:e2e
 ```
 
-4. Ejecuta toda la batería:
+4. Run the full test suite:
 
 ```bash
 pnpm test
 ```
 
-### Qué cubren
+### Coverage
 
-- `tests/unit/core.test.js`: lógica pura de normalización, serialización, generación y URLs.
-- `tests/e2e/student-flow.spec.js`: flujo real de profesora/alumno, overlay de inicio, timer, reset y vuelta desde profesora.
+- `tests/unit/*`: puzzle logic, app helper logic, translation integrity, and data consistency.
+- `tests/e2e/student-flow.spec.js`: real teacher/student flow, start overlay, timer, reset, and return from teacher view.
+- `tests/e2e/share-hint-form.spec.js`: shared links, hints, student form flow, and malformed shared URLs.
 
 ## CI
 
-- GitHub Actions ejecuta unitarios y E2E en cada `push` a `main` o `master` y en cada `pull request`.
-- El workflow está en `.github/workflows/test.yml`.
+- GitHub Actions runs unit and E2E tests on every `push` to `main` or `master` and on every `pull request`.
+- The workflow lives in `.github/workflows/test.yml`.
