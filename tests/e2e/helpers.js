@@ -11,8 +11,8 @@ async function generatePuzzle(page, options = {}) {
   } = options;
 
   await page.goto("/index.html");
-  await page.getByLabel("Tema de l'exercici").fill(title);
-  await page.getByLabel("Llista de paraules (una per línia)").fill(words);
+  await page.locator("#title-input").fill(title);
+  await page.locator("#words-input").fill(words);
   if (timer !== undefined) {
     await page.locator("#timer-input").selectOption(String(timer));
   }
@@ -23,9 +23,7 @@ async function generatePuzzle(page, options = {}) {
     await page.locator("#form-config-details summary").click();
     await page.locator("#form-template-input").fill(formTemplate);
   }
-  await page.getByRole("button", {
-    name: openStudent ? "Generar i obrir la zona de l'alumnat" : "Generar nova sopa",
-  }).click();
+  await page.locator(openStudent ? "#generate-open-button" : "#generate-button").click();
 }
 
 async function readTimerSeconds(page) {
@@ -42,9 +40,9 @@ async function startStudentSession(page) {
 }
 
 async function unlockTeacherView(page) {
-  await page.getByRole("tab", { name: /Panell de creació/ }).click();
+  await page.locator("#tab-teacher").click();
   await page.locator("#pin-input").fill("1234");
-  await page.getByRole("button", { name: "Validar PIN" }).click();
+  await page.locator("#pin-submit").click();
 }
 
 async function openTeacherTools(page) {

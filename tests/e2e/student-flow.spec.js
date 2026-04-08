@@ -49,3 +49,17 @@ test("returning from teacher view resumes the running timer without resetting it
   expect(resumedAt).toBeLessThanOrEqual(beforePause);
   await expect.poll(() => readTimerSeconds(page), { timeout: 4_000 }).toBeLessThan(resumedAt);
 });
+
+test("language switch updates the main teacher controls in all locales", async ({ page }) => {
+  await page.goto("/index.html");
+
+  await expect(page.locator("#tab-teacher")).toContainText("Panell de creació");
+  await page.getByRole("button", { name: "Castellano" }).click();
+  await expect(page.locator("#tab-teacher")).toContainText("Panel de creación");
+  await expect(page.locator("#generate-button")).toHaveText("Generar nueva sopa");
+
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.locator("#tab-teacher")).toContainText("Creation Panel");
+  await expect(page.locator("#generate-button")).toHaveText("Generate new puzzle");
+  await expect(page.locator("#tab-student")).toContainText("Student area");
+});

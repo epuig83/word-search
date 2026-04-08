@@ -192,7 +192,7 @@
             "ceba",
             "col",
             "enciam",
-            "tomaquet",
+            "tomàquet",
             "cogombre",
             "all",
           ]),
@@ -245,7 +245,7 @@
             "pasta",
             "carn",
             "peix",
-            "tomaquet",
+            "tomàquet",
           ]),
         }),
         transports: Object.freeze({
@@ -490,7 +490,7 @@
           title: "Aliments saludables",
           difficulty: "easy",
           size: "auto",
-          words: ["pastanaga", "patata", "col", "taronja", "pera", "tomaquet", "arròs", "llet"].join("\n"),
+          words: ["pastanaga", "patata", "col", "taronja", "pera", "tomàquet", "arròs", "llet"].join("\n"),
         }),
         Object.freeze({
           title: "Fruites del mercat",
@@ -502,7 +502,7 @@
           title: "Verdures de l'hort",
           difficulty: "easy",
           size: "auto",
-          words: ["pastanaga", "patata", "ceba", "col", "enciam", "tomaquet", "cogombre", "all"].join("\n"),
+          words: ["pastanaga", "patata", "ceba", "col", "enciam", "tomàquet", "cogombre", "all"].join("\n"),
         }),
         Object.freeze({
           title: "Transports de la ciutat",

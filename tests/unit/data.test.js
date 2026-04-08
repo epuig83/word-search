@@ -190,3 +190,12 @@ test("sample puzzle titles differ across languages", () => {
     "Sample puzzle titles should differ across languages"
   );
 });
+
+test("catalan vocabulary and samples use 'tomàquet' with accent", () => {
+  assert.ok(data.vocabulary.ca.vegetables.words.includes("tomàquet"));
+  assert.ok(data.vocabulary.ca.food.words.includes("tomàquet"));
+  assert.ok(
+    data.samplePuzzles.ca.some(sample => sample.words.includes("tomàquet")),
+    "Expected at least one Catalan sample puzzle to include tomàquet"
+  );
+});

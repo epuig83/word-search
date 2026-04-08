@@ -3,6 +3,7 @@
 
   const CUSTOM_SAMPLES_STORAGE_KEY = "word-search-custom-samples-v1";
   const TEACHER_PIN_STORAGE_KEY = "word-search-teacher-pin-v1";
+  const ALL_CATEGORY_ID = "__all__";
   const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
   const CORE = globalThis.WORD_SEARCH_CORE;
   if (!CORE) throw new Error("WORD_SEARCH_CORE is required.");
@@ -839,17 +840,30 @@
     syncWordsUi();
   }
 
+  function shouldUseCompactLibraryBrowse() {
+    return Boolean(globalThis.matchMedia?.("(max-width: 640px)")?.matches);
+  }
+
   function renderLibrary() {
     const lang = state.lang;
-    const search = dom.libSearch.value.toLowerCase();
+    const search = dom.libSearch.value.trim().toLowerCase();
+    const isCompactBrowse = shouldUseCompactLibraryBrowse();
     const categories = getVocabularyCategories(lang);
     const categoryEntries = Object.entries(categories);
+    const isAllCategoriesSelected = state.activeCategory === ALL_CATEGORY_ID;
     dom.libCategories.innerHTML = "";
     const allBtn = document.createElement("button");
     allBtn.type = "button";
-    allBtn.className = "category-chip" + (!state.activeCategory ? " is-active" : "");
+    allBtn.className = "category-chip" + (
+      isAllCategoriesSelected || (!isCompactBrowse && !state.activeCategory)
+        ? " is-active"
+        : ""
+    );
     allBtn.textContent = TRANSLATIONS[lang].all_categories;
-    allBtn.addEventListener("click", () => { state.activeCategory = null; renderLibrary(); });
+    allBtn.addEventListener("click", () => {
+      state.activeCategory = ALL_CATEGORY_ID;
+      renderLibrary();
+    });
     dom.libCategories.appendChild(allBtn);
     categoryEntries.forEach(([categoryId, category]) => {
       const btn = document.createElement("button");
@@ -861,9 +875,10 @@
     });
     dom.libResults.innerHTML = "";
     let wordsToShow = [];
-    if (state.activeCategory && categories[state.activeCategory]) {
+    const shouldShowCategoryPrompt = isCompactBrowse && !state.activeCategory && !search;
+    if (state.activeCategory && state.activeCategory !== ALL_CATEGORY_ID && categories[state.activeCategory]) {
       wordsToShow = categories[state.activeCategory].words;
-    } else {
+    } else if (!shouldShowCategoryPrompt) {
       categoryEntries.forEach(([, category]) => wordsToShow.push(...category.words));
     }
     wordsToShow = [...new Set(wordsToShow)]
@@ -882,9 +897,19 @@
       });
     });
     // When a specific category is active, all chips use that category's color
-    const activeCatColorClass = state.activeCategory
+    const activeCatColorClass = state.activeCategory && state.activeCategory !== ALL_CATEGORY_ID
       ? chipColors[categoryEntries.findIndex(([id]) => id === state.activeCategory) % chipColors.length]
       : null;
+
+    if (!wordsToShow.length) {
+      const emptyState = document.createElement("p");
+      emptyState.className = "library-empty-state";
+      emptyState.textContent = shouldShowCategoryPrompt
+        ? TRANSLATIONS[lang].lib_empty_mobile
+        : TRANSLATIONS[lang].lib_empty_search;
+      dom.libResults.appendChild(emptyState);
+      return;
+    }
 
     wordsToShow.forEach(word => {
       const btn = document.createElement("button");

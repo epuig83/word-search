@@ -138,3 +138,14 @@ test("malformed or corrupted shared URLs fall back to the teacher view", async (
   await expect(page.getByRole("heading", { name: "Crea la teva sopa" })).toBeVisible();
   await expect(page.locator("#student-start-overlay")).toBeHidden();
 });
+
+test("mobile library starts category-first instead of showing the full word cloud", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/index.html");
+
+  await expect(page.locator("#lib-results")).toContainText("Tria una categoria o escriu al cercador per veure paraules.");
+  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Animals" }).click();
+  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(17);
+});

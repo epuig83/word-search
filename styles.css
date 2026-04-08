@@ -652,6 +652,18 @@ body {
   scrollbar-color: var(--panel-border) transparent;
 }
 
+.library-empty-state {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  width: 100%;
+  border: 1.5px dashed var(--panel-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
 /* ========================
    STATUS MESSAGES
    ======================== */
@@ -1557,6 +1569,29 @@ body[data-tab="student"] .panel {
 
   #lib-search {
     width: 100%;
+  }
+
+  .vocabulary-library {
+    padding: 1rem;
+  }
+
+  .library-header {
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .library-header span {
+    font-size: 0.85rem;
+  }
+
+  .library-categories {
+    margin-bottom: 0.75rem;
+  }
+
+  .library-results {
+    min-height: 3.75rem;
+    max-height: 13.5rem;
+    padding-top: 0.25rem;
   }
 
   .word-bank {
