@@ -73,6 +73,7 @@ test("hint highlights the expected cell and decrements the counter", async ({ pa
 test("student name modal and send results use the configured form URL", async ({ page }) => {
   const wordsText = "balena\ndofi\npeix";
   const formTemplate = "https://docs.google.com/forms/d/e/test/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Resultat&entry.40=Tema";
+  const runtimeErrors = [];
 
   await page.addInitScript(() => {
     Math.random = () => 0;
@@ -81,6 +82,10 @@ test("student name modal and send results use the configured form URL", async ({
       window.__openedUrls.push(args);
       return null;
     };
+  });
+  page.on("pageerror", error => runtimeErrors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") runtimeErrors.push(message.text());
   });
 
   await generatePuzzle(page, { words: wordsText, timer: "0", hints: "0", formTemplate });
@@ -105,6 +110,7 @@ test("student name modal and send results use the configured form URL", async ({
 
   await expect(page.locator("#completion-message")).toBeVisible();
   await expect(page.locator("#send-results-button")).toBeVisible();
+  expect(runtimeErrors).toEqual([]);
 
   await page.locator("#send-results-button").click();
 

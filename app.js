@@ -1238,20 +1238,52 @@
 
   function celebrate() {
     if (globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
-    const colors = ["#ff6b00", "#0d9488", "#3b82f6", "#8b5cf6"];
-    const confettiElements = [];
-    for (let i = 0; i < 50; i++) {
-      const p = document.createElement("div");
-      Object.assign(p.style, { position: "fixed", left: Math.random() * 100 + "vw", top: "-10px", width: "10px", height: "10px", backgroundColor: colors[Math.floor(Math.random() * colors.length)], borderRadius: "50%", zIndex: "1000", pointerEvents: "none" });
-      document.body.appendChild(p);
-      confettiElements.push(p);
-      const anim = p.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(100vh)", opacity: 0 }], { duration: 1000 + Math.random() * 2000 });
-      anim.onfinish = () => p.remove();
-    }
-    // Cleanup if page unloads before animations finish
-    window.addEventListener("beforeunload", () => {
-      confettiElements.forEach(el => { if (el.isConnected) el.remove(); });
-    }, { once: true });
+    if (typeof globalThis.confetti !== "function") return;
+
+    const baseOptions = {
+      colors: ["#ff6b00", "#d47a3b", "#0d9488", "#3b82f6", "#8b5cf6", "#facc15"],
+      disableForReducedMotion: true,
+      ticks: 220,
+      gravity: 0.95,
+      decay: 0.92,
+      startVelocity: 32,
+      scalar: 0.95,
+      shapes: ["circle", "square"],
+      zIndex: 1600,
+    };
+
+    globalThis.confetti({
+      ...baseOptions,
+      particleCount: 52,
+      angle: 60,
+      spread: 70,
+      drift: 0.18,
+      origin: { x: 0.18, y: 0.72 },
+    });
+
+    window.setTimeout(() => {
+      globalThis.confetti({
+        ...baseOptions,
+        particleCount: 52,
+        angle: 120,
+        spread: 70,
+        drift: -0.18,
+        origin: { x: 0.82, y: 0.72 },
+      });
+    }, 120);
+
+    window.setTimeout(() => {
+      globalThis.confetti({
+        ...baseOptions,
+        particleCount: 28,
+        angle: 90,
+        spread: 110,
+        startVelocity: 24,
+        scalar: 0.78,
+        drift: 0,
+        origin: { x: 0.5, y: 0.54 },
+      });
+    }, 240);
   }
 
   function checkMatch(path) {
