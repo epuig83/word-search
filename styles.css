@@ -268,14 +268,14 @@ body {
 .board-instructions {
   margin: 0.5rem 0 0;
   color: var(--ink-soft);
-  font-size: 0.95rem;
+  font-size: 1rem;
   max-width: 55ch;
 }
 
 .board-status {
   margin: 0.7rem 0 0;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 700;
 }
 
@@ -795,7 +795,7 @@ body {
 
 @keyframes timerPulse {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
+  50%       { opacity: 0.75; }
 }
 
 /* Grid Design */
@@ -889,7 +889,7 @@ body {
 }
 
 #student-start-button {
-  width: min(260px, 100%);
+  width: min(320px, 100%);
   margin-inline: auto;
 }
 
@@ -921,8 +921,8 @@ body {
   cursor: pointer;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 0 var(--panel-border);
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .grid-cell:hover {
@@ -951,7 +951,7 @@ body {
 
 /* Animation only on newly-found cells, not on every render() */
 .grid-cell.is-found-new {
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .grid-cell.is-solution {
@@ -996,7 +996,7 @@ body {
 
 .student-action-button {
   width: 100%;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .hint-button-style {
@@ -1011,7 +1011,7 @@ body {
 }
 
 .hint-button-style:disabled {
-  opacity: 0.45;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none;
@@ -1108,7 +1108,7 @@ body {
   border: 2px solid var(--panel-border);
   border-radius: var(--radius-md);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1121,7 +1121,7 @@ body {
   border-color: var(--found);
   color: var(--found-strong);
   text-decoration: line-through;
-  opacity: 0.7;
+  opacity: 1;
   box-shadow: none;
   transform: translateY(2px);
 }
@@ -1140,7 +1140,7 @@ body {
   border: 2px solid #6ee7b7;
   color: var(--found-strong);
   font-weight: 800;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   text-align: center;
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   box-shadow: 0 4px 12px rgba(21, 128, 61, 0.15);
@@ -1240,9 +1240,13 @@ body.has-modal {
 
 /* Mobile Adjustments */
 @media (max-width: 1024px) {
-  .hero,
-  .puzzle-layout {
+  .hero {
     grid-template-columns: 1fr;
+  }
+
+  /* Keep word bank beside the grid on tablets so students don't need to scroll */
+  .puzzle-layout {
+    grid-template-columns: 1fr 220px;
   }
 
   .hero {
@@ -1283,8 +1287,8 @@ body.has-modal {
   }
 
   .word-item {
-    padding: 0.55rem 0.8rem;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.95rem;
   }
 }
 
@@ -1299,7 +1303,11 @@ body[data-tab="student"] .page-shell {
 @media (max-width: 640px) {
   :root {
     --cell-gap: 4px;
-    --cell-font: clamp(0.85rem, 2.9vw, 1.05rem);
+    --cell-font: clamp(0.95rem, 2.9vw, 1.05rem);
+  }
+
+  .puzzle-layout {
+    grid-template-columns: 1fr;
   }
 
   .page-shell {
