@@ -149,3 +149,30 @@ test("mobile library starts category-first instead of showing the full word clou
   await page.getByRole("button", { name: "Animals" }).click();
   await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(17);
 });
+
+test("defined student words open a definition modal and uncovered custom words stay inert", async ({ page }) => {
+  await generatePuzzle(page, {
+    title: "Animals barrejats",
+    words: "gos\nbalena\ndofi",
+    timer: "0",
+    hints: "0",
+  });
+  await startStudentSession(page);
+
+  const dogWord = page.locator("#word-list .word-item").filter({ hasText: "gos" });
+  await dogWord.click();
+
+  await expect(page.locator("#word-definition-modal")).toBeVisible();
+  await expect(page.locator("#word-definition-title")).toHaveText("gos");
+  await expect(page.locator("#word-definition-text")).toContainText("Animal domèstic");
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#word-definition-modal")).toBeHidden();
+
+  await dogWord.click();
+  await page.locator("#word-definition-close").click();
+  await expect(page.locator("#word-definition-modal")).toBeHidden();
+
+  await page.locator("#word-list .word-item").filter({ hasText: "balena" }).click();
+  await expect(page.locator("#word-definition-modal")).toBeHidden();
+});

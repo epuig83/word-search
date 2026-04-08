@@ -1225,6 +1225,30 @@ body {
   position: relative;
 }
 
+.word-item.is-definable {
+  cursor: pointer;
+}
+
+.word-item.is-definable:hover:not(.is-found) {
+  transform: translateY(-2px);
+  border-color: var(--teal);
+  box-shadow: 0 4px 0 rgba(20, 92, 80, 0.18);
+}
+
+.word-item.is-definable:hover.is-found {
+  filter: brightness(0.98);
+}
+
+.word-item.is-definable:focus-visible {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(90, 184, 168, 0.22);
+}
+
+.word-item .check-icon {
+  margin-left: auto;
+}
+
 .word-item.is-found {
   text-decoration: none;
   opacity: 1;
@@ -1330,6 +1354,30 @@ body.has-modal {
   color: var(--ink-soft);
   margin-bottom: 2rem;
   font-size: 0.95rem;
+}
+
+.word-definition-modal-content {
+  max-width: 460px;
+  text-align: left;
+}
+
+.word-definition-modal-content .section-kicker {
+  margin-bottom: 0.65rem;
+}
+
+#word-definition-text {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.word-definition-found {
+  margin: 0 0 1.25rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid #7aba8e;
+  background: var(--found-soft);
+  color: var(--found-strong);
+  font-weight: 600;
 }
 
 .pin-input-group {

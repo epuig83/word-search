@@ -8,10 +8,11 @@
   const CORE = globalThis.WORD_SEARCH_CORE;
   if (!CORE) throw new Error("WORD_SEARCH_CORE is required.");
 
-  const APP_DATA = globalThis.WORD_SEARCH_DATA || { vocabulary: {}, samplePuzzles: {} };
+  const APP_DATA = globalThis.WORD_SEARCH_DATA || { vocabulary: {}, samplePuzzles: {}, definitions: {} };
   const TRANSLATIONS = globalThis.WORD_SEARCH_I18N || {};
   const VOCABULARY = APP_DATA.vocabulary || {};
   const SAMPLE_PUZZLES = APP_DATA.samplePuzzles || {};
+  const WORD_DEFINITIONS = APP_DATA.definitions || {};
   const {
     MAX_GRID_SIZE,
     SAMPLE_LANGS,
@@ -40,6 +41,10 @@
 
   function getBuiltInSamplePuzzles(lang) {
     return SAMPLE_PUZZLES[lang] || [];
+  }
+
+  function getDefinitionsForLang(lang) {
+    return WORD_DEFINITIONS[lang] || {};
   }
 
   function generateSampleId() {
@@ -495,10 +500,15 @@
     hintsRemaining: 0,
     studentName: { nom: "", cognoms: "" },
     formTemplate: "",
+    activeDefinitionWordId: null,
     focusedCell: null,
     lastFocusedElement: null,
     lastBoardInputMode: getDefaultBoardInputMode(),
   };
+
+  function getPuzzleSourceLang() {
+    return state.puzzle?.sourceLang || state.lang;
+  }
 
   function composePuzzle(puzzle) {
     return {
@@ -513,10 +523,12 @@
     state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map();
     state.clickAnchor = null; state.previewCells = []; state.dragSelection = null; state.celebrated = false;
     state.timerExpired = false; state.studentSessionStarted = false;
+    state.activeDefinitionWordId = null;
     state.timerSecondsLeft = state.puzzle?.timerDuration || 0;
     state.focusedCell = null;
     dom.gridCells = null;
     dom.wordListItems = null;
+    closeWordDefinitionModal({ restoreFocus: false });
   }
 
   function buildShareConfigFromPuzzle(puzzle) {
@@ -526,7 +538,7 @@
       words: puzzle.words.map(word => word.display).join("\n"),
       difficulty: puzzle.difficulty,
       size: puzzle.requestedSize || "auto",
-      lang: state.lang,
+      lang: puzzle.sourceLang || state.lang,
       timer: puzzle.timerDuration,
       hints: puzzle.hintsAllowed,
       formTemplate: state.formTemplate || "",
@@ -603,6 +615,11 @@
     studentNameForm: document.querySelector("#student-name-form"),
     studentNomInput: document.querySelector("#student-nom-input"),
     studentCognomsInput: document.querySelector("#student-cognoms-input"),
+    wordDefinitionModal: document.querySelector("#word-definition-modal"),
+    wordDefinitionTitle: document.querySelector("#word-definition-title"),
+    wordDefinitionText: document.querySelector("#word-definition-text"),
+    wordDefinitionFound: document.querySelector("#word-definition-found"),
+    wordDefinitionClose: document.querySelector("#word-definition-close"),
     pinModal: document.querySelector("#pin-modal"),
     pinForm: document.querySelector("#pin-form"),
     pinInput: document.querySelector("#pin-input"),
@@ -628,7 +645,7 @@
   function closeModal(overlay, { restoreFocus = true } = {}) {
     if (!overlay || overlay.hidden) return;
     overlay.hidden = true;
-    if (![dom.pinModal, dom.studentNameModal].some(modal => modal && !modal.hidden)) {
+    if (![...document.querySelectorAll(".modal-overlay")].some(modal => !modal.hidden)) {
       document.body.classList.remove("has-modal");
     }
     const focusTarget = restoreFocus ? state.lastFocusedElement : null;
@@ -701,6 +718,52 @@
     if (dom.pinInput) dom.pinInput.value = "";
     if (dom.pinError) dom.pinError.style.display = "none";
     openModal(dom.pinModal, dom.pinInput);
+  }
+
+  function findPuzzleWordById(wordId) {
+    return state.puzzle?.words.find(word => word.id === wordId) || null;
+  }
+
+  function getDefinitionTextForWordId(wordId) {
+    return getDefinitionsForLang(getPuzzleSourceLang())[wordId] || "";
+  }
+
+  function resetWordDefinitionModalContent() {
+    if (!dom.wordDefinitionTitle || !dom.wordDefinitionText) return;
+    const t = TRANSLATIONS[state.lang];
+    dom.wordDefinitionTitle.textContent = t.word_definition_placeholder_title;
+    dom.wordDefinitionText.textContent = t.word_definition_placeholder_text;
+    if (dom.wordDefinitionFound) dom.wordDefinitionFound.hidden = true;
+  }
+
+  function closeWordDefinitionModal(options) {
+    state.activeDefinitionWordId = null;
+    resetWordDefinitionModalContent();
+    closeModal(dom.wordDefinitionModal, options);
+  }
+
+  function renderWordDefinitionModal() {
+    if (!dom.wordDefinitionModal || !state.activeDefinitionWordId) return;
+    const word = findPuzzleWordById(state.activeDefinitionWordId);
+    const definitionText = getDefinitionTextForWordId(state.activeDefinitionWordId);
+    if (!word || !definitionText) {
+      closeWordDefinitionModal({ restoreFocus: false });
+      return;
+    }
+    dom.wordDefinitionTitle.textContent = word.display;
+    dom.wordDefinitionText.textContent = definitionText;
+    if (dom.wordDefinitionFound) {
+      dom.wordDefinitionFound.hidden = !state.foundWordIds.has(word.id);
+    }
+  }
+
+  function openWordDefinition(wordId) {
+    if (!state.puzzle) return;
+    const definitionText = getDefinitionTextForWordId(wordId);
+    if (!definitionText) return;
+    state.activeDefinitionWordId = wordId;
+    renderWordDefinitionModal();
+    openModal(dom.wordDefinitionModal, dom.wordDefinitionClose);
   }
 
   function updateWordsHelper() {
@@ -948,6 +1011,8 @@
     updateWordsHelper();
     renderLibrary();
     render();
+    renderWordDefinitionModal();
+    if (!state.activeDefinitionWordId) resetWordDefinitionModalContent();
   }
 
   function setStatus(msg, tone) {
@@ -984,11 +1049,25 @@
     state.puzzle.words.forEach(word => {
       const li = document.createElement("li");
       li.className = "word-item";
+      const isDefinable = Boolean(getDefinitionTextForWordId(word.id));
+      li.dataset.definable = String(isDefinable);
       const textSpan = document.createElement("span");
       textSpan.textContent = word.display;
       const checkSpan = document.createElement("span");
       checkSpan.className = "check-icon";
       checkSpan.innerHTML = svgCheck;
+      if (isDefinable) {
+        li.classList.add("is-definable");
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-haspopup", "dialog");
+        li.addEventListener("click", () => openWordDefinition(word.id));
+        li.addEventListener("keydown", event => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          openWordDefinition(word.id);
+        });
+      }
       li.appendChild(textSpan);
       li.appendChild(checkSpan);
       dom.wordList.appendChild(li);
@@ -1082,8 +1161,13 @@
       const solved = state.foundWordIds.has(word.id);
       const colorClass = solved ? (state.foundWordColors.get(word.id) || "wc-0") : "";
       const li = dom.wordListItems.get(word.id);
-      if (li) li.className = "word-item" + (solved ? ` is-found ${colorClass}` : "");
+      if (li) {
+        li.className = "word-item" +
+          (li.dataset.definable === "true" ? " is-definable" : "") +
+          (solved ? ` is-found ${colorClass}` : "");
+      }
     });
+    if (state.activeDefinitionWordId) renderWordDefinitionModal();
 
     // Grid — build once, update attributes in-place on subsequent renders
     if (!dom.gridCells) initGrid();
@@ -1234,6 +1318,7 @@
         requestedSize: dom.sizeInput.value,
         timerDuration: Number(dom.timerInput?.value) || 0,
         hintsAllowed: Number(dom.hintsInput?.value) || 0,
+        sourceLang: state.lang,
       });
       state.hintsRemaining = state.puzzle.hintsAllowed;
       state.studentName = { nom: "", cognoms: "" };
@@ -1400,6 +1485,24 @@
 
   dom.studentNameModal?.addEventListener("keydown", event => {
     trapModalFocus(event, dom.studentNameModal);
+  });
+
+  dom.wordDefinitionClose?.addEventListener("click", () => {
+    closeWordDefinitionModal();
+  });
+
+  dom.wordDefinitionModal?.addEventListener("click", event => {
+    if (event.target === event.currentTarget) {
+      closeWordDefinitionModal();
+    }
+  });
+
+  dom.wordDefinitionModal?.addEventListener("keydown", event => {
+    trapModalFocus(event, dom.wordDefinitionModal);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeWordDefinitionModal();
+    }
   });
 
   if (dom.hintButton) {
@@ -1597,6 +1700,7 @@
         requestedSize: config.requestedSize,
         timerDuration: config.timer,
         hintsAllowed: config.hints,
+        sourceLang: config.lang,
       };
       state.puzzle = config.version >= SHARED_PUZZLE_VERSION && config.gridRows && config.placementPaths
         ? buildPuzzleFromSnapshot(parsed.words, config, metadata)

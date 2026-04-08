@@ -5,6 +5,7 @@ const path = require("path");
 globalThis.window = globalThis;
 require(path.resolve(__dirname, "../../data.js"));
 const data = globalThis.WORD_SEARCH_DATA;
+const core = require(path.resolve(__dirname, "../../core.js"));
 
 const LANGS = ["ca", "es", "en"];
 const VALID_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
@@ -12,8 +13,9 @@ const VALID_SIZES = new Set(["auto", "10", "12", "14", "16"]);
 
 // ── Top-level structure ───────────────────────────────────────────────────
 
-test("data exports vocabulary and samplePuzzles", () => {
+test("data exports vocabulary, definitions, and samplePuzzles", () => {
   assert.ok(data.vocabulary, "Missing vocabulary");
+  assert.ok(data.definitions, "Missing definitions");
   assert.ok(data.samplePuzzles, "Missing samplePuzzles");
   assert.ok(Object.isFrozen(data), "data should be frozen");
 });
@@ -79,6 +81,28 @@ test("category words arrays are frozen", () => {
   for (const lang of LANGS) {
     for (const cat of Object.values(data.vocabulary[lang])) {
       assert.ok(Object.isFrozen(cat.words), `${lang} words array should be frozen`);
+    }
+  }
+});
+
+test("definitions are frozen for every language", () => {
+  for (const lang of LANGS) {
+    assert.ok(Object.isFrozen(data.definitions[lang]), `${lang} definitions should be frozen`);
+  }
+});
+
+test("every internal vocabulary and built-in sample word has a definition", () => {
+  for (const lang of LANGS) {
+    const internalWords = new Set([
+      ...Object.values(data.vocabulary[lang]).flatMap(cat => cat.words),
+      ...data.samplePuzzles[lang].flatMap(sample => sample.words.split("\n").filter(Boolean)),
+    ].map(word => core.normalizeWord(word)));
+
+    for (const wordId of internalWords) {
+      assert.ok(
+        data.definitions[lang][wordId],
+        `${lang} is missing a definition for ${wordId}`
+      );
     }
   }
 });

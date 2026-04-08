@@ -386,6 +386,33 @@
       </div>
     </div>
 
+    <div
+      id="word-definition-modal"
+      class="modal-overlay"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="word-definition-title"
+      aria-describedby="word-definition-text"
+    >
+      <div class="modal-content word-definition-modal-content" tabindex="-1">
+        <p class="section-kicker" data-t="word_definition_kicker">Definició</p>
+        <h3 id="word-definition-title" data-t="word_definition_placeholder_title">Paraula</h3>
+        <p id="word-definition-text" data-t="word_definition_placeholder_text">Definició</p>
+        <p
+          id="word-definition-found"
+          class="word-definition-found"
+          data-t="word_definition_found"
+          hidden
+        >
+          Aquesta paraula ja l'has trobada.
+        </p>
+        <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">
+          Tancar
+        </button>
+      </div>
+    </div>
+
     <!-- Modal de Seguretat per a la Professora -->
     <div
       id="pin-modal"
