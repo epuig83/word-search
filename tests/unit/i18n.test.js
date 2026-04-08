@@ -157,6 +157,13 @@ test("page_title differs across languages", () => {
   assert.equal(unique.size, LANGS.length, "Each language should have a unique page_title");
 });
 
+test("reviewed high-visibility teacher labels use the expected localized wording", () => {
+  assert.equal(i18n.ca.tab_teacher, "Panell de creació");
+  assert.equal(i18n.es.tab_teacher, "Panel de creación");
+  assert.equal(i18n.ca.teacher_tools_summary, "Eines docents");
+  assert.equal(i18n.es.teacher_tools_summary, "Herramientas docentes");
+});
+
 // ── All expected keys are covered ──────────────────────────────────────────
 
 test("all expected keys exist in ca", () => {

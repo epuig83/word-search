@@ -24,7 +24,7 @@ async function generatePuzzle(page, options = {}) {
     await page.locator("#form-template-input").fill(formTemplate);
   }
   await page.getByRole("button", {
-    name: openStudent ? "Generar i obrir zona alumne" : "Generar nova sopa",
+    name: openStudent ? "Generar i obrir la zona de l'alumnat" : "Generar nova sopa",
   }).click();
 }
 
@@ -42,7 +42,7 @@ async function startStudentSession(page) {
 }
 
 async function unlockTeacherView(page) {
-  await page.getByRole("tab", { name: /Panel Creació/ }).click();
+  await page.getByRole("tab", { name: /Panell de creació/ }).click();
   await page.locator("#pin-input").fill("1234");
   await page.getByRole("button", { name: "Validar PIN" }).click();
 }
