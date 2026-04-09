@@ -15,6 +15,11 @@ Small dependency-free web app for creating word search activities for primary sc
 - Built-in vocabulary and guided examples live in `data.js`.
 - Translated UI copy lives in `i18n.js`.
 - Pure puzzle generation and sharing logic lives in `core.js`.
+- Shared app-side helpers live in `app-helpers.js`.
+- Browser storage and modal helpers live in `app-storage.js` and `app-modal.js`.
+- Board rendering and interaction logic lives in `app-board.js`.
+- Teacher examples, saved samples, and library interactions live in `app-teacher.js`.
+- Student session, tab switching, and modal flows live in `app-session.js`.
 - DOM behavior and app interaction logic live in `app.js`.
 
 ## Teacher-Saved Examples
@@ -30,6 +35,7 @@ Small dependency-free web app for creating word search activities for primary sc
 - Shared links rebuild the exact same puzzle when opened.
 - The student start overlay shows the timer and available hints before the activity begins.
 - If you configure Google Forms, students can submit their result from the student view after finishing.
+- The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
 
 ## If the Browser Shows Warnings with `file://`
 

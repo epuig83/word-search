@@ -17,6 +17,12 @@
     <script src="data.js" defer></script>
     <script src="i18n.js" defer></script>
     <script src="core.js" defer></script>
+    <script src="app-helpers.js" defer></script>
+    <script src="app-storage.js" defer></script>
+    <script src="app-modal.js" defer></script>
+    <script src="app-board.js" defer></script>
+    <script src="app-teacher.js" defer></script>
+    <script src="app-session.js" defer></script>
     <script src="vendor/canvas-confetti.browser.js" defer></script>
     <script src="app.js" defer></script>
   </head>
@@ -230,7 +236,7 @@
           </details>
 
           <details id="pin-change-details" class="pin-change-section">
-            <summary class="teacher-tools-summary" data-t="pin_change_title">Canviar PIN</summary>
+            <summary class="teacher-tools-summary" data-t="pin_change_title">Bloqueig docent</summary>
             <form id="pin-change-form" class="pin-change-form">
               <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
               <div class="field">
@@ -244,6 +250,9 @@
               <button type="submit" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Desar PIN</button>
               <p id="pin-change-message" class="status-message" style="display:none; margin-top: 0;"></p>
             </form>
+            <p class="sample-note" data-t="pin_local_note">
+              Aquest PIN només bloqueja la vista docent en aquest navegador i aquest portàtil.
+            </p>
           </details>
 
           <p id="status-message" class="status-message" role="status" aria-live="polite" data-t="status_default">
@@ -435,8 +444,8 @@
       aria-describedby="pin-modal-text"
     >
       <div class="modal-content" tabindex="-1">
-        <h3 id="pin-modal-title" data-t="pin_title">Accés Restringit</h3>
-        <p id="pin-modal-text" data-t="pin_text">Introdueix el PIN per continuar.</p>
+        <h3 id="pin-modal-title" data-t="pin_title">Bloqueig docent</h3>
+        <p id="pin-modal-text" data-t="pin_text">Introdueix el PIN docent local per continuar.</p>
         <form id="pin-form">
           <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
           <div class="pin-input-group">

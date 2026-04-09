@@ -1,87 +1,22 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const core = require("../../core.js");
+const helpers = require("../../app-helpers.js");
 
 // Load i18n for translation-dependent tests
 require("../../i18n.js");
 const TRANSLATIONS = globalThis.WORD_SEARCH_I18N;
 
-// ── Helpers extracted from app.js (pure logic, no DOM/state) ───────────────
-
-function formatSecondsAsClock(totalSeconds) {
-  const mins = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
-  const secs = (totalSeconds % 60).toString().padStart(2, "0");
-  return `${mins}:${secs}`;
-}
-
-function formatTimerSummary(totalSeconds, lang = "ca") {
-  if (totalSeconds <= 0) return TRANSLATIONS[lang].timer_none;
-  if (totalSeconds % 60 === 0) return `${totalSeconds / 60} min`;
-  return formatSecondsAsClock(totalSeconds);
-}
-
-function formatHintsSummary(hintsAllowed, lang = "ca") {
-  const t = TRANSLATIONS[lang];
-  if (hintsAllowed === -1) return t.hints_unlimited;
-  if (hintsAllowed === 0) return t.hints_none;
-  return String(hintsAllowed);
-}
-
-function buildSelectionPath(start, end) {
-  const dr = end.row - start.row, dc = end.col - start.col;
-  const sr = Math.sign(dr), sc = Math.sign(dc);
-  const dist = Math.max(Math.abs(dr), Math.abs(dc));
-  if (dr !== 0 && dc !== 0 && Math.abs(dr) !== Math.abs(dc)) return [];
-  return Array.from({ length: dist + 1 }, (_, i) => ({ row: start.row + sr * i, col: start.col + sc * i }));
-}
-
-function generateSampleId() {
-  if (globalThis.crypto?.randomUUID) {
-    return globalThis.crypto.randomUUID();
-  }
-  return `sample-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function sanitizeStoredSample(rawSample) {
-  if (!rawSample || typeof rawSample !== "object") return null;
-  const title = typeof rawSample.title === "string" ? rawSample.title.trim() : "";
-  const rawWords = Array.isArray(rawSample.words)
-    ? rawSample.words.join("\n")
-    : typeof rawSample.words === "string"
-      ? rawSample.words
-      : "";
-  const parsed = core.parseWords(rawWords);
-  if (!title || parsed.words.length < 3) return null;
-
-  const difficulty = core.SAMPLE_DIFFICULTIES.has(rawSample.difficulty) ? rawSample.difficulty : "easy";
-  const size = core.SAMPLE_SIZES.has(String(rawSample.size)) ? String(rawSample.size) : "auto";
-
-  const timerDuration = typeof rawSample.timerDuration === "number" ? rawSample.timerDuration : 0;
-  const hintsAllowed = typeof rawSample.hintsAllowed === "number" ? rawSample.hintsAllowed : 3;
-  const formTemplate = typeof rawSample.formTemplate === "string" ? rawSample.formTemplate : "";
-
-  return {
-    id: typeof rawSample.id === "string" && rawSample.id ? rawSample.id : generateSampleId(),
-    title,
-    words: parsed.words.map(word => word.display).join("\n"),
-    difficulty,
-    size,
-    timerDuration,
-    hintsAllowed,
-    formTemplate,
-  };
-}
-
-function mergeSamples(existingSamples, incomingSamples, lang) {
-  const byTitle = new Map();
-  existingSamples.forEach(sample => byTitle.set(core.normalizeWord(sample.title), sample));
-  incomingSamples.forEach(sample => {
-    const key = core.normalizeWord(sample.title);
-    const previous = byTitle.get(key);
-    byTitle.set(key, { ...sample, id: previous?.id || sample.id || generateSampleId() });
-  });
-  return [...byTitle.values()].sort((left, right) => left.title.localeCompare(right.title, lang));
-}
+const {
+  formatSecondsAsClock,
+  formatTimerSummary,
+  formatHintsSummary,
+  buildSelectionPath,
+  generateSampleId,
+  sanitizeStoredSample,
+  mergeSamples,
+  shareUrlWithFallback,
+} = helpers;
 
 // ── formatSecondsAsClock ───────────────────────────────────────────────────
 
@@ -108,34 +43,34 @@ test("formatSecondsAsClock formats 3600 seconds", () => {
 // ── formatTimerSummary ─────────────────────────────────────────────────────
 
 test("formatTimerSummary returns 'Sin límite' for 0 seconds (es)", () => {
-  assert.equal(formatTimerSummary(0, "es"), "Sin límite");
+  assert.equal(formatTimerSummary(0, TRANSLATIONS.es), "Sin límite");
 });
 
 test("formatTimerSummary returns minutes for exact minutes", () => {
-  assert.equal(formatTimerSummary(300, "ca"), "5 min");
-  assert.equal(formatTimerSummary(600, "ca"), "10 min");
+  assert.equal(formatTimerSummary(300, TRANSLATIONS.ca), "5 min");
+  assert.equal(formatTimerSummary(600, TRANSLATIONS.ca), "10 min");
 });
 
 test("formatTimerSummary returns clock format for non-minute values", () => {
-  assert.equal(formatTimerSummary(90, "ca"), "01:30");
-  assert.equal(formatTimerSummary(125, "ca"), "02:05");
+  assert.equal(formatTimerSummary(90, TRANSLATIONS.ca), "01:30");
+  assert.equal(formatTimerSummary(125, TRANSLATIONS.ca), "02:05");
 });
 
 // ── formatHintsSummary ─────────────────────────────────────────────────────
 
 test("formatHintsSummary returns unlimited for -1", () => {
-  assert.equal(formatHintsSummary(-1, "ca"), "Il·limitades");
-  assert.equal(formatHintsSummary(-1, "es"), "Ilimitadas");
+  assert.equal(formatHintsSummary(-1, TRANSLATIONS.ca), "Il·limitades");
+  assert.equal(formatHintsSummary(-1, TRANSLATIONS.es), "Ilimitadas");
 });
 
 test("formatHintsSummary returns none text for 0", () => {
-  assert.equal(formatHintsSummary(0, "ca"), "Sense pistes");
-  assert.equal(formatHintsSummary(0, "es"), "Sin pistas");
+  assert.equal(formatHintsSummary(0, TRANSLATIONS.ca), "Sense pistes");
+  assert.equal(formatHintsSummary(0, TRANSLATIONS.es), "Sin pistas");
 });
 
 test("formatHintsSummary returns number for positive values", () => {
-  assert.equal(formatHintsSummary(3, "ca"), "3");
-  assert.equal(formatHintsSummary(5, "es"), "5");
+  assert.equal(formatHintsSummary(3, TRANSLATIONS.ca), "3");
+  assert.equal(formatHintsSummary(5, TRANSLATIONS.es), "5");
 });
 
 // ── buildSelectionPath ─────────────────────────────────────────────────────
@@ -326,6 +261,60 @@ test("generateSampleId returns unique IDs", () => {
   assert.ok(typeof id1 === "string" && id1.length > 0);
   assert.ok(typeof id2 === "string" && id2.length > 0);
   assert.notEqual(id1, id2);
+});
+
+// ── shareUrlWithFallback ───────────────────────────────────────────────────
+
+test("shareUrlWithFallback uses navigator.share when it succeeds", async () => {
+  const calls = [];
+  const result = await shareUrlWithFallback({
+    url: "https://example.com/?p=abc",
+    share: async payload => calls.push(payload),
+    writeText: async () => calls.push("clipboard"),
+    prompt: () => calls.push("prompt"),
+    promptMessage: "Share",
+  });
+
+  assert.equal(result, "shared");
+  assert.deepEqual(calls, [{ url: "https://example.com/?p=abc" }]);
+});
+
+test("shareUrlWithFallback falls back to clipboard when navigator.share fails", async () => {
+  const calls = [];
+  const result = await shareUrlWithFallback({
+    url: "https://example.com/?p=abc",
+    share: async () => {
+      const error = new Error("Not allowed");
+      error.name = "NotAllowedError";
+      throw error;
+    },
+    writeText: async text => calls.push(text),
+    prompt: () => calls.push("prompt"),
+    promptMessage: "Share",
+  });
+
+  assert.equal(result, "copied");
+  assert.deepEqual(calls, ["https://example.com/?p=abc"]);
+});
+
+test("shareUrlWithFallback falls back to prompt when share and clipboard fail", async () => {
+  const calls = [];
+  const result = await shareUrlWithFallback({
+    url: "https://example.com/?p=abc",
+    share: async () => {
+      const error = new Error("Not allowed");
+      error.name = "NotAllowedError";
+      throw error;
+    },
+    writeText: async () => {
+      throw new Error("clipboard unavailable");
+    },
+    prompt: (message, value) => calls.push({ message, value }),
+    promptMessage: "Share",
+  });
+
+  assert.equal(result, "prompted");
+  assert.deepEqual(calls, [{ message: "Share", value: "https://example.com/?p=abc" }]);
 });
 
 // ── parseFormEntries / buildFormSubmitUrl (also tested in core, re-check) ───
