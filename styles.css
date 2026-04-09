@@ -926,6 +926,7 @@ body {
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 237, 248, 0.95));
   box-shadow: var(--shadow-lg);
   text-align: center;
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
@@ -1310,6 +1311,7 @@ body {
   padding: clamp(0.9rem, 2vw, 1.5rem);
   border-radius: calc(var(--radius-lg) - 4px);
   background: rgba(255, 251, 244, 0.4);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   animation: fadeIn 0.24s ease;
 }
@@ -1388,6 +1390,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(44, 37, 32, 0.45);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;

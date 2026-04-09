@@ -143,7 +143,10 @@
               </div>
               <div class="sample-actions">
                 <button type="button" id="save-sample-button" class="sample-action-btn">
-                  💾 <span data-t="btn_save_sample">Guardar</span>
+                  💾 <span data-t="btn_save_sample">Desar</span>
+                </button>
+                <button type="button" id="delete-sample-button" class="sample-action-btn" disabled>
+                  🗑️ <span data-t="btn_delete_sample">Eliminar</span>
                 </button>
                 <button type="button" id="export-samples-button" class="sample-action-btn">
                   📤 <span data-t="btn_export_samples">Exportar</span>
@@ -319,8 +322,12 @@
                     <div class="completion-card">
                       <p id="completion-message-title" class="completion-message-title" data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</p>
                       <p id="completion-note" class="completion-note" data-t="completion_note">Ja pots revisar la sopa o reiniciar-la per tornar a jugar.</p>
+                      <p id="completion-time" class="completion-note" hidden></p>
                       <button type="button" id="send-results-button" class="primary-button completion-message-button" data-t="btn_send_results" hidden>
                         Enviar resultats
+                      </button>
+                      <button type="button" id="play-again-button" class="ghost-button completion-message-button" data-t="btn_play_again" hidden>
+                        Tornar a jugar
                       </button>
                     </div>
                   </div>

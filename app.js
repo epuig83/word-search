@@ -318,7 +318,7 @@
   function revealCompletionMessage() {
     const focusTarget = dom.sendResultsButton && !dom.sendResultsButton.hidden
       ? dom.sendResultsButton
-      : dom.completionMessage;
+      : dom.playAgainButton || dom.completionMessage;
     requestAnimationFrame(() => {
       ensureCompletionMessageVisible();
       focusTarget?.focus({ preventScroll: true });
@@ -589,6 +589,7 @@
     sampleSelect: document.querySelector("#sample-select"),
     loadSampleButton: document.querySelector("#load-sample-button"),
     saveSampleButton: document.querySelector("#save-sample-button"),
+    deleteSampleButton: document.querySelector("#delete-sample-button"),
     exportSamplesButton: document.querySelector("#export-samples-button"),
     importSamplesButton: document.querySelector("#import-samples-button"),
     importSamplesInput: document.querySelector("#import-samples-input"),
@@ -619,6 +620,8 @@
     gridContainer: document.querySelector("#grid-container"),
     completionMessage: document.querySelector("#completion-message"),
     completionNote: document.querySelector("#completion-note"),
+    completionTime: document.querySelector("#completion-time"),
+    playAgainButton: document.querySelector("#play-again-button"),
     langBtns: document.querySelectorAll(".lang-btn"),
     libSearch: document.querySelector("#lib-search"),
     libCategories: document.querySelector("#lib-categories"),
@@ -887,6 +890,24 @@
     if (dom.sampleSelect.value !== selectedValue) {
       dom.sampleSelect.value = "";
     }
+    updateDeleteSampleButton();
+  }
+
+  function updateDeleteSampleButton() {
+    if (!dom.deleteSampleButton) return;
+    dom.deleteSampleButton.disabled = !dom.sampleSelect.value.startsWith("custom:");
+  }
+
+  function deleteCurrentSample() {
+    const value = dom.sampleSelect.value;
+    if (!value.startsWith("custom:")) return;
+    const t = TRANSLATIONS[state.lang];
+    if (!window.confirm(t.msg_confirm_delete_sample)) return;
+    const sampleId = value.slice("custom:".length);
+    state.customSamples[state.lang] = (state.customSamples[state.lang] || []).filter(s => s.id !== sampleId);
+    if (!persistCustomSamples()) return;
+    renderSampleOptions();
+    setStatus(t.msg_sample_deleted, "success");
   }
 
   function loadSelectedSample() {
@@ -1030,6 +1051,8 @@
     dom.wordsInput.placeholder = TRANSLATIONS[lang].field_words_placeholder;
     dom.libSearch.placeholder = TRANSLATIONS[lang].lib_search_placeholder;
     if (dom.puzzleGrid) dom.puzzleGrid.setAttribute("aria-label", TRANSLATIONS[lang].grid_label);
+    const nav = document.querySelector("nav[aria-label]");
+    if (nav && TRANSLATIONS[lang].nav_sections) nav.setAttribute("aria-label", TRANSLATIONS[lang].nav_sections);
     dom.langBtns.forEach(btn => {
       const isActive = btn.dataset.lang === lang;
       btn.classList.toggle("is-active", isActive);
@@ -1236,6 +1259,16 @@
     dom.completionMessage.hidden = !isComplete;
     if (dom.completionNote) dom.completionNote.hidden = hasSendResults;
     if (dom.sendResultsButton) dom.sendResultsButton.hidden = !hasSendResults;
+    if (dom.completionTime) {
+      if (isComplete && state.puzzle.timerDuration > 0) {
+        const elapsed = state.puzzle.timerDuration - state.timerSecondsLeft;
+        dom.completionTime.textContent = t.completion_time.replace("{time}", formatSecondsAsClock(Math.max(0, elapsed)));
+        dom.completionTime.hidden = false;
+      } else {
+        dom.completionTime.hidden = true;
+      }
+    }
+    if (dom.playAgainButton) dom.playAgainButton.hidden = !isComplete;
     if (dom.boardStatus) {
       const boardStatusTone = state.timerExpired
         ? "expired"
@@ -1338,10 +1371,15 @@
     return false;
   }
 
+  const flashTimeouts = new Map();
   function flashButtonText(button, temporaryText, resetText) {
     if (!button) return;
+    clearTimeout(flashTimeouts.get(button));
     button.textContent = temporaryText;
-    setTimeout(() => { button.textContent = resetText; }, 2500);
+    flashTimeouts.set(button, setTimeout(() => {
+      button.textContent = resetText;
+      flashTimeouts.delete(button);
+    }, 2500));
   }
 
   function shareCurrentPuzzle(button) {
@@ -1350,6 +1388,10 @@
     const encoded = encodePuzzleConfig(config);
     const url = `${window.location.origin}${window.location.pathname}?p=${encodeURIComponent(encoded)}`;
     const t = TRANSLATIONS[state.lang];
+    if (navigator.share) {
+      navigator.share({ url }).catch(() => {});
+      return;
+    }
     navigator.clipboard.writeText(url).then(() => {
       flashButtonText(button, t.btn_share_copied, t.btn_share);
       setStatus(t.btn_share_copied, "success");
@@ -1396,7 +1438,11 @@
       render();
       if (openStudent) setTab("student");
     } catch (err) {
-      setStatus(t.msg_puzzle_error || err.message, "error");
+      const wordTooLong = err.message?.startsWith("WORD_TOO_LONG:");
+      const errMsg = wordTooLong
+        ? (t.msg_puzzle_word_too_long || err.message).replace("{word}", err.message.slice("WORD_TOO_LONG:".length))
+        : (t.msg_puzzle_error || err.message);
+      setStatus(errMsg, "error");
     } finally {
       if (triggerButton) triggerButton.textContent = originalTriggerText;
       if (dom.generateButton) dom.generateButton.textContent = t.btn_generate;
@@ -1410,6 +1456,8 @@
     generatePuzzle({ triggerButton: e.submitter || dom.generateButton });
   });
 
+  dom.sampleSelect.addEventListener("change", () => updateDeleteSampleButton());
+
   dom.loadSampleButton.addEventListener("click", () => {
     if (!getBuiltInSamplePuzzles(state.lang).length && !getCustomSamplePuzzles(state.lang).length) {
       setStatus(TRANSLATIONS[state.lang].msg_no_examples, "error");
@@ -1418,6 +1466,10 @@
 
     loadSelectedSample();
   });
+
+  if (dom.deleteSampleButton) {
+    dom.deleteSampleButton.addEventListener("click", () => deleteCurrentSample());
+  }
 
   dom.saveSampleButton.addEventListener("click", () => {
     const sample = buildCurrentSampleFromForm();
@@ -1497,6 +1549,15 @@
     render();
     if (shouldShowStudentStartOverlay()) focusStudentStartButton();
   });
+
+  if (dom.playAgainButton) {
+    dom.playAgainButton.addEventListener("click", () => {
+      resetPuzzleProgress();
+      if (state.puzzle) state.hintsRemaining = state.puzzle.hintsAllowed;
+      render();
+      if (shouldShowStudentStartOverlay()) focusStudentStartButton();
+    });
+  }
   dom.printButton.addEventListener("click", () => printCurrentPuzzle());
   
   dom.tabTeacher.addEventListener("click", () => {
@@ -1595,7 +1656,11 @@
         return;
       }
       state.teacherPin = newPin;
-      saveTeacherPin(newPin);
+      if (!saveTeacherPin(newPin)) {
+        dom.pinChangeMessage.textContent = t.msg_storage_unavailable;
+        dom.pinChangeMessage.className = "status-message is-error";
+        return;
+      }
       dom.newPinInput.value = "";
       dom.confirmPinInput.value = "";
       dom.pinChangeMessage.textContent = t.pin_change_success;
@@ -1740,6 +1805,7 @@
     if (!config) return false;
 
     // Guardar estado previo para rollback
+    const prevLang = state.lang;
     const prevTitle = dom.titleInput.value;
     const prevWords = dom.wordsInput.value;
     const prevDifficulty = dom.difficultyInput.value;
@@ -1779,7 +1845,7 @@
       return true;
     } catch {
       // Rollback al estado previo
-      updateLanguage("ca");
+      updateLanguage(prevLang || "ca");
       dom.titleInput.value = prevTitle;
       dom.wordsInput.value = prevWords;
       dom.difficultyInput.value = prevDifficulty;
@@ -1800,7 +1866,10 @@
     updateWordsHelper();
     setTab("teacher");
     if (new URLSearchParams(window.location.search).has("p")) {
-      setStatus(TRANSLATIONS["ca"].msg_link_error, "error");
+      const errParam = new URLSearchParams(window.location.search).get("p");
+      const errConfig = errParam ? decodePuzzleConfig(errParam) : null;
+      const errLang = errConfig?.lang && TRANSLATIONS[errConfig.lang] ? errConfig.lang : "ca";
+      setStatus(TRANSLATIONS[errLang].msg_link_error, "error");
     }
   }
 })();
