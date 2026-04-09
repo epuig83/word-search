@@ -3,3 +3,5 @@ google_classroom.md
 node_modules
 playwright-report
 test-results
+.agents
+skills-lock.json
