@@ -35,7 +35,7 @@
     const seen = new Set();
     for (const token of tokens) {
       const cleaned = normalizeWord(token);
-      if (cleaned.length >= 2 && !seen.has(cleaned)) {
+      if (cleaned.length >= 3 && !seen.has(cleaned)) {
         seen.add(cleaned);
         words.push({ id: cleaned, cleaned, display: token });
       }
@@ -140,7 +140,7 @@
     }
 
     const tooLong = words.find(w => w.cleaned.length > size);
-    if (tooLong) throw new Error(`WORD_TOO_LONG:${tooLong.display}`);
+    if (tooLong) throw new Error(`Error generating puzzle: WORD_TOO_LONG:${tooLong.display}`);
 
     for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
       const grid = buildEmptyGrid(size);
