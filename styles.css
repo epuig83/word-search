@@ -983,12 +983,29 @@ body {
    GRID CONTAINER & CELLS
    ======================== */
 .grid-container {
+  --grid-frame-padding: 1.5rem;
+  --grid-cell-radius: 6px;
+  --grid-cell-border-width: 2px;
+  --grid-cell-font-family: var(--font-grid);
+  --grid-cell-font-weight: 700;
+  --grid-cell-shadow:
+    0 3px 0 #c4b9a8,
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --grid-cell-hover-shadow:
+    0 6px 0 #c4b9a8,
+    0 8px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --grid-cell-letter-spacing: 0.02em;
   background: linear-gradient(145deg, #f0e8dc 0%, #e8dfd0 100%);
-  padding: 1.5rem;
+  padding: var(--grid-frame-padding);
   border-radius: var(--radius-lg);
   border: 3px solid #c4b9a8;
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -1002,8 +1019,52 @@ body {
   opacity: 0.4;
 }
 
+.grid-container[data-grid-density="dense"] {
+  --cell-gap: 4px;
+  --cell-font: clamp(0.9rem, 0.62rem + 0.65vw, 1.04rem);
+  --grid-frame-padding: 1.1rem;
+  --grid-cell-radius: 5px;
+}
+
+.grid-container[data-grid-density="compact"] {
+  --cell-gap: 3px;
+  --cell-font: clamp(0.78rem, 0.56rem + 0.5vw, 0.92rem);
+  --grid-frame-padding: 0.95rem;
+  --grid-cell-radius: 4px;
+  --grid-cell-border-width: 1.5px;
+  --grid-cell-font-family: 'Bahnschrift SemiCondensed', 'Avenir Next Condensed', 'Trebuchet MS', system-ui, sans-serif;
+  --grid-cell-shadow:
+    0 2px 0 #c4b9a8,
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  --grid-cell-hover-shadow:
+    0 4px 0 #c4b9a8,
+    0 6px 10px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  --grid-cell-letter-spacing: 0.01em;
+}
+
+.grid-container[data-grid-density="ultra-compact"] {
+  --cell-gap: 2px;
+  --cell-font: clamp(0.68rem, 0.5rem + 0.34vw, 0.82rem);
+  --grid-frame-padding: 0.8rem;
+  --grid-cell-radius: 4px;
+  --grid-cell-border-width: 1px;
+  --grid-cell-font-family: 'Bahnschrift SemiCondensed', 'Avenir Next Condensed', 'Trebuchet MS', system-ui, sans-serif;
+  --grid-cell-font-weight: 800;
+  --grid-cell-shadow:
+    0 2px 0 #c4b9a8,
+    inset 0 1px 0 rgba(255, 255, 255, 0.66);
+  --grid-cell-hover-shadow:
+    0 3px 0 #c4b9a8,
+    0 5px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.66);
+  --grid-cell-letter-spacing: 0;
+}
+
 .puzzle-grid {
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: var(--cell-gap);
   user-select: none;
   touch-action: none;
@@ -1032,32 +1093,31 @@ body {
 
 .grid-cell {
   aspect-ratio: 1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(175deg, #fffefb 0%, #f5efe5 100%);
-  border: 2px solid #d6cfc4;
-  border-radius: 6px;
-  font-family: var(--font-grid);
+  border: var(--grid-cell-border-width) solid #d6cfc4;
+  border-radius: var(--grid-cell-radius);
+  font-family: var(--grid-cell-font-family);
   font-size: var(--cell-font);
-  font-weight: 700;
+  font-weight: var(--grid-cell-font-weight);
+  line-height: 1;
   color: var(--ink-strong);
   cursor: pointer;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 3px 0 #c4b9a8, inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.02em;
-  min-width: 44px;
-  min-height: 44px;
+  box-shadow: var(--grid-cell-shadow);
+  letter-spacing: var(--grid-cell-letter-spacing);
+  min-width: 0;
+  min-height: 0;
 }
 
 .grid-cell:hover {
   transform: translateY(-3px);
   border-color: var(--accent);
   background: linear-gradient(175deg, #fff8ee 0%, #f0e5d5 100%);
-  box-shadow:
-    0 6px 0 #c4b9a8,
-    0 8px 12px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: var(--grid-cell-hover-shadow);
 }
 
 /* Cell States */
@@ -1574,7 +1634,8 @@ body[data-tab="student"] .panel {
 
   /* Keep word bank beside the grid on tablets */
   .puzzle-layout {
-    grid-template-columns: 1fr 220px;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+    gap: 1.25rem;
   }
 
   .panel {
@@ -1615,11 +1676,12 @@ body[data-tab="student"] .panel {
   }
 
   .page-shell {
-    padding: 1rem 0;
+    width: 100%;
+    padding: 0.75rem 0.35rem 1rem;
   }
 
   .panel {
-    padding: 1.25rem;
+    padding: 1rem 0.75rem;
   }
 
   .hero-copy {
@@ -1654,8 +1716,33 @@ body[data-tab="student"] .panel {
     font-size: 1.9rem;
   }
 
-  .grid-container {
-    padding: 0.85rem;
+  .grid-container[data-grid-density="standard"] {
+    --cell-gap: 3px;
+    --cell-font: clamp(0.82rem, 0.68rem + 0.8vw, 0.98rem);
+    --grid-frame-padding: 0.6rem;
+  }
+
+  .grid-container[data-grid-density="dense"] {
+    --cell-gap: 3px;
+    --cell-font: clamp(0.72rem, 0.6rem + 0.64vw, 0.86rem);
+    --grid-frame-padding: 0.55rem;
+  }
+
+  .grid-container[data-grid-density="compact"] {
+    --cell-gap: 2px;
+    --cell-font: clamp(0.62rem, 0.54rem + 0.52vw, 0.74rem);
+    --grid-frame-padding: 0.45rem;
+    --grid-cell-border-width: 1px;
+    --grid-cell-radius: 3px;
+  }
+
+  .grid-container[data-grid-density="ultra-compact"] {
+    --cell-gap: 2px;
+    --cell-font: clamp(0.58rem, 0.5rem + 0.44vw, 0.7rem);
+    --grid-frame-padding: 0.4rem;
+    --grid-cell-border-width: 1px;
+    --grid-cell-radius: 3px;
+    --grid-cell-letter-spacing: 0;
   }
 
   .completion-message {
@@ -1742,6 +1829,58 @@ body[data-tab="student"] .panel {
 
   .student-actions {
     gap: 0.6rem;
+  }
+
+  .puzzle-layout {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .page-shell {
+    padding-inline: 0.2rem;
+  }
+
+  .main-tabs {
+    gap: 0.25rem;
+    padding: 0.25rem;
+  }
+
+  .tab-btn {
+    gap: 0.35rem;
+    padding: 0.7rem 0.4rem;
+    font-size: 0.86rem;
+  }
+
+  .tab-icon {
+    font-size: 1rem;
+  }
+
+  .panel {
+    padding: 0.8rem 0.5rem;
+  }
+
+  .board-topbar {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .board-title-group h2 {
+    font-size: 1.7rem;
+  }
+
+  .board-instructions {
+    font-size: 0.92rem;
+  }
+
+  .grid-container[data-grid-density="ultra-compact"] {
+    --grid-frame-padding: 0.3rem;
+    border-width: 2px;
+  }
+
+  .grid-container[data-grid-density="ultra-compact"]::before {
+    inset: -4px;
+    opacity: 0.24;
   }
 }
 

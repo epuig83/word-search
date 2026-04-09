@@ -4,6 +4,7 @@ async function generatePuzzle(page, options = {}) {
   const {
     title = "Animals del mar",
     words = "balena\ndofi\npeix\ntauro",
+    size,
     timer = "300",
     hints = "3",
     formTemplate = "",
@@ -13,6 +14,9 @@ async function generatePuzzle(page, options = {}) {
   await page.goto("/index.html");
   await page.locator("#title-input").fill(title);
   await page.locator("#words-input").fill(words);
+  if (size !== undefined) {
+    await page.locator("#size-input").selectOption(String(size));
+  }
   if (timer !== undefined) {
     await page.locator("#timer-input").selectOption(String(timer));
   }
@@ -62,6 +66,37 @@ async function solvePlacement(page, placement) {
   await page.locator(`[data-row="${last.row}"][data-col="${last.col}"]`).click({ force: true });
 }
 
+async function measureGridVisibility(page) {
+  return page.evaluate(() => {
+    const container = document.querySelector("#grid-container");
+    const grid = document.querySelector("#puzzle-grid");
+    const cells = Array.from(document.querySelectorAll("#puzzle-grid .grid-cell"));
+    if (!(container instanceof HTMLElement) || !(grid instanceof HTMLElement)) {
+      return null;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const overflowAllowance = 0.5;
+    const clippedCells = cells.filter(cell => {
+      const rect = cell.getBoundingClientRect();
+      return rect.left < containerRect.left - overflowAllowance ||
+        rect.right > containerRect.right + overflowAllowance ||
+        rect.top < containerRect.top - overflowAllowance ||
+        rect.bottom > containerRect.bottom + overflowAllowance;
+    }).length;
+
+    return {
+      clippedCells,
+      totalCells: cells.length,
+      containerClientWidth: container.clientWidth,
+      containerScrollWidth: container.scrollWidth,
+      gridWidth: Math.round(grid.getBoundingClientRect().width),
+      density: container.dataset.gridDensity || null,
+      size: container.dataset.gridSize || null,
+    };
+  });
+}
+
 module.exports = {
   generatePuzzle,
   readTimerSeconds,
@@ -70,4 +105,5 @@ module.exports = {
   openTeacherTools,
   getGridLetters,
   solvePlacement,
+  measureGridVisibility,
 };

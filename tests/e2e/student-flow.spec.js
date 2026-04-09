@@ -1,10 +1,30 @@
 const { test, expect } = require("@playwright/test");
 const {
   generatePuzzle,
+  measureGridVisibility,
   readTimerSeconds,
   startStudentSession,
   unlockTeacherView,
 } = require("./helpers");
+
+const LARGE_RESPONSIVE_WORDS = [
+  "elefant",
+  "girafa",
+  "rinoceront",
+  "cocodril",
+  "orangutan",
+  "hipopotam",
+  "serpentina",
+  "papallona",
+  "llangardaix",
+  "tortuga",
+  "camaleo",
+  "formiguer",
+  "esquirol",
+  "salamandra",
+  "dromedari",
+  "ornitorrinc",
+].join("\n");
 
 test("student overlay gates the start of the timer", async ({ page }) => {
   await generatePuzzle(page);
@@ -62,4 +82,78 @@ test("language switch updates the main teacher controls in all locales", async (
   await expect(page.locator("#tab-teacher")).toContainText("Creation Panel");
   await expect(page.locator("#generate-button")).toHaveText("Generate new puzzle");
   await expect(page.locator("#tab-student")).toContainText("Student area");
+});
+
+[
+  {
+    label: "mobile 320 with a 10x10 board",
+    context: {
+      viewport: { width: 320, height: 568 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 2,
+    },
+    puzzle: {
+      size: "10",
+      words: "balena\ndofi\npeix\ntauro\ncranc\npop\nmedusa\norca",
+    },
+  },
+  {
+    label: "mobile 375 with a 16x16 board",
+    context: {
+      viewport: { width: 375, height: 812 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 2,
+    },
+    puzzle: {
+      size: "16",
+      words: LARGE_RESPONSIVE_WORDS,
+    },
+  },
+  {
+    label: "tablet 768 with a 16x16 board",
+    context: {
+      viewport: { width: 768, height: 1024 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 2,
+    },
+    puzzle: {
+      size: "16",
+      words: LARGE_RESPONSIVE_WORDS,
+    },
+  },
+  {
+    label: "desktop 1024 with a 16x16 board",
+    context: {
+      viewport: { width: 1024, height: 768 },
+      isMobile: false,
+      hasTouch: false,
+      deviceScaleFactor: 1,
+    },
+    puzzle: {
+      size: "16",
+      words: LARGE_RESPONSIVE_WORDS,
+    },
+  },
+].forEach(({ label, context, puzzle }) => {
+  test(`student board keeps all cells visible on ${label}`, async ({ browser }) => {
+    const pageContext = await browser.newContext(context);
+    const page = await pageContext.newPage();
+
+    await generatePuzzle(page, {
+      title: `Responsive ${label}`,
+      words: puzzle.words,
+      size: puzzle.size,
+    });
+    await startStudentSession(page);
+
+    const metrics = await measureGridVisibility(page);
+    expect(metrics).not.toBeNull();
+    expect(metrics.size).toBe(puzzle.size);
+    expect(metrics.clippedCells, JSON.stringify(metrics)).toBe(0);
+
+    await pageContext.close();
+  });
 });

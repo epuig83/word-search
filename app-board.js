@@ -65,11 +65,25 @@
       return solutionCells;
     }
 
+    function getGridDensity(size) {
+      if (size >= 15) return "ultra-compact";
+      if (size >= 13) return "compact";
+      if (size >= 11) return "dense";
+      return "standard";
+    }
+
     function initGrid() {
       if (!state.puzzle) return;
       const size = state.puzzle.actualSize;
+      const density = getGridDensity(size);
       dom.puzzleGrid.innerHTML = "";
       dom.puzzleGrid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      dom.puzzleGrid.dataset.gridSize = String(size);
+      dom.puzzleGrid.dataset.gridDensity = density;
+      if (dom.gridContainer) {
+        dom.gridContainer.dataset.gridSize = String(size);
+        dom.gridContainer.dataset.gridDensity = density;
+      }
       dom.gridCells = new Array(size * size);
       state.puzzle.grid.forEach((row, rowIndex) => {
         row.forEach((letter, colIndex) => {
@@ -261,6 +275,12 @@
         if (dom.teacherReadyCard) dom.teacherReadyCard.hidden = true;
         if (dom.completionMessage) dom.completionMessage.hidden = true;
         if (dom.gridContainer) dom.gridContainer.classList.remove("is-complete");
+        if (dom.gridContainer) {
+          delete dom.gridContainer.dataset.gridSize;
+          delete dom.gridContainer.dataset.gridDensity;
+        }
+        delete dom.puzzleGrid.dataset.gridSize;
+        delete dom.puzzleGrid.dataset.gridDensity;
         if (dom.boardStatus) {
           dom.boardStatus.textContent = "";
           dom.boardStatus.className = "board-status";
