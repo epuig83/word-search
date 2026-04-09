@@ -42,7 +42,7 @@ Small dependency-free web app for creating word search activities for primary sc
 Some browsers add extra restrictions when a local HTML file is opened with a double click. If you see warnings in the console, start a very simple local server:
 
 ```bash
-cd /Users/edgardpuig/repos/rachel_exercises
+cd word-search
 python3 -m http.server 8000
 ```
 
