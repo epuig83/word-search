@@ -8,6 +8,7 @@
   "use strict";
 
   const LETTERS = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+  // If exceeded, buildPuzzleData throws and the UI shows the generic msg_puzzle_error.
   const MAX_GENERATION_ATTEMPTS = 180;
   const MAX_GRID_SIZE = 22;
   const SAMPLE_LANGS = ["ca", "es", "en"];

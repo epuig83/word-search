@@ -385,6 +385,13 @@ body {
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
+.field input:focus-visible,
+.field textarea:focus-visible,
+.field select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .field textarea {
   min-height: 150px;
   line-height: 1.6;
@@ -1323,7 +1330,8 @@ body {
 }
 
 .word-item.is-definable:focus-visible {
-  outline: none;
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
   border-color: var(--teal);
   box-shadow: 0 0 0 4px rgba(90, 184, 168, 0.22);
 }

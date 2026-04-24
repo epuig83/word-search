@@ -20,6 +20,7 @@
 
   const APP_DATA = globalThis.WORD_SEARCH_DATA || { vocabulary: {}, samplePuzzles: {}, definitions: {} };
   const TRANSLATIONS = globalThis.WORD_SEARCH_I18N || {};
+  const getTranslations = () => TRANSLATIONS[state.lang];
   const VOCABULARY = APP_DATA.vocabulary || {};
   const SAMPLE_PUZZLES = APP_DATA.samplePuzzles || {};
   const WORD_DEFINITIONS = APP_DATA.definitions || {};
@@ -310,15 +311,27 @@
     };
   }
 
+  function buildInitialPuzzleProgress() {
+    return {
+      foundWordIds: new Set(),
+      foundPlacementIds: new Set(),
+      prevFoundPlacementIds: new Set(),
+      foundWordColors: new Map(),
+      clickAnchor: null,
+      previewCells: [],
+      dragSelection: null,
+      celebrated: false,
+      timerExpired: false,
+      studentSessionStarted: false,
+      activeDefinitionWordId: null,
+      timerSecondsLeft: state.puzzle?.timerDuration || 0,
+      focusedCell: null,
+    };
+  }
+
   function resetPuzzleProgress() {
     stopTimer();
-    state.foundWordIds = new Set(); state.foundPlacementIds = new Set();
-    state.prevFoundPlacementIds = new Set(); state.foundWordColors = new Map();
-    state.clickAnchor = null; state.previewCells = []; state.dragSelection = null; state.celebrated = false;
-    state.timerExpired = false; state.studentSessionStarted = false;
-    state.activeDefinitionWordId = null;
-    state.timerSecondsLeft = state.puzzle?.timerDuration || 0;
-    state.focusedCell = null;
+    Object.assign(state, buildInitialPuzzleProgress());
     dom.gridCells = null;
     dom.wordListItems = null;
     closeWordDefinitionModal({ restoreFocus: false });
@@ -527,7 +540,7 @@
   const teacherController = APP_TEACHER.createTeacherController({
     dom,
     state,
-    translations: TRANSLATIONS,
+    getTranslations,
     sampleLangs: SAMPLE_LANGS,
     allCategoryId: ALL_CATEGORY_ID,
     parseWords,
@@ -553,7 +566,7 @@
   } = APP_BOARD.createBoardController({
     dom,
     state,
-    translations: TRANSLATIONS,
+    getTranslations,
     sameCell,
     formatSecondsAsClock,
     parseFormEntries,
@@ -659,7 +672,7 @@
   const sessionController = APP_SESSION.createSessionController({
     dom,
     state,
-    translations: TRANSLATIONS,
+    getTranslations,
     openModal,
     closeModal,
     trapModalFocus,

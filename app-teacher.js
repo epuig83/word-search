@@ -10,7 +10,7 @@
   function createTeacherController({
     dom,
     state,
-    translations,
+    getTranslations,
     sampleLangs,
     allCategoryId,
     parseWords,
@@ -26,10 +26,6 @@
     setStatus,
     debounce,
   }) {
-    function getTranslations() {
-      return translations[state.lang];
-    }
-
     function resolveSelectedSample() {
       const value = dom.sampleSelect.value;
       if (!value) return null;

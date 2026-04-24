@@ -185,7 +185,7 @@ function createFixture() {
   const controller = sessionModule.createSessionController({
     dom,
     state,
-    translations: TRANSLATIONS,
+    getTranslations: () => TRANSLATIONS[state.lang],
     openModal: (...args) => {
       calls.openModal.push(args);
     },
@@ -340,15 +340,34 @@ test("pin change persists the new local teacher PIN and closes the disclosure", 
   withBrowserGlobals(() => {
     const { controller, dom, state, calls } = createFixture();
     controller.bindEvents();
-    dom.newPinInput.value = "9876";
-    dom.confirmPinInput.value = "9876";
+    dom.newPinInput.value = "4729";
+    dom.confirmPinInput.value = "4729";
 
     dom.pinChangeForm.dispatch("submit");
 
-    assert.equal(state.teacherPin, "9876");
-    assert.deepEqual(calls.saveTeacherPin, ["9876"]);
+    assert.equal(state.teacherPin, "4729");
+    assert.deepEqual(calls.saveTeacherPin, ["4729"]);
     assert.equal(dom.pinChangeMessage.textContent, TRANSLATIONS.ca.pin_change_success);
     assert.equal(dom.pinChangeMessage.className, "status-message is-success");
     assert.equal(dom.pinChangeDetails.open, false);
+  });
+});
+
+test("pin change rejects trivial PINs (repeated digits, ascending/descending sequences)", () => {
+  const trivialPins = ["0000", "1111", "9999", "1234", "4321", "12345", "87654321"];
+  trivialPins.forEach(pin => {
+    withBrowserGlobals(() => {
+      const { controller, dom, state, calls } = createFixture();
+      controller.bindEvents();
+      dom.newPinInput.value = pin;
+      dom.confirmPinInput.value = pin;
+
+      dom.pinChangeForm.dispatch("submit");
+
+      assert.equal(state.teacherPin, "1234", `trivial PIN ${pin} should not overwrite state`);
+      assert.deepEqual(calls.saveTeacherPin, [], `trivial PIN ${pin} should not be persisted`);
+      assert.equal(dom.pinChangeMessage.textContent, TRANSLATIONS.ca.pin_too_simple);
+      assert.equal(dom.pinChangeMessage.className, "status-message is-error");
+    });
   });
 });

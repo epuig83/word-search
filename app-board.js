@@ -10,7 +10,7 @@
   function createBoardController({
     dom,
     state,
-    translations,
+    getTranslations,
     sameCell,
     formatSecondsAsClock,
     parseFormEntries,
@@ -25,10 +25,6 @@
     prefersReducedMotion,
     canInteractWithPuzzle,
   }) {
-    function getTranslations() {
-      return translations[state.lang];
-    }
-
     function buildGridCellLabel(letter, row, col, flags) {
       const t = getTranslations();
       const parts = [
@@ -44,12 +40,17 @@
       return parts.join(", ");
     }
 
-    function buildFoundColorMap() {
+    function buildFoundColorMap(trackNewCellsInto) {
       const foundColorMap = new Map();
       state.puzzle.placements.forEach(placement => {
         if (state.foundPlacementIds.has(placement.placementId)) {
           const colorClass = state.foundWordColors.get(placement.wordId) || "wc-0";
-          placement.cells.forEach(cell => foundColorMap.set(`${cell.row}:${cell.col}`, colorClass));
+          const isNew = trackNewCellsInto && !state.prevFoundPlacementIds.has(placement.placementId);
+          placement.cells.forEach(cell => {
+            const cellKey = `${cell.row}:${cell.col}`;
+            foundColorMap.set(cellKey, colorClass);
+            if (isNew) trackNewCellsInto.add(cellKey);
+          });
         }
       });
       return foundColorMap;
@@ -326,19 +327,8 @@
 
       syncStudentStartOverlay();
 
-      const foundColorMap = new Map();
       const newlyFoundCells = new Set();
-      state.puzzle.placements.forEach(placement => {
-        if (state.foundPlacementIds.has(placement.placementId)) {
-          const colorClass = state.foundWordColors.get(placement.wordId) || "wc-0";
-          const isNew = !state.prevFoundPlacementIds.has(placement.placementId);
-          placement.cells.forEach(cell => {
-            const cellKey = `${cell.row}:${cell.col}`;
-            foundColorMap.set(cellKey, colorClass);
-            if (isNew) newlyFoundCells.add(cellKey);
-          });
-        }
-      });
+      const foundColorMap = buildFoundColorMap(newlyFoundCells);
       state.prevFoundPlacementIds = new Set(state.foundPlacementIds);
 
       if (!dom.wordListItems) initWordList();

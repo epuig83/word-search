@@ -10,7 +10,7 @@
   function createSessionController({
     dom,
     state,
-    translations,
+    getTranslations,
     openModal,
     closeModal,
     trapModalFocus,
@@ -31,8 +31,12 @@
     printCurrentPuzzle,
     shareCurrentPuzzle,
   }) {
-    function getTranslations() {
-      return translations[state.lang];
+    function isTrivialPin(pin) {
+      if (/^(\d)\1+$/.test(pin)) return true;
+      const ascending = "0123456789";
+      const descending = "9876543210";
+      if (ascending.includes(pin) || descending.includes(pin)) return true;
+      return false;
     }
 
     function startStudentSession() {
@@ -235,6 +239,11 @@
           dom.pinChangeMessage.style.display = "block";
           if (!/^\d{4,8}$/.test(newPin)) {
             dom.pinChangeMessage.textContent = t.pin_too_short;
+            dom.pinChangeMessage.className = "status-message is-error";
+            return;
+          }
+          if (isTrivialPin(newPin)) {
+            dom.pinChangeMessage.textContent = t.pin_too_simple;
             dom.pinChangeMessage.className = "status-message is-error";
             return;
           }
