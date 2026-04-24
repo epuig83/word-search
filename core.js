@@ -277,6 +277,13 @@
     return encodeBase64(json);
   }
 
+  // Caps match the UI's max-length on title-input and a generous ceiling for
+  // the words textarea. A malicious shared link can still set any value, but
+  // the trimmed length keeps rendering + storage predictable.
+  const SHARED_TITLE_MAX = 60;
+  const SHARED_WORDS_MAX = 2000;
+  const SHARED_FORM_TEMPLATE_MAX = 500;
+
   function decodePuzzleConfig(encoded) {
     try {
       const json = decodeBase64(encoded);
@@ -284,15 +291,15 @@
       const requestedSize = normalizeSharedSize(obj.s);
       return {
         version: Number(obj.v) || 1,
-        title: typeof obj.t === "string" ? obj.t : "",
-        words: typeof obj.w === "string" ? obj.w : "",
+        title: typeof obj.t === "string" ? obj.t.slice(0, SHARED_TITLE_MAX) : "",
+        words: typeof obj.w === "string" ? obj.w.slice(0, SHARED_WORDS_MAX) : "",
         difficulty: SAMPLE_DIFFICULTIES.has(obj.d) ? obj.d : "easy",
         size: requestedSize,
         requestedSize,
         lang: SAMPLE_LANGS.includes(obj.l) ? obj.l : "ca",
         timer: Math.max(0, Number(obj.tm) || 0),
         hints: Math.max(-1, Number(obj.h) || 0),
-        formTemplate: typeof obj.f === "string" ? obj.f : "",
+        formTemplate: typeof obj.f === "string" ? obj.f.slice(0, SHARED_FORM_TEMPLATE_MAX) : "",
         gridRows: Array.isArray(obj.g) ? obj.g : null,
         placementPaths: Array.isArray(obj.p) ? obj.p : null,
       };
@@ -301,9 +308,17 @@
     }
   }
 
+  // Allowed form hosts. Keeps the feature scoped to Google Forms so a shared
+  // puzzle link can't silently redirect student names/scores to a phishing
+  // endpoint. Add new domains here only after verifying they're first-party
+  // form services the user explicitly asked for.
+  const ALLOWED_FORM_HOSTS = new Set(["docs.google.com", "forms.gle"]);
+
   function parseFormEntries(templateUrl) {
     try {
       const url = new URL(templateUrl);
+      if (url.protocol !== "https:") return null;
+      if (!ALLOWED_FORM_HOSTS.has(url.hostname)) return null;
       const entries = [...url.searchParams.keys()].filter(key => key.startsWith("entry."));
       if (!entries.length) return null;
       return { baseUrl: url.origin + url.pathname, entries };

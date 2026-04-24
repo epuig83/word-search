@@ -154,3 +154,36 @@ test("parseFormEntries and buildFormSubmitUrl preserve the expected fields", () 
   assert.equal(url.searchParams.get("entry.30"), "4/4");
   assert.equal(url.searchParams.get("entry.40"), "Animals del mar");
 });
+
+test("parseFormEntries rejects non-allowed hosts to block redirect-based phishing", () => {
+  assert.equal(core.parseFormEntries("https://evil.example.com/collect?entry.1=x"), null);
+  assert.equal(core.parseFormEntries("https://docs-google.com/forms/d/x?entry.1=x"), null);
+  assert.equal(core.parseFormEntries("http://docs.google.com/forms/d/x?entry.1=x"), null, "rejects plain http");
+  assert.ok(core.parseFormEntries("https://forms.gle/short-link?entry.1=x"));
+  assert.ok(core.parseFormEntries("https://docs.google.com/forms/d/x/viewform?entry.1=x"));
+});
+
+test("parseFormEntries rejects allowed host without entry.* params", () => {
+  assert.equal(core.parseFormEntries("https://docs.google.com/forms/d/x/viewform"), null);
+});
+
+test("decodePuzzleConfig clamps title, words, and formTemplate lengths", () => {
+  const longTitle = "A".repeat(500);
+  const longWords = "palabra\n".repeat(1000);
+  const longForm = "https://docs.google.com/forms/d/" + "z".repeat(1000) + "?entry.1=x";
+  const encoded = core.encodePuzzleConfig({
+    version: core.SHARED_PUZZLE_VERSION,
+    title: longTitle,
+    words: longWords,
+    difficulty: "easy",
+    size: "auto",
+    lang: "ca",
+    timer: 0,
+    hints: 0,
+    formTemplate: longForm,
+  });
+  const decoded = core.decodePuzzleConfig(encoded);
+  assert.ok(decoded.title.length <= 60, `title ${decoded.title.length} > 60`);
+  assert.ok(decoded.words.length <= 2000, `words ${decoded.words.length} > 2000`);
+  assert.ok(decoded.formTemplate.length <= 500, `formTemplate ${decoded.formTemplate.length} > 500`);
+});

@@ -326,14 +326,14 @@ test("parseFormEntries returns null for invalid URLs", () => {
 });
 
 test("parseFormEntries extracts entry.* params", () => {
-  const parsed = core.parseFormEntries("https://forms.google.com/viewform?entry.1=a&entry.2=b&other=ignore");
+  const parsed = core.parseFormEntries("https://docs.google.com/forms/d/x/viewform?entry.1=a&entry.2=b&other=ignore");
   assert.ok(parsed);
-  assert.equal(parsed.baseUrl, "https://forms.google.com/viewform");
+  assert.equal(parsed.baseUrl, "https://docs.google.com/forms/d/x/viewform");
   assert.deepEqual(parsed.entries, ["entry.1", "entry.2"]);
 });
 
 test("buildFormSubmitUrl constructs correct URL", () => {
-  const parsed = core.parseFormEntries("https://forms.google.com/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Res&entry.40=Tema");
+  const parsed = core.parseFormEntries("https://docs.google.com/forms/d/x/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Res&entry.40=Tema");
   const url = core.buildFormSubmitUrl(parsed, "Ada", "Lovelace", "5/5", "Animals");
   const resultUrl = new URL(url);
   assert.equal(resultUrl.searchParams.get("entry.10"), "Ada");
