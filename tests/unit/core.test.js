@@ -87,6 +87,42 @@ test("decodePuzzleConfig returns null for invalid payloads", () => {
   assert.equal(core.decodePuzzleConfig("not-base64"), null);
 });
 
+test("decodePuzzleConfig clamps negative timer to 0 and negative hints to -1", () => {
+  const encoded = core.encodePuzzleConfig({
+    version: core.SHARED_PUZZLE_VERSION,
+    title: "t",
+    words: "w",
+    difficulty: "easy",
+    size: "10",
+    lang: "ca",
+    timer: -30,
+    hints: -5,
+    formTemplate: "",
+    gridRows: null,
+    placementPaths: null,
+  });
+  const decoded = core.decodePuzzleConfig(encoded);
+  assert.equal(decoded.timer, 0, "negative timer must clamp to 0");
+  assert.equal(decoded.hints, -1, "hints below -1 must clamp to -1 (unlimited)");
+});
+
+test("decodePuzzleConfig preserves hints: -1 sentinel (unlimited)", () => {
+  const encoded = core.encodePuzzleConfig({
+    version: core.SHARED_PUZZLE_VERSION,
+    title: "t",
+    words: "w",
+    difficulty: "easy",
+    size: "10",
+    lang: "ca",
+    timer: 0,
+    hints: -1,
+    formTemplate: "",
+    gridRows: null,
+    placementPaths: null,
+  });
+  assert.equal(core.decodePuzzleConfig(encoded).hints, -1);
+});
+
 test("parseGridRows rejects inconsistent grid sizes", () => {
   assert.equal(core.parseGridRows(["ABCD", "EFGH", "IJK"]), null);
 });

@@ -44,6 +44,16 @@
   --cell-font: clamp(1rem, 0.8rem + 1vw, 1.4rem);
 }
 
+button {
+  touch-action: manipulation;
+}
+
+/* Buttons: kill 300ms double-tap zoom delay on tablets and disable iOS tap highlight. */
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Language Selector */
 .lang-selector {
   display: flex;
@@ -751,6 +761,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  min-height: 44px;
   padding: 0.85rem 1.25rem;
   border-radius: 10px;
   font-family: var(--font-display);
@@ -759,6 +770,7 @@ body {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid transparent;
   font-size: 0.95rem;
+  touch-action: manipulation;
 }
 
 .primary-button {

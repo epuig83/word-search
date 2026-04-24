@@ -789,6 +789,16 @@
     render();
   });
 
+  // pointercancel fires when the OS interrupts the gesture (e.g. second touch, scroll,
+  // window losing focus). Without this, state.dragSelection would stay active and the
+  // next interaction would resume the orphaned drag.
+  window.addEventListener("pointercancel", () => {
+    if (!state.dragSelection) return;
+    state.dragSelection = null;
+    clearSelection();
+    render();
+  });
+
   dom.puzzleGrid.addEventListener("focusin", event => {
     const cell = getGridCellFromElement(event.target);
     if (cell) {
