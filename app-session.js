@@ -273,6 +273,12 @@
         dom.sendResultsButton.addEventListener("click", () => {
           const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
           if (!formParsed || !state.puzzle) return;
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            if (typeof window.alert === "function") {
+              window.alert(getTranslations().msg_send_offline);
+            }
+            return;
+          }
           const total = state.puzzle.words.length;
           const found = state.foundWordIds.size;
           const resultat = `${found}/${total}`;

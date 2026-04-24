@@ -387,6 +387,25 @@ body {
   transition: all 0.2s ease;
 }
 
+/* Prevent iOS Safari auto-zoom on focus — inputs must render ≥ 16px */
+@media (pointer: coarse) {
+  .field input,
+  .field textarea,
+  .field select,
+  #lib-search,
+  #pin-input,
+  #new-pin-input,
+  #confirm-pin-input,
+  #form-template-input,
+  #student-nom-input,
+  #student-cognoms-input {
+    font-size: 16px;
+  }
+  #pin-input {
+    font-size: 2rem;
+  }
+}
+
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
@@ -2110,5 +2129,20 @@ body[data-tab="student"] .panel {
 
   .check-icon {
     display: none;
+  }
+
+  /* Teacher-mode print doubles as an answer key: solution cells stay highlighted. */
+  body[data-mode="teacher"] .grid-cell.is-solution {
+    background: #ffeaa0 !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+    border-color: #b58a00 !important;
+  }
+
+  body[data-mode="teacher"] #board-title::after {
+    content: " — Solució";
+    font-weight: 400;
+    color: #555;
+    margin-left: 0.3em;
   }
 }

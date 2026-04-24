@@ -153,14 +153,20 @@
   }
 
   function ensureCompletionMessageVisible() {
-    const target = dom.gridContainer || dom.completionMessage;
+    const message = dom.completionMessage;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (!viewportHeight) return;
+    const gutter = Math.min(72, Math.max(24, viewportHeight * 0.12));
+    // Prefer the message itself when visible (mobile layout renders it below the grid);
+    // fall back to the grid only when the message has no layout (hidden).
+    const messageRect = message?.getBoundingClientRect();
+    const useMessage = message instanceof HTMLElement && !message.hidden && messageRect && messageRect.height > 0;
+    const target = useMessage ? message : (dom.gridContainer || message);
     if (!(target instanceof HTMLElement)) return;
     const rect = target.getBoundingClientRect();
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    const gutter = Math.min(72, Math.max(24, viewportHeight * 0.12));
     if (rect.top >= gutter && rect.bottom <= viewportHeight - gutter) return;
     target.scrollIntoView({
-      block: "center",
+      block: useMessage ? "nearest" : "center",
       behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }
@@ -176,6 +182,7 @@
   }
 
   function expireTimer() {
+    if (state.timerPaused) return;
     stopTimer();
     state.timerSecondsLeft = 0;
     state.timerExpired = true;
@@ -357,6 +364,7 @@
 
   function resetPuzzleProgress() {
     stopTimer();
+    resetHintCooldown?.();
     Object.assign(state, buildInitialPuzzleProgress());
     dom.gridCells = null;
     dom.wordListItems = null;
@@ -606,6 +614,7 @@
     renderGridHighlights,
     updateHintButton,
     useHint,
+    resetHintCooldown,
   } = APP_BOARD.createBoardController({
     dom,
     state,
@@ -637,6 +646,8 @@
     }, 2500));
   }
 
+  const SHARE_URL_LONG_THRESHOLD = 1400;
+
   async function shareCurrentPuzzle(button) {
     if (!state.puzzle) return;
     const config = buildShareConfigFromPuzzle(state.puzzle);
@@ -647,6 +658,7 @@
     shareUrl.searchParams.set("p", encoded);
     const url = shareUrl.toString();
     const t = TRANSLATIONS[state.lang];
+    const isLong = url.length > SHARE_URL_LONG_THRESHOLD;
     const nativeShare = typeof navigator.share === "function"
       ? payload => navigator.share(payload)
       : null;
@@ -684,18 +696,18 @@
     }
 
     if (outcome === "shared") {
-      setStatus(t.msg_share_opened, "success");
+      setStatus(isLong ? t.msg_share_url_long : t.msg_share_opened, isLong ? "error" : "success");
       return;
     }
 
     if (outcome === "copied") {
       flashButtonText(button, t.btn_share_copied, t.btn_share);
-      setStatus(t.btn_share_copied, "success");
+      setStatus(isLong ? t.msg_share_url_long : t.btn_share_copied, isLong ? "error" : "success");
       return;
     }
 
     if (outcome === "prompted") {
-      setStatus(t.msg_share_manual, "success");
+      setStatus(isLong ? t.msg_share_url_long : t.msg_share_manual, isLong ? "error" : "success");
       return;
     }
 
@@ -828,6 +840,15 @@
     state.dragSelection = { start: cell, end: cell, moved: false };
   });
 
+  let gridHighlightRafId = null;
+  function scheduleGridHighlights() {
+    if (!dom.gridCells || gridHighlightRafId !== null) return;
+    gridHighlightRafId = requestAnimationFrame(() => {
+      gridHighlightRafId = null;
+      renderGridHighlights();
+    });
+  }
+
   window.addEventListener("pointermove", e => {
     if (!canInteractWithPuzzle()) return;
     const hovered = document.elementFromPoint(e.clientX, e.clientY);
@@ -838,11 +859,11 @@
         state.dragSelection.end = cell;
         state.dragSelection.moved = true;
         state.previewCells = buildSelectionPath(state.dragSelection.start, state.dragSelection.end);
-        if (dom.gridCells) renderGridHighlights();
+        scheduleGridHighlights();
       }
     } else if (state.clickAnchor && cell) {
       state.previewCells = buildSelectionPath(state.clickAnchor, cell);
-      if (dom.gridCells) renderGridHighlights();
+      scheduleGridHighlights();
     }
   });
 

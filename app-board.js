@@ -474,12 +474,21 @@
       if (dom.shareButton) dom.shareButton.disabled = !state.puzzle;
     }
 
+    function resetHintCooldown() {
+      hintCooldownUntil = 0;
+      if (hintCooldownTimeoutId !== null) {
+        clearTimeout(hintCooldownTimeoutId);
+        hintCooldownTimeoutId = null;
+      }
+    }
+
     return Object.freeze({
       checkMatch,
       render,
       renderGridHighlights,
       updateHintButton,
       useHint,
+      resetHintCooldown,
     });
   }
 

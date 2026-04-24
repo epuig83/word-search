@@ -1,3 +1,7 @@
+// CACHE_NAME bump forces a full cache drop on activation. With the
+// stale-while-revalidate strategy below, individual asset updates converge
+// without a bump; only bump when changing cache semantics or removing files
+// from APP_SHELL that must no longer be served.
 const CACHE_NAME = "word-search-v1";
 const APP_SHELL = [
   "./",
@@ -59,13 +63,13 @@ self.addEventListener("fetch", event => {
 
   event.respondWith(
     caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(response => {
+      const networkPromise = fetch(request).then(response => {
         if (!response || response.status !== 200 || response.type !== "basic") return response;
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(request, clone)).catch(() => {});
         return response;
       }).catch(() => cached);
+      return cached || networkPromise;
     })
   );
 });
