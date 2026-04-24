@@ -11,8 +11,15 @@
     <meta property="og:title" content="Generador de Sopes de Lletres per a Primària" />
     <meta property="og:description" content="Crea sopes de lletres personalitzades per a l'aula en segons. Perfecte per imprimir o usar amb ordinador." />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="og-image.svg" />
     <meta name="theme-color" content="#b5451b" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🔤</text></svg>" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
     <script src="data.js" defer></script>
     <script src="i18n.js" defer></script>
@@ -164,6 +171,10 @@
               <p class="sample-note" data-t="sample_note">
                 Els exemples guardats es desen en aquest portàtil.
               </p>
+              <div id="sample-undo-toast" class="sample-undo-toast" role="status" aria-live="polite" hidden>
+                <span id="sample-undo-text" data-t="msg_sample_deleted_undo">Exemple eliminat. Prem Desfer per recuperar-lo.</span>
+                <button type="button" id="sample-undo-button" class="ghost-button" data-t="btn_undo">Desfer</button>
+              </div>
               <input id="import-samples-input" type="file" accept="application/json,.json" hidden />
             </div>
 
@@ -235,6 +246,10 @@
             </div>
           </details>
 
+          <p id="default-pin-warning" class="default-pin-warning" hidden data-t="msg_default_pin_warning">
+            ⚠️ Canvia el PIN per defecte (1234) per protegir el panell docent.
+          </p>
+
           <details id="pin-change-details" class="pin-change-section">
             <summary class="teacher-tools-summary" data-t="pin_change_title">Bloqueig docent</summary>
             <form id="pin-change-form" class="pin-change-form">
@@ -298,6 +313,8 @@
             </div>
           </div>
 
+          <div id="sr-announce" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
           <div class="student-play-shell">
             <div id="student-start-overlay" class="student-start-overlay" hidden>
               <div class="student-start-card">
@@ -352,6 +369,9 @@
                   <div class="student-actions" id="student-actions" hidden>
                     <button type="button" id="reset-progress-button" class="ghost-button student-action-button" data-t="btn_reset">
                       Reiniciar joc
+                    </button>
+                    <button type="button" id="pause-button" class="ghost-button student-action-button" data-t="btn_pause" hidden>
+                      ⏸ Pausa
                     </button>
                     <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" hidden>
                       💡 Pista (3)

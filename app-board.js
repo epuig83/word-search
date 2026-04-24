@@ -7,6 +7,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
+  const HINT_HIGHLIGHT_MS = 4000;
+  const HINT_COOLDOWN_MS = 4000;
+
   function createBoardController({
     dom,
     state,
@@ -22,9 +25,13 @@
     stopTimer,
     revealCompletionMessage,
     setStatus,
+    announce,
     prefersReducedMotion,
     canInteractWithPuzzle,
   }) {
+    const announceFn = typeof announce === "function" ? announce : () => {};
+    let hintCooldownUntil = 0;
+    let hintCooldownTimeoutId = null;
     function buildGridCellLabel(letter, row, col, flags) {
       const t = getTranslations();
       const parts = [
@@ -147,17 +154,19 @@
       }
       dom.hintButton.hidden = false;
       const t = getTranslations();
+      const onCooldown = Date.now() < hintCooldownUntil;
       if (allowed === -1) {
         dom.hintButton.textContent = t.btn_hint.replace("{n}", "∞");
-        dom.hintButton.disabled = false;
+        dom.hintButton.disabled = onCooldown;
       } else {
         dom.hintButton.textContent = t.btn_hint.replace("{n}", state.hintsRemaining);
-        dom.hintButton.disabled = state.hintsRemaining <= 0;
+        dom.hintButton.disabled = state.hintsRemaining <= 0 || onCooldown;
       }
     }
 
     function useHint() {
       if (!canInteractWithPuzzle() || (state.puzzle.hintsAllowed !== -1 && state.hintsRemaining <= 0)) return;
+      if (Date.now() < hintCooldownUntil) return;
       const unsolved = state.puzzle.placements.filter(placement => !state.foundPlacementIds.has(placement.placementId));
       if (!unsolved.length) return;
       const placement = unsolved[Math.floor(Math.random() * unsolved.length)];
@@ -165,13 +174,18 @@
       const cellElement = dom.puzzleGrid.querySelector(`[data-row="${firstCell.row}"][data-col="${firstCell.col}"]`);
       if (cellElement) {
         cellElement.classList.add("is-hint");
-        setTimeout(() => cellElement.classList.remove("is-hint"), 2000);
+        setTimeout(() => cellElement.classList.remove("is-hint"), HINT_HIGHLIGHT_MS);
       }
       if (state.puzzle.hintsAllowed !== -1) {
         state.hintsRemaining = Math.max(0, state.hintsRemaining - 1);
       }
+      hintCooldownUntil = Date.now() + HINT_COOLDOWN_MS;
+      clearTimeout(hintCooldownTimeoutId);
+      hintCooldownTimeoutId = setTimeout(() => updateHintButton(), HINT_COOLDOWN_MS);
       updateHintButton();
-      setStatus(getTranslations().msg_hint_used, "success");
+      const hintMsg = getTranslations().msg_hint_used;
+      setStatus(hintMsg, "success");
+      announceFn(hintMsg);
     }
 
     function renderGridHighlights() {
@@ -202,6 +216,10 @@
       if (prefersReducedMotion()) return;
       if (typeof globalThis.confetti !== "function") return;
 
+      state.celebrationsInSession = (state.celebrationsInSession || 0) + 1;
+      const intensity = state.celebrationsInSession === 1 ? 1 : 0.33;
+      const scale = count => Math.max(6, Math.round(count * intensity));
+
       const baseOptions = {
         colors: ["#ff6b00", "#d47a3b", "#0d9488", "#3b82f6", "#8b5cf6", "#facc15"],
         disableForReducedMotion: true,
@@ -216,7 +234,7 @@
 
       globalThis.confetti({
         ...baseOptions,
-        particleCount: 52,
+        particleCount: scale(52),
         angle: 60,
         spread: 70,
         drift: 0.18,
@@ -226,7 +244,7 @@
       window.setTimeout(() => {
         globalThis.confetti({
           ...baseOptions,
-          particleCount: 52,
+          particleCount: scale(52),
           angle: 120,
           spread: 70,
           drift: -0.18,
@@ -237,7 +255,7 @@
       window.setTimeout(() => {
         globalThis.confetti({
           ...baseOptions,
-          particleCount: 28,
+          particleCount: scale(28),
           angle: 90,
           spread: 110,
           startVelocity: 24,
@@ -262,7 +280,9 @@
       if (!state.foundWordColors.has(match.wordId)) {
         state.foundWordColors.set(match.wordId, `wc-${state.foundWordColors.size % 5}`);
       }
-      setStatus(getTranslations().msg_found.replace("{word}", match.display), "success");
+      const foundMsg = getTranslations().msg_found.replace("{word}", match.display);
+      setStatus(foundMsg, "success");
+      announceFn(foundMsg);
       return true;
     }
 
@@ -374,11 +394,20 @@
       });
 
       const isComplete = state.foundWordIds.size === state.puzzle.words.length;
+      const isExpiredUnfinished = state.timerExpired && !isComplete;
+      const showCompletionCard = isComplete || isExpiredUnfinished;
       const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
       const hasSendResults = Boolean(isComplete && formParsed);
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-complete", isComplete);
-      dom.completionMessage.hidden = !isComplete;
-      if (dom.completionNote) dom.completionNote.hidden = hasSendResults;
+      if (dom.gridContainer) dom.gridContainer.classList.toggle("is-expired", isExpiredUnfinished);
+      dom.completionMessage.hidden = !showCompletionCard;
+      if (dom.completionMessageTitle) {
+        dom.completionMessageTitle.textContent = isExpiredUnfinished ? t.completion_msg_expired : t.completion_msg;
+      }
+      if (dom.completionNote) {
+        dom.completionNote.textContent = isExpiredUnfinished ? t.completion_note_expired : t.completion_note;
+        dom.completionNote.hidden = hasSendResults;
+      }
       if (dom.sendResultsButton) dom.sendResultsButton.hidden = !hasSendResults;
       if (dom.completionTime) {
         if (isComplete && state.puzzle.timerDuration > 0) {
@@ -389,28 +418,44 @@
           dom.completionTime.hidden = true;
         }
       }
-      if (dom.playAgainButton) dom.playAgainButton.hidden = !isComplete;
+      if (dom.playAgainButton) dom.playAgainButton.hidden = !showCompletionCard;
+      if (dom.pauseButton) {
+        const showPause = Boolean(
+          state.puzzle.timerDuration > 0 &&
+          state.studentSessionStarted &&
+          !state.timerExpired &&
+          !isComplete
+        );
+        dom.pauseButton.hidden = !showPause;
+        dom.pauseButton.textContent = state.timerPaused ? t.btn_resume : t.btn_pause;
+        dom.pauseButton.setAttribute("aria-pressed", String(Boolean(state.timerPaused)));
+      }
+      if (dom.gridContainer) dom.gridContainer.classList.toggle("is-paused", Boolean(state.timerPaused));
       if (dom.boardStatus) {
         const boardStatusTone = state.timerExpired
           ? "expired"
           : isComplete
             ? "complete"
-            : !state.studentSessionStarted
-              ? "pending"
-              : state.foundWordIds.size > 0
-                ? "progress"
-                : "";
+            : state.timerPaused
+              ? "paused"
+              : !state.studentSessionStarted
+                ? "pending"
+                : state.foundWordIds.size > 0
+                  ? "progress"
+                  : "";
         const boardStatusText = state.timerExpired
           ? t.board_status_expired
           : isComplete
             ? t.board_status_complete
-            : !state.studentSessionStarted
-              ? t.board_status_pending
-              : state.foundWordIds.size > 0
-                ? t.board_status_progress
-                  .replace("{found}", state.foundWordIds.size)
-                  .replace("{total}", state.puzzle.words.length)
-                : t.board_status_start;
+            : state.timerPaused
+              ? t.board_status_paused
+              : !state.studentSessionStarted
+                ? t.board_status_pending
+                : state.foundWordIds.size > 0
+                  ? t.board_status_progress
+                    .replace("{found}", state.foundWordIds.size)
+                    .replace("{total}", state.puzzle.words.length)
+                  : t.board_status_start;
         dom.boardStatus.textContent = boardStatusText;
         dom.boardStatus.className = "board-status" + (boardStatusTone ? ` is-${boardStatusTone}` : "");
       }
@@ -420,6 +465,7 @@
         if (!state.celebrated) {
           celebrate();
           revealCompletionMessage();
+          announceFn(t.completion_msg);
           state.celebrated = true;
         }
       }

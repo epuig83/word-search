@@ -51,6 +51,7 @@
     saveTeacherPin: saveTeacherPinToStorage,
     loadCustomSamples: loadCustomSamplesFromStorage,
     persistCustomSamples: persistCustomSamplesToStorage,
+    DEFAULT_TEACHER_PIN,
   } = APP_STORAGE;
   const {
     openModal,
@@ -106,7 +107,26 @@
   }
 
   function canInteractWithPuzzle() {
-    return Boolean(state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired);
+    return Boolean(state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired && !state.timerPaused);
+  }
+
+  function pauseTimer() {
+    if (!canInteractWithPuzzle() || state.puzzle.timerDuration <= 0) return;
+    stopTimer();
+    state.timerPaused = true;
+    state.dragSelection = null;
+    state.clickAnchor = null;
+    state.previewCells = [];
+    render();
+  }
+
+  function resumeTimer() {
+    if (!state.timerPaused) return;
+    state.timerPaused = false;
+    if (state.timerSecondsLeft > 0 && !state.timerExpired) {
+      startTimer(state.timerSecondsLeft);
+    }
+    render();
   }
 
   function syncStudentStartOverlay() {
@@ -163,6 +183,10 @@
     state.clickAnchor = null;
     state.previewCells = [];
     render();
+    if (state.foundWordIds.size < (state.puzzle?.words.length ?? 0)) {
+      revealCompletionMessage();
+      announce(TRANSLATIONS[state.lang].completion_msg_expired);
+    }
   }
 
   function updateTimerDisplay() {
@@ -291,6 +315,7 @@
     timerIntervalId: null,
     timerSecondsLeft: 0,
     timerExpired: false,
+    timerPaused: false,
     studentSessionStarted: false,
     hintsRemaining: 0,
     studentName: { nom: "", cognoms: "" },
@@ -322,6 +347,7 @@
       dragSelection: null,
       celebrated: false,
       timerExpired: false,
+      timerPaused: false,
       studentSessionStarted: false,
       activeDefinitionWordId: null,
       timerSecondsLeft: state.puzzle?.timerDuration || 0,
@@ -372,8 +398,11 @@
     exportSamplesButton: document.querySelector("#export-samples-button"),
     importSamplesButton: document.querySelector("#import-samples-button"),
     importSamplesInput: document.querySelector("#import-samples-input"),
+    sampleUndoToast: document.querySelector("#sample-undo-toast"),
+    sampleUndoButton: document.querySelector("#sample-undo-button"),
     solutionToggleButton: document.querySelector("#solution-toggle-button"),
     resetProgressButton: document.querySelector("#reset-progress-button"),
+    pauseButton: document.querySelector("#pause-button"),
     printButton: document.querySelector("#print-button"),
     teacherTools: document.querySelector("#teacher-tools"),
     statusMessage: document.querySelector("#status-message"),
@@ -398,6 +427,7 @@
     studentStartButton: document.querySelector("#student-start-button"),
     gridContainer: document.querySelector("#grid-container"),
     completionMessage: document.querySelector("#completion-message"),
+    completionMessageTitle: document.querySelector("#completion-message-title"),
     completionNote: document.querySelector("#completion-note"),
     completionTime: document.querySelector("#completion-time"),
     playAgainButton: document.querySelector("#play-again-button"),
@@ -419,6 +449,8 @@
     savePinButton: document.querySelector("#save-pin-button"),
     pinChangeMessage: document.querySelector("#pin-change-message"),
     pinChangeDetails: document.querySelector("#pin-change-details"),
+    defaultPinWarning: document.querySelector("#default-pin-warning"),
+    srAnnounce: document.querySelector("#sr-announce"),
     shareButton: document.querySelector("#share-button"),
     formTemplateInput: document.querySelector("#form-template-input"),
     sendResultsButton: document.querySelector("#send-results-button"),
@@ -537,6 +569,17 @@
     dom.statusMessage.className = "status-message" + (tone ? ` is-${tone}` : "");
   }
 
+  function announce(msg) {
+    if (!dom.srAnnounce || !msg) return;
+    dom.srAnnounce.textContent = "";
+    setTimeout(() => { dom.srAnnounce.textContent = msg; }, 50);
+  }
+
+  function refreshDefaultPinWarning() {
+    if (!dom.defaultPinWarning) return;
+    dom.defaultPinWarning.hidden = state.teacherPin !== DEFAULT_TEACHER_PIN;
+  }
+
   const teacherController = APP_TEACHER.createTeacherController({
     dom,
     state,
@@ -578,6 +621,7 @@
     stopTimer,
     revealCompletionMessage,
     setStatus,
+    announce,
     prefersReducedMotion,
     canInteractWithPuzzle,
   });
@@ -679,6 +723,7 @@
     parseFormEntries,
     buildFormSubmitUrl,
     saveTeacherPin: saveTeacherPinToStorage,
+    refreshDefaultPinWarning,
     shouldShowStudentStartOverlay,
     focusStudentStartButton,
     focusGridCell,
@@ -698,6 +743,14 @@
     const t = TRANSLATIONS[state.lang];
     const parsed = parseWords(dom.wordsInput.value);
     const originalTriggerText = triggerButton?.textContent || "";
+
+    if (state.formTemplate && !parseFormEntries(state.formTemplate)) {
+      setStatus(t.form_url_invalid, "error");
+      const formConfigDetails = document.querySelector("#form-config-details");
+      if (formConfigDetails) formConfigDetails.open = true;
+      dom.formTemplateInput?.focus?.();
+      return;
+    }
 
     [dom.generateButton, dom.generateOpenButton].forEach(button => {
       if (button) button.disabled = true;
@@ -748,6 +801,23 @@
   if (dom.hintButton) {
     dom.hintButton.addEventListener("click", () => useHint());
   }
+
+  if (dom.pauseButton) {
+    dom.pauseButton.addEventListener("click", () => {
+      if (state.timerPaused) resumeTimer();
+      else pauseTimer();
+    });
+  }
+
+  window.addEventListener("keydown", event => {
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key !== "h" && event.key !== "H") return;
+    const target = event.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    if (!canInteractWithPuzzle() || !dom.hintButton || dom.hintButton.hidden || dom.hintButton.disabled) return;
+    event.preventDefault();
+    useHint();
+  });
   
   dom.puzzleGrid.addEventListener("pointerdown", e => {
     const btn = e.target.closest(".grid-cell");
@@ -930,5 +1000,14 @@
       const errLang = errConfig?.lang && TRANSLATIONS[errConfig.lang] ? errConfig.lang : "ca";
       setStatus(TRANSLATIONS[errLang].msg_link_error, "error");
     }
+  }
+  refreshDefaultPinWarning();
+
+  if ("serviceWorker" in navigator && (location.protocol === "http:" || location.protocol === "https:")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(err => {
+        console.warn("[word-search] SW registration failed:", err);
+      });
+    });
   }
 })();

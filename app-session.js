@@ -17,6 +17,7 @@
     parseFormEntries,
     buildFormSubmitUrl,
     saveTeacherPin,
+    refreshDefaultPinWarning,
     shouldShowStudentStartOverlay,
     focusStudentStartButton,
     focusGridCell,
@@ -71,6 +72,7 @@
         state.studentSessionStarted &&
         state.puzzle.timerDuration > 0 &&
         !state.timerExpired &&
+        !state.timerPaused &&
         state.timerIntervalId === null &&
         state.timerSecondsLeft > 0
       ) {
@@ -263,6 +265,7 @@
           dom.pinChangeMessage.textContent = t.pin_change_success;
           dom.pinChangeMessage.className = "status-message is-success";
           if (dom.pinChangeDetails) dom.pinChangeDetails.open = false;
+          refreshDefaultPinWarning?.();
         });
       }
 

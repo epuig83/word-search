@@ -457,6 +457,36 @@ body {
   font-size: 0.83rem;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sample-undo-toast {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.6rem;
+  background: #fef6e1;
+  border: 1px solid #f0c468;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #6b4f12;
+}
+
+.sample-undo-toast button {
+  flex-shrink: 0;
+}
+
 /* Textarea + Library side by side, same height */
 .words-and-library {
   display: grid;
@@ -1110,6 +1140,26 @@ body {
   z-index: 1;
 }
 
+.grid-container.is-paused .puzzle-grid {
+  filter: blur(4px) saturate(0.6);
+  transition: filter 0.2s ease;
+}
+
+.grid-container.is-paused::after {
+  content: "⏸";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(3rem, 10vw, 5rem);
+  color: #8b6f2b;
+  background: rgba(255, 251, 240, 0.55);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .grid-cell {
   aspect-ratio: 1;
   width: 100%;
@@ -1168,11 +1218,11 @@ body {
 }
 
 /* Per-word found colors — palette artesanal */
-.grid-cell.is-found.wc-0, .word-item.is-found.wc-0 { background: var(--found-soft);  border-color: var(--found);     color: var(--found-strong); box-shadow: 0 2px 0 var(--found); }
-.grid-cell.is-found.wc-1, .word-item.is-found.wc-1 { background: #dce8f8;            border-color: #5b8fd4;          color: #1e3f7a;             box-shadow: 0 2px 0 #5b8fd4; }
-.grid-cell.is-found.wc-2, .word-item.is-found.wc-2 { background: #e8e0f5;            border-color: var(--student-primary); color: #3f2580;       box-shadow: 0 2px 0 var(--student-primary); }
-.grid-cell.is-found.wc-3, .word-item.is-found.wc-3 { background: var(--accent-soft); border-color: #d47a3b;          color: var(--accent-strong); box-shadow: 0 2px 0 #d47a3b; }
-.grid-cell.is-found.wc-4, .word-item.is-found.wc-4 { background: #d4f0f0;            border-color: #2aa8a0;          color: #145c50;             box-shadow: 0 2px 0 #2aa8a0; }
+.grid-cell.is-found.wc-0, .word-item.is-found.wc-0 { background: var(--found-soft);  border-color: var(--found);     color: var(--found-strong); box-shadow: 0 2px 0 var(--found);             border-style: solid; }
+.grid-cell.is-found.wc-1, .word-item.is-found.wc-1 { background: #dce8f8;            border-color: #5b8fd4;          color: #1e3f7a;             box-shadow: 0 2px 0 #5b8fd4;                  border-style: dashed; }
+.grid-cell.is-found.wc-2, .word-item.is-found.wc-2 { background: #e8e0f5;            border-color: var(--student-primary); color: #3f2580;       box-shadow: 0 2px 0 var(--student-primary);   border-style: dotted; }
+.grid-cell.is-found.wc-3, .word-item.is-found.wc-3 { background: var(--accent-soft); border-color: #d47a3b;          color: var(--accent-strong); box-shadow: 0 2px 0 #d47a3b;                  border-style: solid; }
+.grid-cell.is-found.wc-4, .word-item.is-found.wc-4 { background: #d4f0f0;            border-color: #2aa8a0;          color: #145c50;             box-shadow: 0 2px 0 #2aa8a0;                  border-style: dashed; }
 
 /* Hint animation */
 .grid-cell.is-hint {
@@ -1564,6 +1614,17 @@ body.has-modal {
   margin-top: 1.5rem;
   border-top: 1.5px dashed var(--panel-border);
   padding-top: 1rem;
+}
+
+.default-pin-warning {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.6rem;
+  background: #fff4d9;
+  color: #6b4f12;
+  border: 1px solid #f0c468;
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .pin-change-form {

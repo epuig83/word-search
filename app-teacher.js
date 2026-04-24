@@ -180,16 +180,55 @@
       dom.deleteSampleButton.disabled = !dom.sampleSelect.value.startsWith("custom:");
     }
 
+    let undoTimeoutId = null;
+    let undoSnapshot = null;
+
+    function commitPendingUndo() {
+      if (!undoSnapshot) return;
+      clearTimeout(undoTimeoutId);
+      undoTimeoutId = null;
+      undoSnapshot = null;
+      if (dom.sampleUndoToast) dom.sampleUndoToast.hidden = true;
+      persistCustomSamples();
+    }
+
     function deleteCurrentSample() {
       const value = dom.sampleSelect.value;
       if (!value.startsWith("custom:")) return;
       const t = getTranslations();
-      if (!window.confirm(t.msg_confirm_delete_sample)) return;
       const sampleId = value.slice("custom:".length);
-      state.customSamples[state.lang] = (state.customSamples[state.lang] || []).filter(sample => sample.id !== sampleId);
-      if (!persistCustomSamples()) return;
+      const lang = state.lang;
+      const current = state.customSamples[lang] || [];
+      const index = current.findIndex(sample => sample.id === sampleId);
+      if (index < 0) return;
+
+      commitPendingUndo();
+      const removed = current[index];
+      state.customSamples[lang] = current.filter((_, i) => i !== index);
       renderSampleOptions();
       setStatus(t.msg_sample_deleted, "success");
+
+      undoSnapshot = { lang, sample: removed, index };
+      if (dom.sampleUndoToast) {
+        dom.sampleUndoToast.hidden = false;
+      }
+      undoTimeoutId = setTimeout(() => commitPendingUndo(), 5000);
+    }
+
+    function undoLastDelete() {
+      if (!undoSnapshot) return;
+      const { lang, sample, index } = undoSnapshot;
+      const collection = state.customSamples[lang] || [];
+      const restored = [...collection];
+      const insertAt = Math.min(index, restored.length);
+      restored.splice(insertAt, 0, sample);
+      state.customSamples[lang] = restored;
+      undoSnapshot = null;
+      clearTimeout(undoTimeoutId);
+      undoTimeoutId = null;
+      if (dom.sampleUndoToast) dom.sampleUndoToast.hidden = true;
+      renderSampleOptions(`custom:${sample.id}`);
+      setStatus(getTranslations().msg_sample_saved, "success");
     }
 
     function loadSelectedSample() {
@@ -342,6 +381,10 @@
 
       if (dom.deleteSampleButton) {
         dom.deleteSampleButton.addEventListener("click", () => deleteCurrentSample());
+      }
+
+      if (dom.sampleUndoButton) {
+        dom.sampleUndoButton.addEventListener("click", () => undoLastDelete());
       }
 
       dom.saveSampleButton.addEventListener("click", () => {

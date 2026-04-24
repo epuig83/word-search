@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sopa de Lletres">
+  <rect width="512" height="512" rx="96" fill="#fdf7ec"/>
+  <g font-family="'Courier New', monospace" font-weight="700" font-size="78" fill="#b5451b" text-anchor="middle">
+    <text x="256" y="120">L L E T</text>
+    <text x="256" y="208">S O P A</text>
+    <text x="256" y="296">M O T S</text>
+    <text x="256" y="384">P A R L</text>
+  </g>
+  <text x="256" y="472" font-family="'Georgia', serif" font-size="56" font-weight="700" fill="#1f1a12" text-anchor="middle">🔤</text>
+</svg>
