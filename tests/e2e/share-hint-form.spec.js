@@ -149,6 +149,89 @@ test("malformed or corrupted shared URLs fall back to the teacher view", async (
   await expect(page.locator("#student-start-overlay")).toBeHidden();
 });
 
+test("sample delete is reversible via the undo toast", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#title-input").fill("Cobais marines");
+  await page.locator("#words-input").fill("balena\ndofi\npeix\ntauro");
+  await page.locator("#save-sample-button").click();
+  await expect(page.locator("#sample-select")).toContainText("Cobais marines");
+
+  await page.locator("#sample-select").selectOption({ label: "Cobais marines" });
+  await expect(page.locator("#delete-sample-button")).toBeEnabled();
+  await page.locator("#delete-sample-button").click();
+
+  await expect(page.locator("#sample-undo-toast")).toBeVisible();
+  await expect(page.locator("#sample-select option", { hasText: "Cobais marines" })).toHaveCount(0);
+
+  await page.locator("#sample-undo-button").click();
+  await expect(page.locator("#sample-undo-toast")).toBeHidden();
+  await expect(page.locator("#sample-select")).toContainText("Cobais marines");
+});
+
+test("share status warns when the encoded URL approaches messenger limits", async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.clipboard = navigator.clipboard || {};
+    navigator.clipboard.writeText = () => Promise.resolve();
+  });
+  // Long word list + form template pushes the encoded URL past the 1400-char threshold.
+  const words = Array.from({ length: 30 }, (_, i) => `paraula${String(i).padStart(2, "0")}`).join("\n");
+  const formTemplate = "https://docs.google.com/forms/d/" + "x".repeat(900) + "/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Resultat&entry.40=Tema";
+  await generatePuzzle(page, {
+    title: "Vocabulari ampli",
+    words,
+    timer: "0",
+    hints: "0",
+    formTemplate,
+    openStudent: false,
+  });
+
+  await page.locator("#teacher-share-button").click();
+  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
+  await expect(page.locator("#status-message")).toContainText(/Enllaç molt llarg|long/i);
+});
+
+test("send-results blocks with an alert when the device is offline", async ({ page, context }) => {
+  const formTemplate = "https://docs.google.com/forms/d/e/test/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Resultat&entry.40=Tema";
+  const alerts = [];
+  page.on("dialog", async dialog => {
+    if (dialog.type() === "alert") {
+      alerts.push(dialog.message());
+    }
+    await dialog.dismiss();
+  });
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+    window.__openedUrls = [];
+    window.open = (...args) => { window.__openedUrls.push(args); return null; };
+  });
+
+  await generatePuzzle(page, {
+    words: "balena\ndofi\npeix",
+    timer: "0",
+    hints: "0",
+    formTemplate,
+  });
+  await page.locator("#student-nom-input").fill("Ada");
+  await page.locator("#student-cognoms-input").fill("Lovelace");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await startStudentSession(page);
+
+  const words = core.parseWords("balena\ndofi\npeix").words;
+  const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
+  for (const placement of puzzle.placements) {
+    await solvePlacement(page, placement);
+  }
+  await expect(page.locator("#send-results-button")).toBeVisible();
+
+  await context.setOffline(true);
+  await page.locator("#send-results-button").click();
+  expect(alerts.length).toBe(1);
+  expect(alerts[0]).toMatch(/Sense connexió|Offline|Sin conexión/);
+  await expect.poll(() => page.evaluate(() => window.__openedUrls.length)).toBe(0);
+
+  await context.setOffline(false);
+});
+
 test("mobile library starts category-first instead of showing the full word cloud", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/index.html");

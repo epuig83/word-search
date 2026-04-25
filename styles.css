@@ -502,6 +502,10 @@ body {
   color: #6b4f12;
 }
 
+.sample-undo-toast[hidden] {
+  display: none;
+}
+
 .sample-undo-toast button {
   flex-shrink: 0;
 }
