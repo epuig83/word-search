@@ -189,6 +189,35 @@ test("language switch updates the main teacher controls in all locales", async (
   await expect(page.locator("#tab-student")).toContainText("Student area");
 });
 
+test("print worksheet shows a localized name/date line and drops the screen background", async ({ page }) => {
+  await generatePuzzle(page, { timer: "0" });
+  await startStudentSession(page);
+
+  await page.emulateMedia({ media: "print" });
+
+  // Student worksheet: name/date fill-in line is revealed and localized (ca).
+  const printMeta = page.locator("#print-meta");
+  await expect(printMeta).toBeVisible();
+  await expect(printMeta).toContainText("Nom");
+  await expect(printMeta).toContainText("Data");
+
+  // The student lavender grid background must not bleed onto paper.
+  const bodyBackgroundImage = await page.evaluate(
+    () => getComputedStyle(document.body).backgroundImage
+  );
+  expect(bodyBackgroundImage).toBe("none");
+
+  // The teacher answer-key suffix is wired to the active locale, not hardcoded.
+  await expect(page.locator("#board-title")).toHaveAttribute("data-solution-suffix", "Solució");
+
+  // The lang selector lives in the hero, hidden in the student tab, so switch
+  // back to the teacher view before changing locale.
+  await page.emulateMedia({ media: "screen" });
+  await unlockTeacherView(page);
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.locator("#board-title")).toHaveAttribute("data-solution-suffix", "Solution");
+});
+
 [
   {
     label: "mobile 320 with a 10x10 board",

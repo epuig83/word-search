@@ -556,6 +556,7 @@
     dom.wordsInput.placeholder = TRANSLATIONS[lang].field_words_placeholder;
     dom.libSearch.placeholder = TRANSLATIONS[lang].lib_search_placeholder;
     if (dom.puzzleGrid) dom.puzzleGrid.setAttribute("aria-label", TRANSLATIONS[lang].grid_label);
+    if (dom.boardTitle) dom.boardTitle.dataset.solutionSuffix = TRANSLATIONS[lang].print_solution_suffix;
     const nav = document.querySelector("nav[aria-label]");
     if (nav && TRANSLATIONS[lang].nav_sections) nav.setAttribute("aria-label", TRANSLATIONS[lang].nav_sections);
     dom.langBtns.forEach(btn => {

@@ -75,9 +75,9 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 ## Key Constraints
 
 - No external runtime dependencies beyond the vendored `canvas-confetti`; the app must work offline from `file://`.
-- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 153 each for `es`/`ca`/`en`). Verify with:
+- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 167 each for `es`/`ca`/`en`). Verify with:
   ```bash
-  grep -cE '^\s+[a-z_]+:\s' i18n.js   # 459 total = 153 × 3
+  grep -cE '^\s+[a-z_]+:\s' i18n.js   # 501 total = 167 × 3
   ```
 - Word normalization (`normalizeWord` in `core.js`) strips accents and uppercases before placement; display keeps original casing.
 - Module load order matters: controllers depend on earlier modules being present (see table above).

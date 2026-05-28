@@ -488,6 +488,11 @@ body {
   border: 0;
 }
 
+/* Shown only when printing (e.g. the name/date worksheet header). */
+.print-only {
+  display: none;
+}
+
 .sample-undo-toast {
   margin-top: 0.75rem;
   padding: 0.6rem 0.85rem;
@@ -2024,11 +2029,32 @@ body[data-tab="student"] .panel {
     display: none !important;
   }
 
-  body {
+  body,
+  body[data-tab="student"] {
     background: white;
     background-image: none;
     font-size: 10pt;
     font-family: var(--font-body);
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  /* Worksheet header: fill-in lines for the student's name and the date. */
+  .print-meta {
+    display: flex;
+    gap: 1.5cm;
+    margin-top: 0.3cm;
+    font-size: 11pt;
+    color: #000;
+  }
+
+  .print-meta-field {
+    flex: 1;
+    border-bottom: 1px solid #000;
+    padding-bottom: 0.5cm;
+    white-space: nowrap;
   }
 
   .page-shell {
@@ -2048,7 +2074,12 @@ body[data-tab="student"] .panel {
   }
 
   .board-topbar {
+    display: block;
     margin-bottom: 0.4cm;
+  }
+
+  .board-title-group {
+    width: 100%;
   }
 
   #board-title {
@@ -2144,9 +2175,14 @@ body[data-tab="student"] .panel {
   }
 
   body[data-mode="teacher"] #board-title::after {
-    content: " — Solució";
+    content: " — " attr(data-solution-suffix);
     font-weight: 400;
     color: #555;
     margin-left: 0.3em;
+  }
+
+  /* The answer key already shows the solution; hide the blank name/date line. */
+  body[data-mode="teacher"] .print-meta {
+    display: none;
   }
 }
