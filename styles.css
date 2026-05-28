@@ -2057,6 +2057,13 @@ body[data-tab="student"] .panel {
     white-space: nowrap;
   }
 
+  .print-instructions {
+    margin: 0.4cm 0 0;
+    font-size: 11pt;
+    font-weight: 600;
+    color: #000;
+  }
+
   .page-shell {
     width: 100%;
     margin: 0;
@@ -2181,8 +2188,9 @@ body[data-tab="student"] .panel {
     margin-left: 0.3em;
   }
 
-  /* The answer key already shows the solution; hide the blank name/date line. */
-  body[data-mode="teacher"] .print-meta {
+  /* The answer key already shows the solution; hide the student worksheet chrome. */
+  body[data-mode="teacher"] .print-meta,
+  body[data-mode="teacher"] .print-instructions {
     display: none;
   }
 }

@@ -559,6 +559,8 @@
     if (dom.boardTitle) dom.boardTitle.dataset.solutionSuffix = TRANSLATIONS[lang].print_solution_suffix;
     const nav = document.querySelector("nav[aria-label]");
     if (nav && TRANSLATIONS[lang].nav_sections) nav.setAttribute("aria-label", TRANSLATIONS[lang].nav_sections);
+    const langSelector = document.querySelector(".lang-selector");
+    if (langSelector && TRANSLATIONS[lang].lang_selector_label) langSelector.setAttribute("aria-label", TRANSLATIONS[lang].lang_selector_label);
     dom.langBtns.forEach(btn => {
       const isActive = btn.dataset.lang === lang;
       btn.classList.toggle("is-active", isActive);

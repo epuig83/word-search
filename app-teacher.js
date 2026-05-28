@@ -114,9 +114,24 @@
       const countTone = count >= 3 ? "ready" : count > 0 ? "sparse" : "";
       const feedbackKey = count >= 3 ? "words_summary_ready" : count > 0 ? "words_summary_sparse" : "words_summary_empty";
 
+      // Tokens that normalize to 1-2 letters are silently dropped by parseWords
+      // (the placement engine needs ≥3). Flag them so the teacher knows why the
+      // count didn't move — common with short Catalan/Spanish words ("os", "au").
+      const shortCount = dom.wordsInput.value
+        .split(/[\n,;]+/)
+        .map(token => token.trim())
+        .filter(Boolean)
+        .filter(token => {
+          const length = normalizeWord(token).length;
+          return length > 0 && length < 3;
+        }).length;
+
       dom.wordsCount.textContent = t.words_count.replace("{count}", count);
       dom.wordsCount.className = "words-count-pill" + (countTone ? ` is-${countTone}` : "");
-      dom.wordsFeedback.textContent = t[feedbackKey];
+      const feedbackText = shortCount
+        ? `${t[feedbackKey]} ${t.words_too_short.replace("{count}", shortCount)}`
+        : t[feedbackKey];
+      dom.wordsFeedback.textContent = feedbackText;
       dom.wordsFeedback.className = "words-feedback" + (countTone ? ` is-${countTone}` : "");
 
       if (dom.clearWordsButton) dom.clearWordsButton.disabled = count === 0;

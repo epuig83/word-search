@@ -8,6 +8,12 @@
   "use strict";
 
   const LETTERS = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+  // Ñ never appears in English words, so it shouldn't show up as filler in an
+  // English puzzle. Catalan/Spanish keep it (e.g. "niño", "canya").
+  const LETTERS_NO_ENYE = LETTERS.replace("Ñ", "");
+  function fillerLettersForLang(lang) {
+    return lang === "en" ? LETTERS_NO_ENYE : LETTERS;
+  }
   // If exceeded, buildPuzzleData throws and the UI shows the generic msg_puzzle_error.
   const MAX_GENERATION_ATTEMPTS = 180;
   const MAX_GRID_SIZE = 22;
@@ -191,10 +197,11 @@
 
       if (!success) continue;
 
+      const fillerLetters = fillerLettersForLang(metadata?.sourceLang);
       for (let row = 0; row < size; row++) {
         for (let col = 0; col < size; col++) {
           if (!grid[row][col]) {
-            grid[row][col] = LETTERS[Math.floor(random() * LETTERS.length)];
+            grid[row][col] = fillerLetters[Math.floor(random() * fillerLetters.length)];
           }
         }
       }

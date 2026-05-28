@@ -189,6 +189,23 @@ test("language switch updates the main teacher controls in all locales", async (
   await expect(page.locator("#tab-student")).toContainText("Student area");
 });
 
+test("language selector exposes a localized accessible label", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator(".lang-selector")).toHaveAttribute("aria-label", "Idioma");
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.locator(".lang-selector")).toHaveAttribute("aria-label", "Language");
+});
+
+test("words helper flags entries shorter than 3 letters as undroppable", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#words-input").fill("os\nau\ngat\ngos\npeix");
+
+  // Two 2-letter tokens (os, au) are dropped; three valid words remain.
+  await expect(page.locator("#words-count")).toContainText("3");
+  await expect(page.locator("#words-feedback")).toContainText("menys de 3 lletres");
+  await expect(page.locator("#words-feedback")).toContainText("(2)");
+});
+
 test("print worksheet shows a localized name/date line and drops the screen background", async ({ page }) => {
   await generatePuzzle(page, { timer: "0" });
   await startStudentSession(page);
@@ -200,6 +217,11 @@ test("print worksheet shows a localized name/date line and drops the screen back
   await expect(printMeta).toBeVisible();
   await expect(printMeta).toContainText("Nom");
   await expect(printMeta).toContainText("Data");
+
+  // The worksheet tells the pupil what to do (board instructions are hidden in print).
+  const printInstructions = page.locator("#print-instructions");
+  await expect(printInstructions).toBeVisible();
+  await expect(printInstructions).toContainText("Troba");
 
   // The student lavender grid background must not bleed onto paper.
   const bodyBackgroundImage = await page.evaluate(

@@ -37,6 +37,18 @@ test("buildPuzzleData creates a solvable puzzle with matching placements", () =>
   }
 });
 
+test("English puzzles never use Ñ as filler, but Spanish puzzles can", () => {
+  // random() => 0.53 maps to index 14 ("Ñ") in the 27-letter ca/es alphabet
+  // and index 13 ("N") in the 26-letter English one, so the fill differs by lang.
+  const enWords = core.parseWords("cat\ndog\nfish").words;
+  const enPuzzle = core.buildPuzzleData(enWords, "10", "easy", { sourceLang: "en" }, { random: () => 0.53 });
+  assert.ok(!enPuzzle.grid.flat().includes("Ñ"), "English grid must not contain Ñ filler");
+
+  const esWords = core.parseWords("casa\nsol\nmar").words;
+  const esPuzzle = core.buildPuzzleData(esWords, "10", "easy", { sourceLang: "es" }, { random: () => 0.53 });
+  assert.ok(esPuzzle.grid.flat().includes("Ñ"), "Spanish grid filler may contain Ñ");
+});
+
 test("snapshot serialization roundtrip rebuilds the same puzzle", () => {
   const words = core.parseWords("balena\ndofi\npeix").words;
   const original = core.buildPuzzleData(words, "10", "hard", { title: "Mar" }, { random: () => 0 });
