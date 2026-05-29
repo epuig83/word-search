@@ -52,6 +52,7 @@
     }
 
     function setTab(tab) {
+      closeWordDefinitionModal({ restoreFocus: false });
       state.activeTab = tab;
       document.body.dataset.tab = tab;
       dom.tabTeacher.classList.toggle("is-active", tab === "teacher");

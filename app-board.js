@@ -203,11 +203,13 @@
           const isPreview = previewSet.has(key);
           const isFound = foundColorMap.has(key);
           const isSolution = solutionCells.has(key);
-          dom.gridCells[rowIndex * size + colIndex].className = "grid-cell" +
+          const nextClass = "grid-cell" +
             (isFound ? ` is-found ${wordColor}` : "") +
             (isPreview ? " is-preview" : "") +
             (isAnchor ? " is-anchor" : "") +
             (isSolution ? " is-solution" : "");
+          const cell = dom.gridCells[rowIndex * size + colIndex];
+          if (cell.className !== nextClass) cell.className = nextClass;
         }
       }
     }
