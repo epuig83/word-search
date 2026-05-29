@@ -44,6 +44,48 @@
   --cell-font: clamp(1rem, 0.8rem + 1vw, 1.4rem);
 }
 
+/* High-contrast mode: darker ink, stronger borders/accents for low-vision
+   and dyslexic learners. Overrides the palette vars only — every color in
+   the sheet derives from these, so the whole UI lifts to higher contrast. */
+@media (prefers-contrast: more) {
+  :root {
+    --bg-cream: #ffffff;
+    --bg-dots: #b8aea0;
+    --ink-strong: #161210;
+    --ink-soft: #3a322a;
+    --panel: #ffffff;
+    --panel-border: #6f6557;
+
+    --accent: #98370f;
+    --accent-strong: #6e2709;
+    --accent-soft: #fbdcc6;
+
+    --teal: #11604f;
+    --teal-strong: #0c4438;
+
+    --found: #157a33;
+    --found-strong: #0e5a25;
+
+    --student-primary: #4a2fa0;
+    --student-secondary: #5a3fb5;
+
+    --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 0 0 2px rgba(0, 0, 0, 0.4);
+  }
+
+  .grid-cell {
+    border-width: 2px;
+    border-color: #6f6557;
+  }
+
+  .grid-cell.is-preview,
+  .grid-cell.is-anchor {
+    outline: 3px solid var(--ink-strong);
+    outline-offset: -3px;
+  }
+}
+
 button {
   touch-action: manipulation;
 }
