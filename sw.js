@@ -47,9 +47,12 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  const isNavigation = request.mode === "navigate" ||
+  // Crawler files must resolve to the real file, never the SPA shell.
+  const isCrawlerFile = url.pathname.endsWith("/robots.txt") || url.pathname.endsWith("/sitemap.xml");
+
+  const isNavigation = !isCrawlerFile && (request.mode === "navigate" ||
     (request.destination === "document") ||
-    request.headers.get("accept")?.includes("text/html");
+    request.headers.get("accept")?.includes("text/html"));
 
   if (isNavigation) {
     // Every navigation resolves to the same SPA shell, so cache under a single

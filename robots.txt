@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://epuig83.github.io/word-search/sitemap.xml
