@@ -134,7 +134,7 @@
               <div class="vocabulary-library">
                 <div class="library-header">
                   <span data-t="lib_title">Biblioteca de paraules</span>
-                  <input type="text" id="lib-search" placeholder="🔍 Cercar..." data-t="lib_search_placeholder">
+                  <input type="text" id="lib-search" placeholder="🔍 Cercar..." aria-label="Cercar a la biblioteca de paraules" data-t="lib_search_placeholder">
                 </div>
                 <div class="library-categories" id="lib-categories">
                   <!-- Categories dinàmiques -->
@@ -477,7 +477,7 @@
         <form id="pin-form">
           <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
           <div class="pin-input-group">
-            <input type="password" id="pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password">
+            <input type="password" id="pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password" aria-label="PIN docent">
             <button type="submit" id="pin-submit" class="primary-button" data-t="pin_btn_validate">Validar PIN</button>
           </div>
           <button type="button" id="pin-cancel" class="ghost-button" style="width: 100%; margin-top: 1rem;" data-t="pin_btn_cancel">Cancel·lar</button>
