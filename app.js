@@ -418,6 +418,7 @@
     resetProgressButton: document.querySelector("#reset-progress-button"),
     pauseButton: document.querySelector("#pause-button"),
     printButton: document.querySelector("#print-button"),
+    printSolutionButton: document.querySelector("#print-solution-button"),
     teacherTools: document.querySelector("#teacher-tools"),
     statusMessage: document.querySelector("#status-message"),
     teacherReadyCard: document.querySelector("#teacher-ready-card"),
@@ -766,6 +767,29 @@
     window.print();
   }
 
+  // Reveal the solution (mode "teacher" drives body[data-mode], which the print
+  // CSS already renders as an answer key), print, then restore the prior mode.
+  function printAnswerKey() {
+    if (!state.puzzle) {
+      setStatus(TRANSLATIONS[state.lang].msg_print_without_puzzle, "error");
+      return;
+    }
+    const prevMode = state.mode;
+    if (prevMode !== "teacher") {
+      state.mode = "teacher";
+      render();
+    }
+    const cleanup = () => {
+      window.removeEventListener("afterprint", cleanup);
+      if (state.mode !== prevMode) {
+        state.mode = prevMode;
+        render();
+      }
+    };
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+  }
+
   const sessionController = APP_SESSION.createSessionController({
     dom,
     state,
@@ -980,6 +1004,7 @@
   dom.themeBtns.forEach(btn => btn.addEventListener("click", () => applyTheme(btn.dataset.theme)));
   applyTheme(state.theme);
   dom.presetBtns.forEach(btn => btn.addEventListener("click", () => applyDifficultyPreset(btn.dataset.preset)));
+  dom.printSolutionButton?.addEventListener("click", () => printAnswerKey());
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
       state.formTemplate = dom.formTemplateInput.value.trim();

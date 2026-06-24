@@ -175,6 +175,25 @@ test("difficulty preset fills the four config fields in one click", async ({ pag
   await expect(page.locator("#hints-input")).toHaveValue("5");
 });
 
+test("answer-key print button reveals the solution for printing", async ({ page }) => {
+  await page.addInitScript(() => { window.print = () => {}; });
+  await generatePuzzle(page);
+  await startStudentSession(page);
+
+  await page.locator("#teacher-tools summary").click();
+  await page.locator("#print-solution-button").click();
+
+  // Reveals solution (mode "teacher" → body[data-mode], which the print CSS
+  // renders as an answer key with shaded solution cells).
+  await expect(page.locator("body")).toHaveAttribute("data-mode", "teacher");
+  await expect(page.locator(".grid-cell.is-solution").first()).toBeVisible();
+
+  await page.emulateMedia({ media: "print" });
+  const bg = await page.locator(".grid-cell.is-solution").first()
+    .evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(bg).not.toBe("rgb(255, 255, 255)");
+});
+
 test("PWA manifest loads and the service worker registers", async ({ page }) => {
   const manifestResponse = await page.request.get("/manifest.webmanifest");
   expect(manifestResponse.ok()).toBeTruthy();
