@@ -404,6 +404,7 @@
     wordsFeedback: document.querySelector("#words-feedback"),
     difficultyInput: document.querySelector("#difficulty-input"),
     sizeInput: document.querySelector("#size-input"),
+    presetBtns: document.querySelectorAll(".preset-btn"),
     sampleSelect: document.querySelector("#sample-select"),
     loadSampleButton: document.querySelector("#load-sample-button"),
     saveSampleButton: document.querySelector("#save-sample-button"),
@@ -547,6 +548,21 @@
     if (!state.puzzle) return;
     dom.teacherReadyTopic.textContent = state.puzzle.title;
     dom.teacherReadyMeta.textContent = buildTeacherReadyMeta(state.puzzle);
+  }
+
+  const DIFFICULTY_PRESETS = {
+    facil:   { difficulty: "easy",   size: "10", timer: "900", hints: "5" },
+    mitja:   { difficulty: "medium", size: "12", timer: "600", hints: "3" },
+    dificil: { difficulty: "hard",   size: "16", timer: "300", hints: "1" },
+  };
+
+  function applyDifficultyPreset(name) {
+    const preset = DIFFICULTY_PRESETS[name];
+    if (!preset) return;
+    dom.difficultyInput.value = preset.difficulty;
+    dom.sizeInput.value = preset.size;
+    if (dom.timerInput) dom.timerInput.value = preset.timer;
+    if (dom.hintsInput) dom.hintsInput.value = preset.hints;
   }
 
   function applyTheme(theme) {
@@ -963,6 +979,7 @@
   dom.langBtns.forEach(btn => btn.addEventListener("click", () => updateLanguage(btn.dataset.lang)));
   dom.themeBtns.forEach(btn => btn.addEventListener("click", () => applyTheme(btn.dataset.theme)));
   applyTheme(state.theme);
+  dom.presetBtns.forEach(btn => btn.addEventListener("click", () => applyDifficultyPreset(btn.dataset.preset)));
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
       state.formTemplate = dom.formTemplateInput.value.trim();

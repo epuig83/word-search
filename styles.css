@@ -248,6 +248,46 @@ button {
 .theme-btn[data-theme="bosc"]    { background: #3f7d3a; }
 .theme-btn[data-theme="espai"]   { background: #5b3fb0; }
 
+/* Difficulty presets — one click fills the four config selects below. */
+.difficulty-presets-field {
+  margin-bottom: 1rem;
+}
+
+.preset-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 0.4rem;
+}
+
+.difficulty-presets {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.preset-btn {
+  flex: 1 1 0;
+  min-width: 5rem;
+  background: var(--panel);
+  border: 1.5px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.preset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -1041,6 +1081,7 @@ body {
 
 .lang-btn:focus-visible,
 .theme-btn:focus-visible,
+.preset-btn:focus-visible,
 .tab-btn:focus-visible,
 .primary-button:focus-visible,
 .ghost-button:focus-visible,

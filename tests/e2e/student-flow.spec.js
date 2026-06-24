@@ -160,6 +160,21 @@ test("board theme picker reskins the page and persists across reloads", async ({
   await expect(page.locator("html")).toHaveAttribute("data-theme", "ocea");
 });
 
+test("difficulty preset fills the four config fields in one click", async ({ page }) => {
+  await page.goto("/index.html");
+
+  await page.locator('.preset-btn[data-preset="dificil"]').click();
+  await expect(page.locator("#difficulty-input")).toHaveValue("hard");
+  await expect(page.locator("#size-input")).toHaveValue("16");
+  await expect(page.locator("#timer-input")).toHaveValue("300");
+  await expect(page.locator("#hints-input")).toHaveValue("1");
+
+  await page.locator('.preset-btn[data-preset="facil"]').click();
+  await expect(page.locator("#difficulty-input")).toHaveValue("easy");
+  await expect(page.locator("#size-input")).toHaveValue("10");
+  await expect(page.locator("#hints-input")).toHaveValue("5");
+});
+
 test("PWA manifest loads and the service worker registers", async ({ page }) => {
   const manifestResponse = await page.request.get("/manifest.webmanifest");
   expect(manifestResponse.ok()).toBeTruthy();
