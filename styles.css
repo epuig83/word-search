@@ -60,11 +60,60 @@
   --warning-text: #6b4f12;
 }
 
+/* Visual themes (student-pickable skins). Each only retints the palette;
+   all backgrounds stay light so ink contrast holds. Kept ABOVE the
+   high-contrast block on purpose: that block re-asserts these same vars at
+   equal specificity but later in source order, so high-contrast always wins
+   over any theme and low-vision users keep the guaranteed-contrast palette. */
+:root[data-theme="ocea"] {
+  --bg-cream: #eef7fa;
+  --bg-dots: #c2dde6;
+  --accent: #1c6e8c;
+  --accent-strong: #134f66;
+  --accent-soft: #d6eef5;
+  --panel: #fbfeff;
+  --panel-border: #cfe0e6;
+  --grid-edge: #b9c9cf;
+  --paper-soft: #e3eff3;
+  --surface-subtle: #e8f2f6;
+  --surface-pill: #e0ecf0;
+}
+
+:root[data-theme="bosc"] {
+  --bg-cream: #f0f5ea;
+  --bg-dots: #cdd9bf;
+  --accent: #3f7d3a;
+  --accent-strong: #2c5a29;
+  --accent-soft: #dcefd4;
+  --panel: #fcfef9;
+  --panel-border: #d4ddc8;
+  --grid-edge: #c2c2a8;
+  --paper-soft: #e8f0e0;
+  --surface-subtle: #edf3e6;
+  --surface-pill: #e6ede0;
+}
+
+:root[data-theme="espai"] {
+  --bg-cream: #f1eefb;
+  --bg-dots: #cfc6ea;
+  --accent: #5b3fb0;
+  --accent-strong: #422c87;
+  --accent-soft: #e6dff7;
+  --panel: #fdfcff;
+  --panel-border: #d6cfea;
+  --grid-edge: #c3bcd8;
+  --paper-soft: #e9e4f5;
+  --surface-subtle: #ece7f6;
+  --surface-pill: #e6e0f2;
+}
+
 /* High-contrast mode: darker ink, stronger borders/accents for low-vision
    and dyslexic learners. Overrides the palette vars only — every color in
-   the sheet derives from these, so the whole UI lifts to higher contrast. */
+   the sheet derives from these, so the whole UI lifts to higher contrast.
+   `:root[data-theme]` is listed so this also overrides an active theme. */
 @media (prefers-contrast: more) {
-  :root {
+  :root,
+  :root[data-theme] {
     --bg-cream: #ffffff;
     --bg-dots: #b8aea0;
     --ink-strong: #161210;
@@ -165,6 +214,39 @@ button {
   border-color: var(--accent-strong);
   color: white;
 }
+
+/* Theme picker — compact color swatches; name lives in a visually-hidden
+   span so it stays accessible and language-independent. */
+.theme-selector {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-border);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.theme-btn:hover {
+  transform: scale(1.12);
+}
+
+.theme-btn.is-active {
+  border-color: var(--ink-strong);
+  box-shadow: 0 0 0 2px var(--bg-cream), 0 0 0 4px var(--ink-strong);
+}
+
+.theme-btn[data-theme="pergami"] { background: #b5451b; }
+.theme-btn[data-theme="ocea"]    { background: #1c6e8c; }
+.theme-btn[data-theme="bosc"]    { background: #3f7d3a; }
+.theme-btn[data-theme="espai"]   { background: #5b3fb0; }
 
 * {
   box-sizing: border-box;
@@ -958,6 +1040,7 @@ body {
 }
 
 .lang-btn:focus-visible,
+.theme-btn:focus-visible,
 .tab-btn:focus-visible,
 .primary-button:focus-visible,
 .ghost-button:focus-visible,

@@ -52,6 +52,10 @@
     loadCustomSamples: loadCustomSamplesFromStorage,
     persistCustomSamples: persistCustomSamplesToStorage,
     DEFAULT_TEACHER_PIN,
+    loadTheme: loadThemeFromStorage,
+    saveTheme: saveThemeToStorage,
+    DEFAULT_THEME,
+    THEMES,
   } = APP_STORAGE;
   const {
     openModal,
@@ -319,6 +323,7 @@
     pinCallback: null,
     customSamples: loadCustomSamplesFromStorage(),
     teacherPin: loadTeacherPinFromStorage(),
+    theme: loadThemeFromStorage(),
     timerIntervalId: null,
     timerSecondsLeft: 0,
     timerExpired: false,
@@ -440,6 +445,7 @@
     completionTime: document.querySelector("#completion-time"),
     playAgainButton: document.querySelector("#play-again-button"),
     langBtns: document.querySelectorAll(".lang-btn"),
+    themeBtns: document.querySelectorAll(".theme-btn"),
     libSearch: document.querySelector("#lib-search"),
     libCategories: document.querySelector("#lib-categories"),
     libResults: document.querySelector("#lib-results"),
@@ -543,6 +549,18 @@
     dom.teacherReadyMeta.textContent = buildTeacherReadyMeta(state.puzzle);
   }
 
+  function applyTheme(theme) {
+    const next = THEMES.includes(theme) ? theme : DEFAULT_THEME;
+    state.theme = next;
+    document.documentElement.dataset.theme = next;
+    dom.themeBtns.forEach(btn => {
+      const isActive = btn.dataset.theme === next;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-pressed", String(isActive));
+    });
+    saveThemeToStorage(next);
+  }
+
   function updateLanguage(lang) {
     state.lang = lang;
     document.documentElement.lang = lang;
@@ -563,6 +581,8 @@
     if (nav && TRANSLATIONS[lang].nav_sections) nav.setAttribute("aria-label", TRANSLATIONS[lang].nav_sections);
     const langSelector = document.querySelector(".lang-selector");
     if (langSelector && TRANSLATIONS[lang].lang_selector_label) langSelector.setAttribute("aria-label", TRANSLATIONS[lang].lang_selector_label);
+    const themeSelector = document.querySelector(".theme-selector");
+    if (themeSelector && TRANSLATIONS[lang].theme_label) themeSelector.setAttribute("aria-label", TRANSLATIONS[lang].theme_label);
     dom.langBtns.forEach(btn => {
       const isActive = btn.dataset.lang === lang;
       btn.classList.toggle("is-active", isActive);
@@ -941,6 +961,8 @@
   });
 
   dom.langBtns.forEach(btn => btn.addEventListener("click", () => updateLanguage(btn.dataset.lang)));
+  dom.themeBtns.forEach(btn => btn.addEventListener("click", () => applyTheme(btn.dataset.theme)));
+  applyTheme(state.theme);
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
       state.formTemplate = dom.formTemplateInput.value.trim();

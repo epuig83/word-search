@@ -12,7 +12,10 @@
 
   const CUSTOM_SAMPLES_STORAGE_KEY = "word-search-custom-samples-v1";
   const TEACHER_PIN_STORAGE_KEY = "word-search-teacher-pin-v1";
+  const THEME_STORAGE_KEY = "word-search-theme-v1";
   const DEFAULT_TEACHER_PIN = "1234";
+  const DEFAULT_THEME = "pergami";
+  const THEMES = ["pergami", "ocea", "bosc", "espai"];
   const {
     SAMPLE_LANGS,
     createEmptyCustomSamples,
@@ -57,6 +60,26 @@
     }
   }
 
+  function loadTheme(storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      const stored = storageImpl.getItem(THEME_STORAGE_KEY);
+      return THEMES.includes(stored) ? stored : DEFAULT_THEME;
+    } catch {
+      return DEFAULT_THEME;
+    }
+  }
+
+  function saveTheme(theme, storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      storageImpl.setItem(THEME_STORAGE_KEY, theme);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function loadCustomSamples(storage) {
     try {
       const storageImpl = storage || globalThis.localStorage;
@@ -87,10 +110,15 @@
   return Object.freeze({
     CUSTOM_SAMPLES_STORAGE_KEY,
     TEACHER_PIN_STORAGE_KEY,
+    THEME_STORAGE_KEY,
     DEFAULT_TEACHER_PIN,
+    DEFAULT_THEME,
+    THEMES,
     sanitizeCustomSampleCollection,
     loadTeacherPin,
     saveTeacherPin,
+    loadTheme,
+    saveTheme,
     loadCustomSamples,
     persistCustomSamples,
   });

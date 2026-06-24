@@ -32,7 +32,7 @@ Single-page app. Files loaded in strict order by `index.html` (all with `defer`)
 | 2 | `i18n.js`        | 469 | `WORD_SEARCH_I18N` | UI strings for ca/es/en; frozen at runtime |
 | 3 | `core.js`        | 353 | `WORD_SEARCH_CORE` | Puzzle generation, word normalization, URL encode/decode |
 | 4 | `app-helpers.js` | 134 | `WORD_SEARCH_APP_HELPERS` | Formatters, `buildSelectionPath`, sample sanitization, share-URL fallback |
-| 5 | `app-storage.js` | 97  | `WORD_SEARCH_APP_STORAGE` | `localStorage` wrapper for PIN and custom samples |
+| 5 | `app-storage.js` | 127 | `WORD_SEARCH_APP_STORAGE` | `localStorage` wrapper for PIN, custom samples, and visual theme |
 | 6 | `app-modal.js`   | 79  | `WORD_SEARCH_APP_MODAL` | `createModalController` — open/close, focus trap |
 | 7 | `app-board.js`   | 453 | `WORD_SEARCH_APP_BOARD` | `createBoardController` — grid render, drag/keyboard selection, hints, confetti |
 | 8 | `app-teacher.js` | 430 | `WORD_SEARCH_APP_TEACHER` | `createTeacherController` — teacher form, vocabulary library, sample CRUD |
@@ -44,7 +44,7 @@ Modules use a UMD-style factory so they can also be `require()`-ed from Node for
 
 ### State
 
-All mutable state lives in a single `state` object in `app.js` (~L273). ~27 properties including `puzzle`, `foundWordIds`, `foundPlacementIds`, `prevFoundPlacementIds`, `foundWordColors`, `mode` (`"teacher"`/`"student"`), `activeTab`, `customSamples`, `teacherPin` (default `"1234"`), timer fields, hints, `studentName`, `focusedCell`, `lastBoardInputMode`. Reset by `resetPuzzleProgress()` (~L313).
+All mutable state lives in a single `state` object in `app.js` (~L273). ~27 properties including `puzzle`, `foundWordIds`, `foundPlacementIds`, `prevFoundPlacementIds`, `foundWordColors`, `mode` (`"teacher"`/`"student"`), `activeTab`, `customSamples`, `teacherPin` (default `"1234"`), `theme` (default `"pergami"`), timer fields, hints, `studentName`, `focusedCell`, `lastBoardInputMode`. Reset by `resetPuzzleProgress()` (~L313).
 
 ### Puzzle Generation (`core.js`)
 
@@ -58,6 +58,7 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 
 - `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection.
 - `word-search-teacher-pin-v1` — teacher PIN. Fallback: `"1234"`.
+- `word-search-theme-v1` — student-picked visual theme (`pergami`/`ocea`/`bosc`/`espai`). Fallback: `"pergami"`. Themes only retint palette vars; high-contrast mode overrides them.
 
 ### URL Sharing
 
@@ -75,9 +76,9 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 ## Key Constraints
 
 - No external runtime dependencies beyond the vendored `canvas-confetti`; the app must work offline from `file://`.
-- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 172 each for `es`/`ca`/`en`). Verify with:
+- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 177 each for `es`/`ca`/`en`). Verify with:
   ```bash
-  grep -cE '^\s+[a-z_]+:\s' i18n.js   # 516 total = 172 × 3
+  grep -cE '^\s+[a-z_]+:\s' i18n.js   # 531 total = 177 × 3
   ```
 - Word normalization (`normalizeWord` in `core.js`) strips accents and uppercases before placement; display keeps original casing.
 - Module load order matters: controllers depend on earlier modules being present (see table above).

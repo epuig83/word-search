@@ -145,6 +145,21 @@ test("PIN with surrounding whitespace still authenticates", async ({ page }) => 
   await expect(page.locator("#section-teacher")).toBeVisible();
 });
 
+test("board theme picker reskins the page and persists across reloads", async ({ page }) => {
+  await generatePuzzle(page);
+  await startStudentSession(page);
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "pergami");
+  const oceaBtn = page.locator('.theme-btn[data-theme="ocea"]');
+  await oceaBtn.click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "ocea");
+  await expect(oceaBtn).toHaveAttribute("aria-pressed", "true");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "ocea");
+});
+
 test("PWA manifest loads and the service worker registers", async ({ page }) => {
   const manifestResponse = await page.request.get("/manifest.webmanifest");
   expect(manifestResponse.ok()).toBeTruthy();
