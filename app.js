@@ -56,6 +56,9 @@
     saveTheme: saveThemeToStorage,
     DEFAULT_THEME,
     THEMES,
+    loadProgress: loadProgressFromStorage,
+    saveProgress: saveProgressToStorage,
+    clearProgress: clearProgressFromStorage,
   } = APP_STORAGE;
   const {
     openModal,
@@ -122,6 +125,7 @@
     state.clickAnchor = null;
     state.previewCells = [];
     render();
+    saveStudentProgress();
   }
 
   function resumeTimer() {
@@ -194,6 +198,7 @@
     state.clickAnchor = null;
     state.previewCells = [];
     render();
+    saveStudentProgress();
     if (state.foundWordIds.size < (state.puzzle?.words.length ?? 0)) {
       revealCompletionMessage();
       announce(TRANSLATIONS[state.lang].completion_msg_expired);
@@ -227,6 +232,7 @@
     state.timerIntervalId = setInterval(() => {
       state.timerSecondsLeft = Math.max(0, state.timerSecondsLeft - 1);
       updateTimerDisplay();
+      if (state.timerSecondsLeft % 5 === 0) saveStudentProgress();
       if (state.timerSecondsLeft <= 0) expireTimer();
     }, 1000);
   }
@@ -373,6 +379,7 @@
     Object.assign(state, buildInitialPuzzleProgress());
     dom.gridCells = null;
     dom.wordListItems = null;
+    clearProgressFromStorage();
     closeWordDefinitionModal({ restoreFocus: false });
   }
 
@@ -390,6 +397,48 @@
       gridRows: serializeGridRows(puzzle.grid),
       placementPaths: puzzle.placements.map(placement => serializePlacementCells(placement.cells)),
     };
+  }
+
+  // Stable identity for a puzzle's saved progress: derived from its defining
+  // config (not the randomized grid), so reopening the same shared link matches.
+  function puzzleProgressKey(puzzle) {
+    const c = buildShareConfigFromPuzzle(puzzle);
+    return [c.lang, c.difficulty, c.size, c.timer, c.hints, c.title, c.words].join("");
+  }
+
+  function saveStudentProgress() {
+    if (!state.puzzle) return;
+    const duration = state.puzzle.timerDuration || 0;
+    const pristine = state.foundWordIds.size === 0 && !state.timerExpired && state.timerSecondsLeft === duration;
+    if (pristine) return;
+    if (state.foundWordIds.size === state.puzzle.words.length) {
+      clearProgressFromStorage();
+      return;
+    }
+    saveProgressToStorage({
+      key: puzzleProgressKey(state.puzzle),
+      foundWordIds: [...state.foundWordIds],
+      timerSecondsLeft: state.timerSecondsLeft,
+      timerExpired: state.timerExpired,
+    });
+  }
+
+  // Re-apply saved progress by word id (placements are recomputed against the
+  // current grid; replaying in found order keeps the chip colors consistent).
+  function applyResumeProgress(record) {
+    if (!state.puzzle || !record || !Array.isArray(record.foundWordIds)) return;
+    record.foundWordIds.forEach(wordId => {
+      const placement = state.puzzle.placements.find(item => item.wordId === wordId);
+      if (!placement || state.foundWordIds.has(wordId)) return;
+      state.foundPlacementIds.add(placement.placementId);
+      state.foundWordIds.add(wordId);
+      state.foundWordColors.set(wordId, `wc-${state.foundWordColors.size % 5}`);
+    });
+    if (typeof record.timerSecondsLeft === "number" && state.puzzle.timerDuration > 0) {
+      state.timerSecondsLeft = Math.max(0, Math.min(state.puzzle.timerDuration, record.timerSecondsLeft));
+    }
+    state.timerExpired = Boolean(record.timerExpired) && state.foundWordIds.size < state.puzzle.words.length;
+    saveStudentProgress();
   }
 
   const dom = {
@@ -675,6 +724,7 @@
     announce,
     prefersReducedMotion,
     canInteractWithPuzzle,
+    onWordFound: saveStudentProgress,
   });
 
   const flashTimeouts = new Map();
@@ -1005,6 +1055,13 @@
   applyTheme(state.theme);
   dom.presetBtns.forEach(btn => btn.addEventListener("click", () => applyDifficultyPreset(btn.dataset.preset)));
   dom.printSolutionButton?.addEventListener("click", () => printAnswerKey());
+
+  // Persist progress when the page is backgrounded or closed (covers tab close,
+  // navigation, and lock-screen on tablets where timer ticks may not fire).
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") saveStudentProgress();
+  });
+  window.addEventListener("pagehide", () => saveStudentProgress());
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
       state.formTemplate = dom.formTemplateInput.value.trim();
@@ -1022,6 +1079,9 @@
     if (!param) return false;
     const config = decodePuzzleConfig(param);
     if (!config) return false;
+
+    // Read any saved progress before resetPuzzleProgress() clears storage below.
+    const savedProgress = loadProgressFromStorage();
 
     // Guardar estado previo para rollback
     const prevLang = state.lang;
@@ -1060,6 +1120,9 @@
         : buildPuzzle(parsed.words, config.size, config.difficulty, metadata);
       state.hintsRemaining = state.puzzle.hintsAllowed;
       resetPuzzleProgress();
+      if (savedProgress && savedProgress.key === puzzleProgressKey(state.puzzle)) {
+        applyResumeProgress(savedProgress);
+      }
       sessionController.setTab("student");
       return true;
     } catch {

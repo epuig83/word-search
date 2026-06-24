@@ -13,6 +13,7 @@
   const CUSTOM_SAMPLES_STORAGE_KEY = "word-search-custom-samples-v1";
   const TEACHER_PIN_STORAGE_KEY = "word-search-teacher-pin-v1";
   const THEME_STORAGE_KEY = "word-search-theme-v1";
+  const PROGRESS_STORAGE_KEY = "word-search-progress-v1";
   const DEFAULT_TEACHER_PIN = "1234";
   const DEFAULT_THEME = "pergami";
   const THEMES = ["pergami", "ocea", "bosc", "espai"];
@@ -80,6 +81,40 @@
     }
   }
 
+  // Single most-recent student progress record: { key, foundWordIds[], timerSecondsLeft, timerExpired }.
+  function loadProgress(storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      const raw = storageImpl.getItem(PROGRESS_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.key !== "string" || !Array.isArray(parsed.foundWordIds)) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveProgress(record, storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      storageImpl.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(record));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function clearProgress(storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      storageImpl.removeItem(PROGRESS_STORAGE_KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function loadCustomSamples(storage) {
     try {
       const storageImpl = storage || globalThis.localStorage;
@@ -119,6 +154,10 @@
     saveTeacherPin,
     loadTheme,
     saveTheme,
+    PROGRESS_STORAGE_KEY,
+    loadProgress,
+    saveProgress,
+    clearProgress,
     loadCustomSamples,
     persistCustomSamples,
   });

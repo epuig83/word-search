@@ -51,6 +51,56 @@ test("shared links reopen the exact same puzzle", async ({ browser, page }) => {
   await context.close();
 });
 
+test("student progress resumes after reopening the shared link", async ({ browser }) => {
+  const initScript = () => {
+    Math.random = () => 0;
+    window.__copiedText = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText(text) { window.__copiedText = text; return Promise.resolve(); },
+      },
+    });
+  };
+
+  // Same context for both pages so they share origin localStorage.
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.addInitScript(initScript);
+
+  await generatePuzzle(page, { words: "balena\ndofi\npeix\ntauro", timer: "0" });
+  await startStudentSession(page);
+
+  await openTeacherTools(page);
+  await page.locator("#share-button").click();
+  await expect.poll(
+    () => page.evaluate(() => window.__copiedText || ""),
+    { timeout: 3_000 }
+  ).toContain("?p=");
+  const sharedUrl = await page.evaluate(() => window.__copiedText);
+
+  // Solve one of the four words.
+  const words = core.parseWords("balena\ndofi\npeix\ntauro").words;
+  const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
+  await solvePlacement(page, puzzle.placements[0]);
+  await expect(page.locator("#progress-text")).toHaveText("1 / 4");
+
+  // Reopen the same link: progress is restored before the student even starts.
+  const reopened = await context.newPage();
+  await reopened.addInitScript(initScript);
+  await reopened.goto(sharedUrl);
+  await expect(reopened.locator("#student-start-overlay")).toBeVisible();
+  await expect(reopened.locator("#progress-text")).toHaveText("1 / 4");
+
+  // Starting over clears the saved progress.
+  await reopened.getByRole("button", { name: "Començar" }).click();
+  reopened.once("dialog", dialog => dialog.accept());
+  await reopened.getByRole("button", { name: "Reiniciar joc" }).click();
+  await expect(reopened.locator("#progress-text")).toHaveText("0 / 4");
+
+  await context.close();
+});
+
 test("hint highlights the expected cell and decrements the counter", async ({ page }) => {
   const wordsText = "balena\ndofi\npeix";
   await page.addInitScript(() => {

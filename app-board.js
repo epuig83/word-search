@@ -28,8 +28,10 @@
     announce,
     prefersReducedMotion,
     canInteractWithPuzzle,
+    onWordFound,
   }) {
     const announceFn = typeof announce === "function" ? announce : () => {};
+    const onWordFoundFn = typeof onWordFound === "function" ? onWordFound : () => {};
     let hintCooldownUntil = 0;
     let hintCooldownTimeoutId = null;
     function buildGridCellLabel(letter, row, col, flags) {
@@ -286,6 +288,7 @@
       const foundMsg = getTranslations().msg_found.replace("{word}", match.display);
       setStatus(foundMsg, "success");
       announceFn(foundMsg);
+      onWordFoundFn();
       return true;
     }
 

@@ -59,6 +59,7 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 - `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection.
 - `word-search-teacher-pin-v1` — teacher PIN. Fallback: `"1234"`.
 - `word-search-theme-v1` — student-picked visual theme (`pergami`/`ocea`/`bosc`/`espai`). Fallback: `"pergami"`. Themes only retint palette vars; high-contrast mode overrides them.
+- `word-search-progress-v1` — single most-recent student progress record `{ key, foundWordIds[], timerSecondsLeft, timerExpired }`. `key` is `puzzleProgressKey()` (derived from the puzzle config, not the grid). `tryLoadFromUrl()` auto-resumes by word id when a shared link's key matches; `resetPuzzleProgress()` and completion clear it.
 
 ### URL Sharing
 
