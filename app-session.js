@@ -168,7 +168,7 @@
 
       dom.pinForm?.addEventListener("submit", event => {
         event.preventDefault();
-        const pin = dom.pinInput?.value || "";
+        const pin = (dom.pinInput?.value || "").trim();
         if (pin === state.teacherPin) {
           const callback = state.pinCallback;
           closeModal(dom.pinModal);

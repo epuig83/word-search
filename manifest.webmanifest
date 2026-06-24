@@ -3,7 +3,7 @@
   "short_name": "Sopes",
   "description": "Generador de sopes de lletres per a primària, preparat per fer servir a l'aula o imprimir.",
   "lang": "ca",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

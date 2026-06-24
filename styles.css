@@ -42,6 +42,22 @@
 
   --cell-gap: 6px;
   --cell-font: clamp(1rem, 0.8rem + 1vw, 1.4rem);
+
+  /* Semantic surfaces & states — extracted from repeated literals so the
+     high-contrast block below can lift them too (see note there). */
+  --surface-subtle: #f5f0e8;   /* button/chip hover wash */
+  --surface-pill: #f0ebe3;     /* progress/timer pill background */
+  --paper-soft: #f5efe5;       /* gradient end / paper panels */
+  --grid-edge: #c4b9a8;        /* grid 3D border + drop shadows */
+
+  --danger: #be123c;           /* expired / error text */
+  --accent-warm: #d47a3b;      /* warm border for found words + timer warning */
+  --success-border: #7aba8e;   /* green confirmation borders */
+  --warn-border-soft: #e8a080; /* sparse / caution borders */
+  --hint-border: #c4900a;      /* hint gold */
+  --warning-bg: #fef6e1;
+  --warning-border: #f0c468;
+  --warning-text: #6b4f12;
 }
 
 /* High-contrast mode: darker ink, stronger borders/accents for low-vision
@@ -72,11 +88,22 @@
     --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.35);
     --shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.35);
     --shadow-lg: 0 0 0 2px rgba(0, 0, 0, 0.4);
+
+    /* Lift the semantic state colors too: darker borders/text, same hues. */
+    --surface-subtle: #efe7da;
+    --grid-edge: #8a7d68;
+    --danger: #8f0c2c;
+    --accent-warm: #9c4e16;
+    --success-border: #2d7a4e;
+    --warn-border-soft: #b85a32;
+    --hint-border: #8a6207;
+    --warning-border: #b8862e;
+    --warning-text: #4a3608;
   }
 
   .grid-cell {
     border-width: 2px;
-    border-color: #6f6557;
+    border-color: var(--panel-border);
   }
 
   .grid-cell.is-preview,
@@ -86,14 +113,10 @@
   }
 }
 
+/* Buttons: kill 300ms double-tap zoom delay on tablets.
+   iOS tap highlight is already cleared by the universal `*` rule below. */
 button {
   touch-action: manipulation;
-}
-
-/* Buttons: kill 300ms double-tap zoom delay on tablets and disable iOS tap highlight. */
-button {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* Language Selector */
@@ -392,7 +415,7 @@ body {
 }
 
 .board-status.is-expired {
-  color: #be123c;
+  color: var(--danger);
 }
 
 /* ========================
@@ -508,7 +531,7 @@ body {
 }
 
 .sample-action-btn:hover {
-  background: #f5f0e8;
+  background: var(--surface-subtle);
   border-color: var(--ink-soft);
 }
 
@@ -539,14 +562,14 @@ body {
   margin-top: 0.75rem;
   padding: 0.6rem 0.85rem;
   border-radius: 0.6rem;
-  background: #fef6e1;
-  border: 1px solid #f0c468;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   display: flex;
   align-items: center;
   gap: 0.75rem;
   justify-content: space-between;
   font-size: 0.9rem;
-  color: #6b4f12;
+  color: var(--warning-text);
 }
 
 .sample-undo-toast[hidden] {
@@ -595,7 +618,7 @@ body {
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
   border: 1.5px solid var(--panel-border);
-  background: #f5f0e8;
+  background: var(--surface-subtle);
   color: var(--ink-soft);
   font-size: 0.78rem;
   font-weight: 600;
@@ -603,7 +626,7 @@ body {
 
 .words-count-pill.is-sparse {
   background: var(--accent-soft);
-  border-color: #e8a080;
+  border-color: var(--warn-border-soft);
   color: var(--accent-strong);
 }
 
@@ -637,10 +660,10 @@ body {
    VOCABULARY LIBRARY
    ======================== */
 .vocabulary-library {
-  background: linear-gradient(145deg, #fdf8f0 0%, #f5efe5 100%);
+  background: linear-gradient(145deg, var(--bg-cream) 0%, var(--paper-soft) 100%);
   padding: 1.25rem;
   border-radius: 12px 20px 12px 20px;
-  border: 2.5px dashed #c4b9a8;
+  border: 2.5px dashed var(--grid-edge);
   display: flex;
   flex-direction: column;
 }
@@ -732,8 +755,9 @@ body {
 .lib-word-chip.is-added {
   opacity: 0.5;
   cursor: default;
-  transform: none !important;
-  filter: none !important;
+  /* hover rule above is :not(.is-added), so no override needed */
+  transform: none;
+  filter: none;
   position: relative;
 }
 
@@ -789,21 +813,21 @@ body {
   padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--panel-border);
-  background: #f5f0e8;
+  background: var(--surface-subtle);
   color: var(--ink-soft);
   font-size: 0.95rem;
 }
 
 .status-message.is-success {
   background: var(--found-soft);
-  border-color: #7aba8e;
+  border-color: var(--success-border);
   color: var(--found-strong);
 }
 
 .status-message.is-error {
   background: #fff0f0;
   border-color: #f0a0a0;
-  color: #be123c;
+  color: var(--danger);
 }
 
 /* ========================
@@ -814,7 +838,7 @@ body {
   padding: 1.25rem;
   border-radius: var(--radius-lg);
   border: 2px solid var(--panel-border);
-  background: linear-gradient(145deg, #fdf8f0 0%, #f5efe5 100%);
+  background: linear-gradient(145deg, var(--bg-cream) 0%, var(--paper-soft) 100%);
   display: grid;
   gap: 0.5rem;
 }
@@ -898,13 +922,13 @@ body {
 }
 
 .ghost-button:hover {
-  background: #f5f0e8;
+  background: var(--surface-subtle);
   border-color: var(--ink-soft);
 }
 
 .action-secondary-button {
   background: var(--accent-soft);
-  border-color: #e8a080;
+  border-color: var(--warn-border-soft);
   color: var(--accent-strong);
 }
 
@@ -956,7 +980,7 @@ body {
 }
 
 .progress-pill {
-  background: #f0ebe3;
+  background: var(--surface-pill);
   padding: 0.5rem 1.25rem;
   border-radius: 999px;
   font-family: var(--font-display);
@@ -967,7 +991,7 @@ body {
 }
 
 .timer-pill {
-  background: #f0ebe3;
+  background: var(--surface-pill);
   padding: 0.5rem 1.25rem;
   border-radius: 999px;
   font-family: var(--font-display);
@@ -983,14 +1007,14 @@ body {
 
 .timer-pill.is-warning {
   background: var(--accent-soft);
-  border-color: #d47a3b;
+  border-color: var(--accent-warm);
   color: var(--accent-strong);
 }
 
 .timer-pill.is-expired {
   background: #fff0f0;
   border-color: #f87171;
-  color: #be123c;
+  color: var(--danger);
   animation: timerPulse 1s ease infinite;
 }
 
@@ -1108,17 +1132,17 @@ body {
   --grid-cell-font-family: var(--font-grid);
   --grid-cell-font-weight: 700;
   --grid-cell-shadow:
-    0 3px 0 #c4b9a8,
+    0 3px 0 var(--grid-edge),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --grid-cell-hover-shadow:
-    0 6px 0 #c4b9a8,
+    0 6px 0 var(--grid-edge),
     0 8px 12px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --grid-cell-letter-spacing: 0.02em;
   background: linear-gradient(145deg, #f0e8dc 0%, #e8dfd0 100%);
   padding: var(--grid-frame-padding);
   border-radius: var(--radius-lg);
-  border: 3px solid #c4b9a8;
+  border: 3px solid var(--grid-edge);
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
@@ -1153,10 +1177,10 @@ body {
   --grid-cell-border-width: 1.5px;
   --grid-cell-font-family: 'Bahnschrift SemiCondensed', 'Avenir Next Condensed', 'Trebuchet MS', system-ui, sans-serif;
   --grid-cell-shadow:
-    0 2px 0 #c4b9a8,
+    0 2px 0 var(--grid-edge),
     inset 0 1px 0 rgba(255, 255, 255, 0.68);
   --grid-cell-hover-shadow:
-    0 4px 0 #c4b9a8,
+    0 4px 0 var(--grid-edge),
     0 6px 10px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.68);
   --grid-cell-letter-spacing: 0.01em;
@@ -1171,10 +1195,10 @@ body {
   --grid-cell-font-family: 'Bahnschrift SemiCondensed', 'Avenir Next Condensed', 'Trebuchet MS', system-ui, sans-serif;
   --grid-cell-font-weight: 800;
   --grid-cell-shadow:
-    0 2px 0 #c4b9a8,
+    0 2px 0 var(--grid-edge),
     inset 0 1px 0 rgba(255, 255, 255, 0.66);
   --grid-cell-hover-shadow:
-    0 3px 0 #c4b9a8,
+    0 3px 0 var(--grid-edge),
     0 5px 8px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.66);
   --grid-cell-letter-spacing: 0;
@@ -1236,8 +1260,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(175deg, #fffefb 0%, #f5efe5 100%);
-  border: var(--grid-cell-border-width) solid #d6cfc4;
+  background: linear-gradient(175deg, var(--panel) 0%, var(--paper-soft) 100%);
+  border: var(--grid-cell-border-width) solid var(--bg-dots);
   border-radius: var(--grid-cell-radius);
   font-family: var(--grid-cell-font-family);
   font-size: var(--cell-font);
@@ -1297,7 +1321,7 @@ body {
 /* Hint animation */
 .grid-cell.is-hint {
   background: linear-gradient(175deg, #fef3c7 0%, #fde68a 100%);
-  border-color: #c4900a;
+  border-color: var(--hint-border);
   box-shadow: 0 0 0 5px rgba(196, 144, 10, 0.25);
   animation: hintGlow 2s ease forwards;
 }
@@ -1305,7 +1329,7 @@ body {
 @keyframes hintGlow {
   0%   { box-shadow: 0 0 0 8px rgba(196, 144, 10, 0.4); }
   50%  { box-shadow: 0 0 0 4px rgba(196, 144, 10, 0.2); }
-  100% { box-shadow: 0 3px 0 #c4b9a8; background: linear-gradient(175deg, #fffefb 0%, #f5efe5 100%); }
+  100% { box-shadow: 0 3px 0 var(--grid-edge); background: linear-gradient(175deg, var(--panel) 0%, var(--paper-soft) 100%); }
 }
 
 /* ========================
@@ -1329,7 +1353,7 @@ body {
 
 .hint-button-style {
   background: #fffaeb;
-  border-color: #c4900a;
+  border-color: var(--hint-border);
   color: #7a5200;
 }
 
@@ -1351,7 +1375,7 @@ body {
 }
 
 .teacher-tools[open] {
-  background: #f5f0e8;
+  background: var(--surface-subtle);
   border: 1.5px solid var(--panel-border);
   border-radius: var(--radius-md);
   padding: 0.85rem;
@@ -1525,7 +1549,7 @@ body {
   padding: 1.5rem 2rem;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, var(--found-soft) 0%, #c5edcf 100%);
-  border: 2px solid #7aba8e;
+  border: 2px solid var(--success-border);
   color: var(--found-strong);
   position: relative;
   overflow: hidden;
@@ -1646,7 +1670,7 @@ body.has-modal {
   margin: 0 0 1.25rem;
   padding: 0.7rem 0.85rem;
   border-radius: var(--radius-md);
-  border: 1.5px solid #7aba8e;
+  border: 1.5px solid var(--success-border);
   background: var(--found-soft);
   color: var(--found-strong);
   font-weight: 600;
@@ -1665,7 +1689,7 @@ body.has-modal {
   padding: 1rem;
   border: 2px solid var(--panel-border);
   border-radius: var(--radius-md);
-  background: #f5f0e8;
+  background: var(--surface-subtle);
   font-family: var(--font-display);
 }
 
@@ -1690,9 +1714,9 @@ body.has-modal {
   margin-top: 1.25rem;
   padding: 0.75rem 1rem;
   border-radius: 0.6rem;
-  background: #fff4d9;
-  color: #6b4f12;
-  border: 1px solid #f0c468;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
   font-size: 0.92rem;
   line-height: 1.35;
 }

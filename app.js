@@ -657,7 +657,7 @@
     if (!state.puzzle) return;
     const config = buildShareConfigFromPuzzle(state.puzzle);
     const encoded = encodePuzzleConfig(config);
-    const shareUrl = new URL(window.location.pathname, window.location.href);
+    const shareUrl = new URL(window.location.href);
     shareUrl.search = "";
     shareUrl.hash = "";
     shareUrl.searchParams.set("p", encoded);
