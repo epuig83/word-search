@@ -171,7 +171,8 @@
       if (!unsolved.length) return;
       const placement = unsolved[Math.floor(Math.random() * unsolved.length)];
       const firstCell = placement.cells[0];
-      const cellElement = dom.puzzleGrid.querySelector(`[data-row="${firstCell.row}"][data-col="${firstCell.col}"]`);
+      const size = state.puzzle.actualSize;
+      const cellElement = dom.gridCells[firstCell.row * size + firstCell.col];
       if (cellElement) {
         cellElement.classList.add("is-hint");
         setTimeout(() => cellElement.classList.remove("is-hint"), HINT_HIGHLIGHT_MS);

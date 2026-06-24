@@ -132,6 +132,19 @@ test("default PIN warning appears until the teacher changes the PIN", async ({ p
   await expect(page.locator("#default-pin-warning")).toBeHidden();
 });
 
+test("PIN with surrounding whitespace still authenticates", async ({ page }) => {
+  await generatePuzzle(page);
+  await expect(page.locator("#student-start-overlay")).toBeVisible();
+
+  await page.locator("#tab-teacher").click();
+  await expect(page.locator("#pin-modal")).toBeVisible();
+  await page.locator("#pin-input").fill("  1234  ");
+  await page.locator("#pin-submit").click();
+
+  await expect(page.locator("#pin-modal")).toBeHidden();
+  await expect(page.locator("#section-teacher")).toBeVisible();
+});
+
 test("PWA manifest loads and the service worker registers", async ({ page }) => {
   const manifestResponse = await page.request.get("/manifest.webmanifest");
   expect(manifestResponse.ok()).toBeTruthy();

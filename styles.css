@@ -111,6 +111,26 @@
     outline: 3px solid var(--ink-strong);
     outline-offset: -3px;
   }
+
+  /* Single-use interactive surfaces below carry hardcoded gradients/colors
+     that the palette vars don't reach, so lift them explicitly here. */
+  .grid-container {
+    background: linear-gradient(145deg, #e4d9c5 0%, #d8cbb3 100%);
+  }
+
+  .grid-cell:hover {
+    background: linear-gradient(175deg, #fff4df 0%, #ecdcc2 100%);
+  }
+
+  .hint-button-style {
+    background: #fff;
+    color: #5a3d00;
+  }
+
+  .hint-button-style:hover {
+    background: #fde9b0;
+    border-color: #6e4e00;
+  }
 }
 
 /* Buttons: kill 300ms double-tap zoom delay on tablets.
