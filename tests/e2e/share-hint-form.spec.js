@@ -9,6 +9,43 @@ const {
   solvePlacement,
 } = require("./helpers");
 
+function createSharedPuzzlePath({
+  title = "Animals del mar",
+  wordsText = "balena\ndofi\npeix\ntauro",
+  size = "auto",
+  difficulty = "easy",
+  timer = 0,
+  hints = 3,
+  random = () => 0,
+} = {}) {
+  const words = core.parseWords(wordsText).words;
+  const puzzle = core.buildPuzzleData(words, size, difficulty, {
+    title,
+    requestedSize: size,
+    timerDuration: timer,
+    hintsAllowed: hints,
+    sourceLang: "ca",
+  }, { random });
+  const encoded = core.encodePuzzleConfig({
+    version: core.SHARED_PUZZLE_VERSION,
+    title,
+    words: wordsText,
+    difficulty,
+    size,
+    lang: "ca",
+    timer,
+    hints,
+    formTemplate: "",
+    gridRows: core.serializeGridRows(puzzle.grid),
+    placementPaths: puzzle.placements.map(placement => core.serializePlacementCells(placement.cells)),
+  });
+
+  return {
+    path: `/index.html?p=${encodeURIComponent(encoded)}`,
+    puzzle,
+  };
+}
+
 test("shared links reopen the exact same puzzle", async ({ browser, page }) => {
   await page.addInitScript(() => {
     window.__copiedText = "";
@@ -47,6 +84,44 @@ test("shared links reopen the exact same puzzle", async ({ browser, page }) => {
   await expect(reopenedPage.locator("#student-start-timer")).toHaveText("5 min");
   expect(await getGridLetters(reopenedPage)).toEqual(originalGrid);
   expect(await reopenedPage.locator("#word-list .word-item").allTextContents()).toEqual(originalWords);
+
+  await context.close();
+});
+
+test("student progress does not leak across different shared snapshots", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const firstShare = createSharedPuzzlePath({ random: () => 0 });
+  const secondShare = createSharedPuzzlePath({ random: () => 0.5 });
+
+  await page.goto(firstShare.path);
+  await startStudentSession(page);
+  await solvePlacement(page, firstShare.puzzle.placements[0]);
+  await expect(page.locator("#progress-text")).toHaveText("1 / 4");
+
+  const reopened = await context.newPage();
+  await reopened.goto(secondShare.path);
+  await expect(reopened.locator("#student-start-overlay")).toBeVisible();
+  await expect(reopened.locator("#progress-text")).toHaveText("0 / 4");
+
+  await context.close();
+});
+
+test("spent hints resume after reopening the shared link", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const shared = createSharedPuzzlePath({ hints: 3 });
+
+  await page.goto(shared.path);
+  await startStudentSession(page);
+  await page.locator("#hint-button").click();
+  await expect(page.locator("#hint-button")).toHaveText("💡 Pista (2)");
+
+  const reopened = await context.newPage();
+  await reopened.goto(shared.path);
+  await expect(reopened.locator("#student-start-overlay")).toBeVisible();
+  await startStudentSession(reopened);
+  await expect(reopened.locator("#hint-button")).toHaveText("💡 Pista (2)");
 
   await context.close();
 });

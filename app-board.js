@@ -29,9 +29,11 @@
     prefersReducedMotion,
     canInteractWithPuzzle,
     onWordFound,
+    onHintUsed,
   }) {
     const announceFn = typeof announce === "function" ? announce : () => {};
     const onWordFoundFn = typeof onWordFound === "function" ? onWordFound : () => {};
+    const onHintUsedFn = typeof onHintUsed === "function" ? onHintUsed : () => {};
     let hintCooldownUntil = 0;
     let hintCooldownTimeoutId = null;
     function buildGridCellLabel(letter, row, col, flags) {
@@ -189,6 +191,7 @@
       const hintMsg = getTranslations().msg_hint_used;
       setStatus(hintMsg, "success");
       announceFn(hintMsg);
+      onHintUsedFn();
     }
 
     function renderGridHighlights() {

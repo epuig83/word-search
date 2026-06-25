@@ -360,6 +360,7 @@
       foundPlacementIds: new Set(),
       prevFoundPlacementIds: new Set(),
       foundWordColors: new Map(),
+      hintsRemaining: state.puzzle?.hintsAllowed || 0,
       clickAnchor: null,
       previewCells: [],
       dragSelection: null,
@@ -400,16 +401,20 @@
   }
 
   // Stable identity for a puzzle's saved progress: derived from its defining
-  // config (not the randomized grid), so reopening the same shared link matches.
+  // config plus snapshot, so progress only resumes for the same shared board.
   function puzzleProgressKey(puzzle) {
-    const c = buildShareConfigFromPuzzle(puzzle);
-    return [c.lang, c.difficulty, c.size, c.timer, c.hints, c.title, c.words].join("");
+    return encodePuzzleConfig(buildShareConfigFromPuzzle(puzzle));
   }
 
   function saveStudentProgress() {
     if (!state.puzzle) return;
     const duration = state.puzzle.timerDuration || 0;
-    const pristine = state.foundWordIds.size === 0 && !state.timerExpired && state.timerSecondsLeft === duration;
+    const initialHints = state.puzzle.hintsAllowed;
+    const hintsUnchanged = initialHints === -1 || state.hintsRemaining === initialHints;
+    const pristine = state.foundWordIds.size === 0 &&
+      !state.timerExpired &&
+      state.timerSecondsLeft === duration &&
+      hintsUnchanged;
     if (pristine) return;
     if (state.foundWordIds.size === state.puzzle.words.length) {
       clearProgressFromStorage();
@@ -420,6 +425,7 @@
       foundWordIds: [...state.foundWordIds],
       timerSecondsLeft: state.timerSecondsLeft,
       timerExpired: state.timerExpired,
+      hintsRemaining: state.hintsRemaining,
     });
   }
 
@@ -436,6 +442,9 @@
     });
     if (typeof record.timerSecondsLeft === "number" && state.puzzle.timerDuration > 0) {
       state.timerSecondsLeft = Math.max(0, Math.min(state.puzzle.timerDuration, record.timerSecondsLeft));
+    }
+    if (typeof record.hintsRemaining === "number" && state.puzzle.hintsAllowed !== -1) {
+      state.hintsRemaining = Math.max(0, Math.min(state.puzzle.hintsAllowed, record.hintsRemaining));
     }
     state.timerExpired = Boolean(record.timerExpired) && state.foundWordIds.size < state.puzzle.words.length;
     saveStudentProgress();
@@ -725,6 +734,7 @@
     prefersReducedMotion,
     canInteractWithPuzzle,
     onWordFound: saveStudentProgress,
+    onHintUsed: saveStudentProgress,
   });
 
   const flashTimeouts = new Map();
