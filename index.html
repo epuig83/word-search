@@ -27,14 +27,14 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🔤</text></svg>" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=3" />
     <script src="data.js" defer></script>
-    <script src="i18n.js" defer></script>
+    <script src="i18n.js?v=3" defer></script>
     <script src="core.js" defer></script>
     <script src="app-helpers.js" defer></script>
     <script src="app-storage.js" defer></script>
     <script src="app-modal.js" defer></script>
-    <script src="app-board.js" defer></script>
+    <script src="app-board.js?v=3" defer></script>
     <script src="app-teacher.js" defer></script>
     <script src="app-session.js" defer></script>
     <script src="vendor/canvas-confetti.browser.js" defer></script>
@@ -73,21 +73,21 @@
 
         <div class="hero-card">
           <div class="hero-stat">
-              <span class="stat-icon">🎓</span>
+              <span class="stat-icon" aria-hidden="true">🎓</span>
               <div>
                 <span data-t="stat_age">Edat</span>
                 <strong data-t="stat_age_value">8 a 12 anys</strong>
               </div>
             </div>
           <div class="hero-stat">
-              <span class="stat-icon">💻</span>
+              <span class="stat-icon" aria-hidden="true">💻</span>
               <div>
               <span data-t="stat_use">Ús</span>
               <strong data-t="stat_use_value">PC o Paper</strong>
               </div>
             </div>
           <div class="hero-stat">
-            <span class="stat-icon">⚡</span>
+            <span class="stat-icon" aria-hidden="true">⚡</span>
             <div>
               <span data-t="stat_speed">Rapidesa</span>
               <strong data-t="stat_speed_value">Generació a l'instant</strong>
@@ -99,11 +99,11 @@
       <main class="workspace">
         <nav class="main-tabs" role="tablist" aria-label="Seccions">
           <button type="button" id="tab-teacher" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="section-teacher">
-            <span class="tab-icon">👩‍🏫</span>
+            <span class="tab-icon" aria-hidden="true">👩‍🏫</span>
             <span data-t="tab_teacher">Panell de creació</span>
           </button>
           <button type="button" id="tab-student" class="tab-btn" role="tab" aria-selected="false" aria-controls="section-student">
-            <span class="tab-icon">🎒</span>
+            <span class="tab-icon" aria-hidden="true">🎒</span>
             <span data-t="tab_student">Zona de l'alumnat</span>
           </button>
         </nav>
@@ -154,7 +154,7 @@
               <div class="vocabulary-library">
                 <div class="library-header">
                   <span data-t="lib_title">Biblioteca de paraules</span>
-                  <input type="text" id="lib-search" placeholder="🔍 Cercar..." aria-label="Cercar a la biblioteca de paraules" data-t="lib_search_placeholder">
+                  <input type="text" id="lib-search" placeholder="Cercar..." aria-label="Cercar a la biblioteca de paraules" data-t="lib_search_placeholder">
                 </div>
                 <div class="library-categories" id="lib-categories">
                   <!-- Categories dinàmiques -->
@@ -177,16 +177,16 @@
               </div>
               <div class="sample-actions">
                 <button type="button" id="save-sample-button" class="sample-action-btn">
-                  💾 <span data-t="btn_save_sample">Desar</span>
+                  <span aria-hidden="true">💾</span> <span data-t="btn_save_sample">Desar</span>
                 </button>
                 <button type="button" id="delete-sample-button" class="sample-action-btn" disabled>
-                  🗑️ <span data-t="btn_delete_sample">Eliminar</span>
+                  <span aria-hidden="true">🗑️</span> <span data-t="btn_delete_sample">Eliminar</span>
                 </button>
                 <button type="button" id="export-samples-button" class="sample-action-btn">
-                  📤 <span data-t="btn_export_samples">Exportar</span>
+                  <span aria-hidden="true">📤</span> <span data-t="btn_export_samples">Exportar</span>
                 </button>
                 <button type="button" id="import-samples-button" class="sample-action-btn">
-                  📥 <span data-t="btn_import_samples">Importar</span>
+                  <span aria-hidden="true">📥</span> <span data-t="btn_import_samples">Importar</span>
                 </button>
               </div>
               <p class="sample-note" data-t="sample_note">
@@ -210,7 +210,7 @@
 
             <div class="field-grid">
               <div class="field">
-                <label for="difficulty-input">🎯 <span data-t="field_difficulty">Dificultat</span></label>
+                <label for="difficulty-input"><span aria-hidden="true">🎯</span> <span data-t="field_difficulty">Dificultat</span></label>
                 <select id="difficulty-input" name="difficulty">
                   <option value="easy" data-t="diff_easy">Fàcil</option>
                   <option value="medium" data-t="diff_medium">Mitjana</option>
@@ -219,7 +219,7 @@
               </div>
 
               <div class="field">
-                <label for="size-input">📐 <span data-t="field_size">Mida</span></label>
+                <label for="size-input"><span aria-hidden="true">📐</span> <span data-t="field_size">Mida</span></label>
                 <select id="size-input" name="size">
                   <option value="auto" data-t="size_auto">Automàtic</option>
                   <option value="10">10 x 10</option>
@@ -230,7 +230,7 @@
               </div>
 
               <div class="field">
-                <label for="timer-input">⏱️ <span data-t="timer_label">Temporitzador</span></label>
+                <label for="timer-input"><span aria-hidden="true">⏱️</span> <span data-t="timer_label">Temporitzador</span></label>
                 <select id="timer-input" name="timer">
                   <option value="0" data-t="timer_none">Sense límit</option>
                   <option value="300">5 min</option>
@@ -241,7 +241,7 @@
               </div>
 
               <div class="field">
-                <label for="hints-input">💡 <span data-t="hints_label">Pistes</span></label>
+                <label for="hints-input"><span aria-hidden="true">💡</span> <span data-t="hints_label">Pistes</span></label>
                 <select id="hints-input" name="hints">
                   <option value="0" data-t="hints_none">Sense pistes</option>
                   <option value="1">1</option>
@@ -277,7 +277,7 @@
           </details>
 
           <p id="default-pin-warning" class="default-pin-warning" hidden data-t="msg_default_pin_warning">
-            ⚠️ Canvia el PIN per defecte (1234) per protegir el panell docent.
+            Canvia el PIN per defecte (1234) per protegir el panell docent.
           </p>
 
           <details id="pin-change-details" class="pin-change-section">
@@ -416,7 +416,7 @@
                     <button type="button" id="pause-button" class="ghost-button student-action-button" data-t="btn_pause" hidden>
                       ⏸ Pausa
                     </button>
-                    <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" hidden>
+                    <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" aria-label="Pista (3)" hidden>
                       💡 Pista (3)
                     </button>
                     <details id="teacher-tools" class="teacher-tools">

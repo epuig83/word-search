@@ -159,11 +159,16 @@
       dom.hintButton.hidden = false;
       const t = getTranslations();
       const onCooldown = Date.now() < hintCooldownUntil;
+      const setHintText = (count) => {
+        const visibleText = t.btn_hint.replace("{n}", count);
+        dom.hintButton.textContent = visibleText;
+        dom.hintButton.setAttribute("aria-label", visibleText.replace(/^💡\s*/, ""));
+      };
       if (allowed === -1) {
-        dom.hintButton.textContent = t.btn_hint.replace("{n}", "∞");
+        setHintText("∞");
         dom.hintButton.disabled = onCooldown;
       } else {
-        dom.hintButton.textContent = t.btn_hint.replace("{n}", state.hintsRemaining);
+        setHintText(state.hintsRemaining);
         dom.hintButton.disabled = state.hintsRemaining <= 0 || onCooldown;
       }
     }
