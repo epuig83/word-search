@@ -125,21 +125,20 @@
 
       dom.studentStartButton?.addEventListener("click", () => startStudentSession());
 
-      dom.resetProgressButton.addEventListener("click", () => {
-        if (!window.confirm(getTranslations().msg_confirm_reset)) return;
+      // resetPuzzleProgress() already restores hintsRemaining from the puzzle.
+      const restartPuzzle = () => {
         resetPuzzleProgress();
-        if (state.puzzle) state.hintsRemaining = state.puzzle.hintsAllowed;
         render();
         if (shouldShowStudentStartOverlay()) focusStudentStartButton();
+      };
+
+      dom.resetProgressButton.addEventListener("click", () => {
+        if (!window.confirm(getTranslations().msg_confirm_reset)) return;
+        restartPuzzle();
       });
 
       if (dom.playAgainButton) {
-        dom.playAgainButton.addEventListener("click", () => {
-          resetPuzzleProgress();
-          if (state.puzzle) state.hintsRemaining = state.puzzle.hintsAllowed;
-          render();
-          if (shouldShowStudentStartOverlay()) focusStudentStartButton();
-        });
+        dom.playAgainButton.addEventListener("click", restartPuzzle);
       }
 
       dom.printButton.addEventListener("click", () => printCurrentPuzzle());

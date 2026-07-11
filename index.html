@@ -27,14 +27,14 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🔤</text></svg>" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=3" />
+    <link rel="stylesheet" href="styles.css" />
     <script src="data.js" defer></script>
-    <script src="i18n.js?v=3" defer></script>
+    <script src="i18n.js" defer></script>
     <script src="core.js" defer></script>
     <script src="app-helpers.js" defer></script>
     <script src="app-storage.js" defer></script>
     <script src="app-modal.js" defer></script>
-    <script src="app-board.js?v=3" defer></script>
+    <script src="app-board.js" defer></script>
     <script src="app-teacher.js" defer></script>
     <script src="app-session.js" defer></script>
     <script src="vendor/canvas-confetti.browser.js" defer></script>
@@ -422,7 +422,7 @@
                     <details id="teacher-tools" class="teacher-tools">
                       <summary class="teacher-tools-summary" data-t="teacher_tools_summary">Eines docents</summary>
                       <div class="teacher-tools-actions">
-                        <button type="button" id="solution-toggle-button" class="ghost-button teacher-tool-button">
+                        <button type="button" id="solution-toggle-button" class="ghost-button teacher-tool-button" data-t="btn_show_solution">
                           Veure solució
                         </button>
                         <button type="button" id="share-button" class="ghost-button teacher-tool-button" data-t="btn_share">

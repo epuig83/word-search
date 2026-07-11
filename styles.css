@@ -2286,6 +2286,13 @@ body[data-tab="student"] .panel {
     padding: 0;
   }
 
+  /* The board lives in #section-student, hidden on the teacher tab. The teacher
+     "Imprimir/PDF" button prints from there, so force it visible for print
+     (the teacher .controls-panel is already display:none above). */
+  #section-student[hidden] {
+    display: block !important;
+  }
+
   .workspace {
     display: block;
   }

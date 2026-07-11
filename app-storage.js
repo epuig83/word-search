@@ -13,10 +13,13 @@
   const CUSTOM_SAMPLES_STORAGE_KEY = "word-search-custom-samples-v1";
   const TEACHER_PIN_STORAGE_KEY = "word-search-teacher-pin-v1";
   const THEME_STORAGE_KEY = "word-search-theme-v1";
+  const LANG_STORAGE_KEY = "word-search-lang-v1";
   const PROGRESS_STORAGE_KEY = "word-search-progress-v1";
   const DEFAULT_TEACHER_PIN = "1234";
   const DEFAULT_THEME = "pergami";
   const THEMES = ["pergami", "ocea", "bosc", "espai"];
+  const DEFAULT_LANG = "ca";
+  const LANGS = ["ca", "es", "en"];
   const {
     SAMPLE_LANGS,
     createEmptyCustomSamples,
@@ -75,6 +78,26 @@
     try {
       const storageImpl = storage || globalThis.localStorage;
       storageImpl.setItem(THEME_STORAGE_KEY, theme);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function loadLang(storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      const stored = storageImpl.getItem(LANG_STORAGE_KEY);
+      return LANGS.includes(stored) ? stored : DEFAULT_LANG;
+    } catch {
+      return DEFAULT_LANG;
+    }
+  }
+
+  function saveLang(lang, storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      storageImpl.setItem(LANG_STORAGE_KEY, lang);
       return true;
     } catch {
       return false;
@@ -149,11 +172,15 @@
     DEFAULT_TEACHER_PIN,
     DEFAULT_THEME,
     THEMES,
+    DEFAULT_LANG,
+    LANGS,
     sanitizeCustomSampleCollection,
     loadTeacherPin,
     saveTeacherPin,
     loadTheme,
     saveTheme,
+    loadLang,
+    saveLang,
     PROGRESS_STORAGE_KEY,
     loadProgress,
     saveProgress,

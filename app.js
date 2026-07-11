@@ -56,6 +56,8 @@
     saveTheme: saveThemeToStorage,
     DEFAULT_THEME,
     THEMES,
+    loadLang: loadLangFromStorage,
+    saveLang: saveLangToStorage,
     loadProgress: loadProgressFromStorage,
     saveProgress: saveProgressToStorage,
     clearProgress: clearProgressFromStorage,
@@ -232,6 +234,7 @@
     state.timerIntervalId = setInterval(() => {
       state.timerSecondsLeft = Math.max(0, state.timerSecondsLeft - 1);
       updateTimerDisplay();
+      if (state.timerSecondsLeft === 60) announce(TRANSLATIONS[state.lang].timer_warning_minute);
       if (state.timerSecondsLeft % 5 === 0) saveStudentProgress();
       if (state.timerSecondsLeft <= 0) expireTimer();
     }, 1000);
@@ -638,6 +641,7 @@
 
   function updateLanguage(lang) {
     state.lang = lang;
+    saveLangToStorage(lang);
     document.documentElement.lang = lang;
     document.title = TRANSLATIONS[lang].page_title;
     if (dom.metaDescription) dom.metaDescription.setAttribute("content", TRANSLATIONS[lang].page_description);
@@ -731,6 +735,7 @@
     revealCompletionMessage,
     setStatus,
     announce,
+    updateTimerDisplay,
     prefersReducedMotion,
     canInteractWithPuzzle,
     onWordFound: saveStudentProgress,
@@ -905,7 +910,6 @@
         hintsAllowed: Number(dom.hintsInput?.value) || 0,
         sourceLang: state.lang,
       });
-      state.hintsRemaining = state.puzzle.hintsAllowed;
       state.studentName = { nom: "", cognoms: "" };
       stopTimer();
       resetPuzzleProgress();
@@ -976,6 +980,7 @@
 
   window.addEventListener("pointermove", e => {
     if (!canInteractWithPuzzle()) return;
+    if (!state.dragSelection && !state.clickAnchor) return;
     const hovered = document.elementFromPoint(e.clientX, e.clientY);
     const btn = hovered?.closest(".grid-cell");
     const cell = btn ? { row: +btn.dataset.row, col: +btn.dataset.col } : null;
@@ -1128,7 +1133,6 @@
       state.puzzle = config.version >= SHARED_PUZZLE_VERSION && config.gridRows && config.placementPaths
         ? buildPuzzleFromSnapshot(parsed.words, config, metadata)
         : buildPuzzle(parsed.words, config.size, config.difficulty, metadata);
-      state.hintsRemaining = state.puzzle.hintsAllowed;
       resetPuzzleProgress();
       if (savedProgress && savedProgress.key === puzzleProgressKey(state.puzzle)) {
         applyResumeProgress(savedProgress);
@@ -1154,7 +1158,7 @@
   }
 
   if (!tryLoadFromUrl()) {
-    updateLanguage("ca");
+    updateLanguage(loadLangFromStorage());
     teacherController.updateWordsHelper();
     sessionController.setTab("teacher");
     if (new URLSearchParams(window.location.search).has("p")) {

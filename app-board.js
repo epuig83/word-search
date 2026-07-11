@@ -26,6 +26,7 @@
     revealCompletionMessage,
     setStatus,
     announce,
+    updateTimerDisplay,
     prefersReducedMotion,
     canInteractWithPuzzle,
     onWordFound,
@@ -34,6 +35,7 @@
     const announceFn = typeof announce === "function" ? announce : () => {};
     const onWordFoundFn = typeof onWordFound === "function" ? onWordFound : () => {};
     const onHintUsedFn = typeof onHintUsed === "function" ? onHintUsed : () => {};
+    const updateTimerDisplayFn = typeof updateTimerDisplay === "function" ? updateTimerDisplay : () => {};
     let hintCooldownUntil = 0;
     let hintCooldownTimeoutId = null;
     function buildGridCellLabel(letter, row, col, flags) {
@@ -171,6 +173,7 @@
         setHintText(state.hintsRemaining);
         dom.hintButton.disabled = state.hintsRemaining <= 0 || onCooldown;
       }
+      dom.hintButton.title = onCooldown ? t.hint_cooldown_wait : "";
     }
 
     function useHint() {
@@ -199,6 +202,17 @@
       onHintUsedFn();
     }
 
+    // Single source of truth for a cell's class string. render() sets isFoundNew;
+    // renderGridHighlights (the RAF drag path) leaves it false.
+    function cellClassName({ isFound, wordColor, isFoundNew, isPreview, isAnchor, isSolution }) {
+      return "grid-cell" +
+        (isFound ? ` is-found ${wordColor}` : "") +
+        (isFoundNew ? " is-found-new" : "") +
+        (isPreview ? " is-preview" : "") +
+        (isAnchor ? " is-anchor" : "") +
+        (isSolution ? " is-solution" : "");
+    }
+
     function renderGridHighlights() {
       if (!state.puzzle || !dom.gridCells) return;
       const foundColorMap = buildFoundColorMap();
@@ -214,11 +228,7 @@
           const isPreview = previewSet.has(key);
           const isFound = foundColorMap.has(key);
           const isSolution = solutionCells.has(key);
-          const nextClass = "grid-cell" +
-            (isFound ? ` is-found ${wordColor}` : "") +
-            (isPreview ? " is-preview" : "") +
-            (isAnchor ? " is-anchor" : "") +
-            (isSolution ? " is-solution" : "");
+          const nextClass = cellClassName({ isFound, wordColor, isPreview, isAnchor, isSolution });
           const cell = dom.gridCells[rowIndex * size + colIndex];
           if (cell.className !== nextClass) cell.className = nextClass;
         }
@@ -343,16 +353,7 @@
         const showTimer = state.puzzle.timerDuration > 0 && (state.studentSessionStarted || state.timerExpired);
         dom.timerDisplay.hidden = !showTimer;
         if (showTimer) {
-          const secondsLeft = state.timerSecondsLeft;
-          if (secondsLeft <= 0) {
-            dom.timerDisplay.textContent = t.timer_expired;
-            dom.timerDisplay.classList.remove("is-warning");
-            dom.timerDisplay.classList.add("is-expired");
-          } else {
-            dom.timerDisplay.textContent = formatSecondsAsClock(secondsLeft);
-            dom.timerDisplay.classList.toggle("is-warning", secondsLeft <= 60);
-            dom.timerDisplay.classList.remove("is-expired");
-          }
+          updateTimerDisplayFn();
         } else {
           dom.timerDisplay.textContent = "00:00";
           dom.timerDisplay.classList.remove("is-warning", "is-expired");
@@ -396,12 +397,7 @@
           const isFound = foundColorMap.has(key);
           const isSolution = solutionCells.has(key);
           const button = dom.gridCells[rowIndex * gridSize + colIndex];
-          button.className = "grid-cell" +
-            (isFound ? ` is-found ${wordColor}` : "") +
-            (newlyFoundCells.has(key) ? " is-found-new" : "") +
-            (isPreview ? " is-preview" : "") +
-            (isAnchor ? " is-anchor" : "") +
-            (isSolution ? " is-solution" : "");
+          button.className = cellClassName({ isFound, wordColor, isFoundNew: newlyFoundCells.has(key), isPreview, isAnchor, isSolution });
           button.tabIndex = sameCell(state.focusedCell, { row: rowIndex, col: colIndex }) ? 0 : -1;
           button.setAttribute("aria-label", buildGridCellLabel(letter, rowIndex, colIndex, { isAnchor, isPreview, isFound, isSolution }));
         });
@@ -446,7 +442,7 @@
       }
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-paused", Boolean(state.timerPaused));
       if (dom.boardStatus) {
-        const boardStatusTone = state.timerExpired
+        const statusKey = state.timerExpired
           ? "expired"
           : isComplete
             ? "complete"
@@ -456,20 +452,14 @@
                 ? "pending"
                 : state.foundWordIds.size > 0
                   ? "progress"
-                  : "";
-        const boardStatusText = state.timerExpired
-          ? t.board_status_expired
-          : isComplete
-            ? t.board_status_complete
-            : state.timerPaused
-              ? t.board_status_paused
-              : !state.studentSessionStarted
-                ? t.board_status_pending
-                : state.foundWordIds.size > 0
-                  ? t.board_status_progress
-                    .replace("{found}", state.foundWordIds.size)
-                    .replace("{total}", state.puzzle.words.length)
-                  : t.board_status_start;
+                  : "start";
+        const boardStatusText = statusKey === "progress"
+          ? t.board_status_progress
+            .replace("{found}", state.foundWordIds.size)
+            .replace("{total}", state.puzzle.words.length)
+          : t[`board_status_${statusKey}`];
+        // "start" is the neutral prompt — it carries no tone class.
+        const boardStatusTone = statusKey === "start" ? "" : statusKey;
         dom.boardStatus.textContent = boardStatusText;
         dom.boardStatus.className = "board-status" + (boardStatusTone ? ` is-${boardStatusTone}` : "");
       }

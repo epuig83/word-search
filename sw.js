@@ -2,18 +2,18 @@
 // stale-while-revalidate strategy below, individual asset updates converge
 // without a bump; only bump when changing cache semantics or removing files
 // from APP_SHELL that must no longer be served.
-const CACHE_NAME = "word-search-v2";
+const CACHE_NAME = "word-search-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=3",
+  "./styles.css",
   "./data.js",
-  "./i18n.js?v=3",
+  "./i18n.js",
   "./core.js",
   "./app-helpers.js",
   "./app-storage.js",
   "./app-modal.js",
-  "./app-board.js?v=3",
+  "./app-board.js",
   "./app-teacher.js",
   "./app-session.js",
   "./app.js",
