@@ -56,6 +56,8 @@
     saveTheme: saveThemeToStorage,
     DEFAULT_THEME,
     THEMES,
+    loadContrast: loadContrastFromStorage,
+    saveContrast: saveContrastToStorage,
     loadLang: loadLangFromStorage,
     saveLang: saveLangToStorage,
     loadProgress: loadProgressFromStorage,
@@ -105,6 +107,7 @@
       clearInterval(state.timerIntervalId);
       state.timerIntervalId = null;
     }
+    state.timerDeadline = null;
   }
 
   function prefersReducedMotion() {
@@ -228,16 +231,27 @@
       expireTimer();
       return;
     }
+    // Wall-clock deadline so a backgrounded tab (whose 1s ticks get throttled or
+    // dropped) doesn't gift extra time — each tick recomputes the remaining
+    // seconds from the clock instead of blindly decrementing by one.
+    state.timerDeadline = Date.now() + state.timerSecondsLeft * 1000;
     dom.timerDisplay.hidden = false;
     dom.timerDisplay.classList.remove("is-warning", "is-expired");
     updateTimerDisplay();
-    state.timerIntervalId = setInterval(() => {
-      state.timerSecondsLeft = Math.max(0, state.timerSecondsLeft - 1);
-      updateTimerDisplay();
-      if (state.timerSecondsLeft === 60) announce(TRANSLATIONS[state.lang].timer_warning_minute);
-      if (state.timerSecondsLeft % 5 === 0) saveStudentProgress();
-      if (state.timerSecondsLeft <= 0) expireTimer();
-    }, 1000);
+    state.timerIntervalId = setInterval(tickTimer, 1000);
+  }
+
+  function tickTimer() {
+    if (state.timerDeadline === null) return;
+    const prev = state.timerSecondsLeft;
+    state.timerSecondsLeft = Math.max(0, Math.ceil((state.timerDeadline - Date.now()) / 1000));
+    if (state.timerSecondsLeft === prev) return;
+    updateTimerDisplay();
+    // Boundary-crossing checks (not equality) so a multi-second jump after the
+    // tab wakes still fires the one-minute warning and a save exactly once.
+    if (prev > 60 && state.timerSecondsLeft <= 60) announce(TRANSLATIONS[state.lang].timer_warning_minute);
+    if (state.timerSecondsLeft % 5 === 0 || state.timerSecondsLeft <= 0) saveStudentProgress();
+    if (state.timerSecondsLeft <= 0) expireTimer();
   }
 
   function clampFocusedCell(cell) {
@@ -335,6 +349,7 @@
     theme: loadThemeFromStorage(),
     timerIntervalId: null,
     timerSecondsLeft: 0,
+    timerDeadline: null,
     timerExpired: false,
     timerPaused: false,
     studentSessionStarted: false,
@@ -488,6 +503,7 @@
     teacherOpenStudentButton: document.querySelector("#teacher-open-student-button"),
     teacherShareButton: document.querySelector("#teacher-share-button"),
     teacherPrintButton: document.querySelector("#teacher-print-button"),
+    teacherPrintSolutionButton: document.querySelector("#teacher-print-solution-button"),
     boardTitle: document.querySelector("#board-title"),
     boardInstructions: document.querySelector("#board-instructions"),
     boardStatus: document.querySelector("#board-status"),
@@ -509,6 +525,7 @@
     playAgainButton: document.querySelector("#play-again-button"),
     langBtns: document.querySelectorAll(".lang-btn"),
     themeBtns: document.querySelectorAll(".theme-btn"),
+    contrastToggle: document.querySelector("#contrast-toggle"),
     libSearch: document.querySelector("#lib-search"),
     libCategories: document.querySelector("#lib-categories"),
     libResults: document.querySelector("#lib-results"),
@@ -540,6 +557,11 @@
     wordDefinitionText: document.querySelector("#word-definition-text"),
     wordDefinitionFound: document.querySelector("#word-definition-found"),
     wordDefinitionClose: document.querySelector("#word-definition-close"),
+    confirmModal: document.querySelector("#confirm-modal"),
+    confirmModalTitle: document.querySelector("#confirm-modal-title"),
+    confirmModalText: document.querySelector("#confirm-modal-text"),
+    confirmModalConfirm: document.querySelector("#confirm-modal-confirm"),
+    confirmModalCancel: document.querySelector("#confirm-modal-cancel"),
     pinModal: document.querySelector("#pin-modal"),
     pinForm: document.querySelector("#pin-form"),
     pinInput: document.querySelector("#pin-input"),
@@ -593,6 +615,46 @@
     openModal(dom.wordDefinitionModal, dom.wordDefinitionClose);
   }
 
+  // Promise-based replacement for window.confirm: resolves true/false and reuses
+  // the shared modal controller (focus trap, restore, Escape/overlay to cancel).
+  function confirmDialog({ title, message, confirmLabel, cancelLabel } = {}) {
+    const overlay = dom.confirmModal;
+    const t = TRANSLATIONS[state.lang];
+    if (!overlay || !dom.confirmModalConfirm || !dom.confirmModalCancel) {
+      return Promise.resolve(typeof window.confirm === "function" ? window.confirm(message || "") : true);
+    }
+    if (dom.confirmModalTitle) dom.confirmModalTitle.textContent = title || t.confirm_title;
+    if (dom.confirmModalText) dom.confirmModalText.textContent = message || "";
+    dom.confirmModalConfirm.textContent = confirmLabel || t.btn_confirm;
+    dom.confirmModalCancel.textContent = cancelLabel || t.btn_cancel;
+
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = result => {
+        if (settled) return;
+        settled = true;
+        overlay.removeEventListener("keydown", onKeydown);
+        overlay.removeEventListener("click", onOverlayClick);
+        dom.confirmModalConfirm.removeEventListener("click", onConfirm);
+        dom.confirmModalCancel.removeEventListener("click", onCancel);
+        closeModal(overlay);
+        resolve(result);
+      };
+      const onConfirm = () => finish(true);
+      const onCancel = () => finish(false);
+      const onOverlayClick = event => { if (event.target === overlay) finish(false); };
+      const onKeydown = event => {
+        trapModalFocus(event, overlay);
+        if (event.key === "Escape") { event.preventDefault(); finish(false); }
+      };
+      dom.confirmModalConfirm.addEventListener("click", onConfirm);
+      dom.confirmModalCancel.addEventListener("click", onCancel);
+      overlay.addEventListener("click", onOverlayClick);
+      overlay.addEventListener("keydown", onKeydown);
+      openModal(overlay, dom.confirmModalConfirm);
+    });
+  }
+
   function buildTeacherReadyMeta(puzzle) {
     const t = TRANSLATIONS[state.lang];
     const difficultyLabel = t[`diff_${puzzle.difficulty}`] || puzzle.difficultyLabel;
@@ -637,6 +699,15 @@
       btn.setAttribute("aria-pressed", String(isActive));
     });
     saveThemeToStorage(next);
+  }
+
+  // High-contrast is driven by a single source of truth — the data-contrast
+  // attribute — fed by either the OS `prefers-contrast` query or this toggle.
+  function applyContrast(mode, { persist = true } = {}) {
+    const next = mode === "high" ? "high" : "normal";
+    document.documentElement.dataset.contrast = next;
+    if (dom.contrastToggle) dom.contrastToggle.setAttribute("aria-pressed", String(next === "high"));
+    if (persist) saveContrastToStorage(next);
   }
 
   function updateLanguage(lang) {
@@ -710,6 +781,7 @@
     persistCustomSamples,
     setStatus,
     debounce,
+    confirmDialog,
   });
 
   const {
@@ -772,6 +844,9 @@
     const writeText = typeof navigator.clipboard?.writeText === "function"
       ? text => navigator.clipboard.writeText(text)
       : null;
+    // ponytail: last-resort share fallback keeps native prompt — only reached
+    // when BOTH navigator.share and clipboard are unavailable (near-never on
+    // modern browsers). Upgrade to a readonly-URL modal if it ever matters.
     const promptShare = typeof window.prompt === "function"
       ? (message, value) => window.prompt(message, value)
       : null;
@@ -879,6 +954,7 @@
     closeWordDefinitionModal,
     printCurrentPuzzle,
     shareCurrentPuzzle,
+    confirmDialog,
   });
 
   function generatePuzzle({ openStudent = false, triggerButton = dom.generateButton } = {}) {
@@ -1068,13 +1144,35 @@
   dom.langBtns.forEach(btn => btn.addEventListener("click", () => updateLanguage(btn.dataset.lang)));
   dom.themeBtns.forEach(btn => btn.addEventListener("click", () => applyTheme(btn.dataset.theme)));
   applyTheme(state.theme);
+
+  // Resolve high-contrast: an explicit stored choice wins; otherwise follow the
+  // OS `prefers-contrast: more` setting (and keep tracking it live until the
+  // user makes their own choice via the toggle).
+  const contrastQuery = globalThis.matchMedia?.("(prefers-contrast: more)");
+  const storedContrast = loadContrastFromStorage();
+  applyContrast(storedContrast ?? (contrastQuery?.matches ? "high" : "normal"), { persist: false });
+  if (storedContrast === null && contrastQuery?.addEventListener) {
+    contrastQuery.addEventListener("change", event => {
+      if (loadContrastFromStorage() === null) applyContrast(event.matches ? "high" : "normal", { persist: false });
+    });
+  }
+  dom.contrastToggle?.addEventListener("click", () => {
+    applyContrast(document.documentElement.dataset.contrast === "high" ? "normal" : "high");
+  });
   dom.presetBtns.forEach(btn => btn.addEventListener("click", () => applyDifficultyPreset(btn.dataset.preset)));
   dom.printSolutionButton?.addEventListener("click", () => printAnswerKey());
+  dom.teacherPrintSolutionButton?.addEventListener("click", () => printAnswerKey());
 
   // Persist progress when the page is backgrounded or closed (covers tab close,
   // navigation, and lock-screen on tablets where timer ticks may not fire).
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") saveStudentProgress();
+    if (document.visibilityState === "hidden") {
+      saveStudentProgress();
+    } else if (state.timerIntervalId !== null) {
+      // Reconcile immediately on return so a long background gap reflects real
+      // elapsed time (and expires) without waiting for the next 1s tick.
+      tickTimer();
+    }
   });
   window.addEventListener("pagehide", () => saveStudentProgress());
   if (dom.formTemplateInput) {
@@ -1136,6 +1234,9 @@
       resetPuzzleProgress();
       if (savedProgress && savedProgress.key === puzzleProgressKey(state.puzzle)) {
         applyResumeProgress(savedProgress);
+        const resumedMsg = TRANSLATIONS[state.lang].msg_progress_resumed;
+        if (dom.boardStatus) dom.boardStatus.textContent = resumedMsg;
+        announce(resumedMsg);
       }
       sessionController.setTab("student");
       return true;

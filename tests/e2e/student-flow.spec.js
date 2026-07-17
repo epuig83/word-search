@@ -45,8 +45,8 @@ test("reset returns the student view to the pre-start overlay", async ({ page })
   await startStudentSession(page);
   await expect.poll(() => readTimerSeconds(page), { timeout: 4_000 }).toBeLessThan(300);
 
-  page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Reiniciar joc" }).click();
+  await page.getByRole("button", { name: "Confirmar" }).click();
 
   await expect(page.locator("#student-start-overlay")).toBeVisible();
   await expect(page.locator("#timer-display")).toBeHidden();
@@ -265,7 +265,7 @@ test("words helper flags entries shorter than 3 letters as undroppable", async (
   // Two 2-letter tokens (os, au) are dropped; three valid words remain.
   await expect(page.locator("#words-count")).toContainText("3");
   await expect(page.locator("#words-feedback")).toContainText("menys de 3 lletres");
-  await expect(page.locator("#words-feedback")).toContainText("(2)");
+  await expect(page.locator("#words-feedback")).toContainText("os, au");
 });
 
 test("print worksheet shows a localized name/date line and drops the screen background", async ({ page }) => {

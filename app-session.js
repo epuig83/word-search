@@ -31,6 +31,7 @@
     closeWordDefinitionModal,
     printCurrentPuzzle,
     shareCurrentPuzzle,
+    confirmDialog,
   }) {
     function isTrivialPin(pin) {
       if (/^(\d)\1+$/.test(pin)) return true;
@@ -132,8 +133,9 @@
         if (shouldShowStudentStartOverlay()) focusStudentStartButton();
       };
 
-      dom.resetProgressButton.addEventListener("click", () => {
-        if (!window.confirm(getTranslations().msg_confirm_reset)) return;
+      dom.resetProgressButton.addEventListener("click", async () => {
+        const ok = await confirmDialog({ message: getTranslations().msg_confirm_reset });
+        if (!ok) return;
         restartPuzzle();
       });
 
@@ -274,9 +276,7 @@
           const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
           if (!formParsed || !state.puzzle) return;
           if (typeof navigator !== "undefined" && navigator.onLine === false) {
-            if (typeof window.alert === "function") {
-              window.alert(getTranslations().msg_send_offline);
-            }
+            if (dom.boardStatus) dom.boardStatus.textContent = getTranslations().msg_send_offline;
             return;
           }
           const total = state.puzzle.words.length;

@@ -260,6 +260,9 @@
                 Generar i obrir la zona de l'alumnat
               </button>
             </div>
+            <p class="sample-note action-hint" data-t="action_hint">
+              "Generar nova sopa" es queda al panell docent; el segon botó la crea i obre directament la zona de l'alumnat.
+            </p>
           </form>
 
           <details id="form-config-details" class="pin-change-section">
@@ -321,6 +324,9 @@
               <button type="button" id="teacher-print-button" class="ghost-button" data-t="btn_print">
                 Imprimir / PDF
               </button>
+              <button type="button" id="teacher-print-solution-button" class="ghost-button" data-t="btn_print_solution">
+                Imprimir solucionari
+              </button>
             </div>
           </section>
         </section>
@@ -353,6 +359,10 @@
                 <button type="button" class="theme-btn" data-theme="bosc" aria-pressed="false"><span class="visually-hidden" data-t="theme_bosc">Bosc</span></button>
                 <button type="button" class="theme-btn" data-theme="espai" aria-pressed="false"><span class="visually-hidden" data-t="theme_espai">Espai</span></button>
               </div>
+              <button type="button" id="contrast-toggle" class="contrast-toggle" aria-pressed="false">
+                <span aria-hidden="true">◐</span>
+                <span class="visually-hidden" data-t="contrast_toggle">Alt contrast</span>
+              </button>
             </div>
           </div>
 
@@ -496,6 +506,26 @@
         <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">
           Tancar
         </button>
+      </div>
+    </div>
+
+    <!-- Modal genèric de confirmació (substitueix window.confirm) -->
+    <div
+      id="confirm-modal"
+      class="modal-overlay"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+      aria-describedby="confirm-modal-text"
+    >
+      <div class="modal-content" tabindex="-1">
+        <h3 id="confirm-modal-title" data-t="confirm_title">Segur?</h3>
+        <p id="confirm-modal-text"></p>
+        <div class="confirm-modal-actions">
+          <button type="button" id="confirm-modal-confirm" class="primary-button" data-t="btn_confirm">Confirmar</button>
+          <button type="button" id="confirm-modal-cancel" class="ghost-button" data-t="btn_cancel">Cancel·lar</button>
+        </div>
       </div>
     </div>
 

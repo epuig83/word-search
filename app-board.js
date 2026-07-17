@@ -99,19 +99,28 @@
         dom.gridContainer.dataset.gridDensity = density;
       }
       dom.gridCells = new Array(size * size);
+      const fragment = document.createDocumentFragment();
       state.puzzle.grid.forEach((row, rowIndex) => {
+        // role="row" wrapper keeps the ARIA grid structure valid (grid → row →
+        // gridcell); display:contents leaves the flat CSS grid layout untouched.
+        const rowEl = document.createElement("div");
+        rowEl.setAttribute("role", "row");
+        rowEl.style.display = "contents";
         row.forEach((letter, colIndex) => {
           const button = document.createElement("button");
           button.type = "button";
           button.className = "grid-cell";
+          button.setAttribute("role", "gridcell");
           button.textContent = letter;
           button.dataset.row = rowIndex;
           button.dataset.col = colIndex;
           button.tabIndex = -1;
-          dom.puzzleGrid.appendChild(button);
+          rowEl.appendChild(button);
           dom.gridCells[rowIndex * size + colIndex] = button;
         });
+        fragment.appendChild(rowEl);
       });
+      dom.puzzleGrid.appendChild(fragment);
     }
 
     function initWordList() {

@@ -18,6 +18,8 @@
   const DEFAULT_TEACHER_PIN = "1234";
   const DEFAULT_THEME = "pergami";
   const THEMES = ["pergami", "ocea", "bosc", "espai"];
+  const CONTRAST_STORAGE_KEY = "word-search-contrast-v1";
+  const CONTRASTS = ["normal", "high"];
   const DEFAULT_LANG = "ca";
   const LANGS = ["ca", "es", "en"];
   const {
@@ -78,6 +80,28 @@
     try {
       const storageImpl = storage || globalThis.localStorage;
       storageImpl.setItem(THEME_STORAGE_KEY, theme);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Returns the stored contrast preference, or null when none is set so the
+  // caller can fall back to the OS `prefers-contrast` media query.
+  function loadContrast(storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      const stored = storageImpl.getItem(CONTRAST_STORAGE_KEY);
+      return CONTRASTS.includes(stored) ? stored : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveContrast(contrast, storage) {
+    try {
+      const storageImpl = storage || globalThis.localStorage;
+      storageImpl.setItem(CONTRAST_STORAGE_KEY, contrast);
       return true;
     } catch {
       return false;
@@ -179,6 +203,10 @@
     saveTeacherPin,
     loadTheme,
     saveTheme,
+    CONTRAST_STORAGE_KEY,
+    CONTRASTS,
+    loadContrast,
+    saveContrast,
     loadLang,
     saveLang,
     PROGRESS_STORAGE_KEY,

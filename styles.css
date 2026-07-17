@@ -110,76 +110,76 @@
 /* High-contrast mode: darker ink, stronger borders/accents for low-vision
    and dyslexic learners. Overrides the palette vars only — every color in
    the sheet derives from these, so the whole UI lifts to higher contrast.
-   `:root[data-theme]` is listed so this also overrides an active theme. */
-@media (prefers-contrast: more) {
-  :root,
-  :root[data-theme] {
-    --bg-cream: #ffffff;
-    --bg-dots: #b8aea0;
-    --ink-strong: #161210;
-    --ink-soft: #3a322a;
-    --panel: #ffffff;
-    --panel-border: #6f6557;
+   JS resolves the OS `prefers-contrast: more` preference AND an explicit
+   in-app toggle into `:root[data-contrast="high"]`, so both drive one source
+   of truth. The `[data-theme]` variant keeps this winning over active themes. */
+:root[data-contrast="high"],
+:root[data-contrast="high"][data-theme] {
+  --bg-cream: #ffffff;
+  --bg-dots: #b8aea0;
+  --ink-strong: #161210;
+  --ink-soft: #3a322a;
+  --panel: #ffffff;
+  --panel-border: #6f6557;
 
-    --accent: #98370f;
-    --accent-strong: #6e2709;
-    --accent-soft: #fbdcc6;
+  --accent: #98370f;
+  --accent-strong: #6e2709;
+  --accent-soft: #fbdcc6;
 
-    --teal: #11604f;
-    --teal-strong: #0c4438;
+  --teal: #11604f;
+  --teal-strong: #0c4438;
 
-    --found: #157a33;
-    --found-strong: #0e5a25;
+  --found: #157a33;
+  --found-strong: #0e5a25;
 
-    --student-primary: #4a2fa0;
-    --student-secondary: #5a3fb5;
+  --student-primary: #4a2fa0;
+  --student-secondary: #5a3fb5;
 
-    --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.35);
-    --shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 0 0 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 0 0 2px rgba(0, 0, 0, 0.4);
 
-    /* Lift the semantic state colors too: darker borders/text, same hues. */
-    --surface-subtle: #efe7da;
-    --grid-edge: #8a7d68;
-    --danger: #8f0c2c;
-    --accent-warm: #9c4e16;
-    --success-border: #2d7a4e;
-    --warn-border-soft: #b85a32;
-    --hint-border: #8a6207;
-    --warning-border: #b8862e;
-    --warning-text: #4a3608;
-  }
+  /* Lift the semantic state colors too: darker borders/text, same hues. */
+  --surface-subtle: #efe7da;
+  --grid-edge: #8a7d68;
+  --danger: #8f0c2c;
+  --accent-warm: #9c4e16;
+  --success-border: #2d7a4e;
+  --warn-border-soft: #b85a32;
+  --hint-border: #8a6207;
+  --warning-border: #b8862e;
+  --warning-text: #4a3608;
+}
 
-  .grid-cell {
-    border-width: 2px;
-    border-color: var(--panel-border);
-  }
+:root[data-contrast="high"] .grid-cell {
+  border-width: 2px;
+  border-color: var(--panel-border);
+}
 
-  .grid-cell.is-preview,
-  .grid-cell.is-anchor {
-    outline: 3px solid var(--ink-strong);
-    outline-offset: -3px;
-  }
+:root[data-contrast="high"] .grid-cell.is-preview,
+:root[data-contrast="high"] .grid-cell.is-anchor {
+  outline: 3px solid var(--ink-strong);
+  outline-offset: -3px;
+}
 
-  /* Single-use interactive surfaces below carry hardcoded gradients/colors
-     that the palette vars don't reach, so lift them explicitly here. */
-  .grid-container {
-    background: linear-gradient(145deg, #e4d9c5 0%, #d8cbb3 100%);
-  }
+/* Single-use interactive surfaces below carry hardcoded gradients/colors
+   that the palette vars don't reach, so lift them explicitly here. */
+:root[data-contrast="high"] .grid-container {
+  background: linear-gradient(145deg, #e4d9c5 0%, #d8cbb3 100%);
+}
 
-  .grid-cell:hover {
-    background: linear-gradient(175deg, #fff4df 0%, #ecdcc2 100%);
-  }
+:root[data-contrast="high"] .grid-cell:hover {
+  background: linear-gradient(175deg, #fff4df 0%, #ecdcc2 100%);
+}
 
-  .hint-button-style {
-    background: #fff;
-    color: #5a3d00;
-  }
+:root[data-contrast="high"] .hint-button-style {
+  background: #fff;
+  color: #5a3d00;
+}
 
-  .hint-button-style:hover {
-    background: #fde9b0;
-    border-color: #6e4e00;
-  }
+:root[data-contrast="high"] .hint-button-style:hover {
+  background: #fde9b0;
+  border-color: #6e4e00;
 }
 
 /* Buttons: kill 300ms double-tap zoom delay on tablets.
@@ -247,6 +247,46 @@ button {
 .theme-btn[data-theme="ocea"]    { background: #1c6e8c; }
 .theme-btn[data-theme="bosc"]    { background: #3f7d3a; }
 .theme-btn[data-theme="espai"]   { background: #5b3fb0; }
+
+/* High-contrast toggle — sits beside the theme picker in the board topbar. */
+.contrast-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--ink-strong);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.contrast-toggle:hover {
+  transform: scale(1.12);
+}
+
+.contrast-toggle[aria-pressed="true"] {
+  background: var(--ink-strong);
+  color: var(--bg-cream);
+  border-color: var(--ink-strong);
+  box-shadow: 0 0 0 2px var(--bg-cream), 0 0 0 4px var(--ink-strong);
+}
+
+/* Generic confirm modal actions (replaces native confirm dialogs). */
+.confirm-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.confirm-modal-actions button {
+  flex: 1;
+}
 
 /* Difficulty presets — one click fills the four config selects below. */
 .difficulty-presets-field {

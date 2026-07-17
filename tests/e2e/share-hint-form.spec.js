@@ -169,8 +169,8 @@ test("student progress resumes after reopening the shared link", async ({ browse
 
   // Starting over clears the saved progress.
   await reopened.getByRole("button", { name: "Començar" }).click();
-  reopened.once("dialog", dialog => dialog.accept());
   await reopened.getByRole("button", { name: "Reiniciar joc" }).click();
+  await reopened.getByRole("button", { name: "Confirmar" }).click();
   await expect(reopened.locator("#progress-text")).toHaveText("0 / 4");
 
   await context.close();
@@ -315,15 +315,8 @@ test("share status warns when the encoded URL approaches messenger limits", asyn
   await expect(page.locator("#status-message")).toContainText(/Enllaç molt llarg|long/i);
 });
 
-test("send-results blocks with an alert when the device is offline", async ({ page, context }) => {
+test("send-results blocks with an inline message when the device is offline", async ({ page, context }) => {
   const formTemplate = "https://docs.google.com/forms/d/e/test/viewform?entry.10=Nom&entry.20=Cognoms&entry.30=Resultat&entry.40=Tema";
-  const alerts = [];
-  page.on("dialog", async dialog => {
-    if (dialog.type() === "alert") {
-      alerts.push(dialog.message());
-    }
-    await dialog.dismiss();
-  });
   await page.addInitScript(() => {
     Math.random = () => 0;
     window.__openedUrls = [];
@@ -350,8 +343,7 @@ test("send-results blocks with an alert when the device is offline", async ({ pa
 
   await context.setOffline(true);
   await page.locator("#send-results-button").click();
-  expect(alerts.length).toBe(1);
-  expect(alerts[0]).toMatch(/Sense connexió|Offline|Sin conexión/);
+  await expect(page.locator("#board-status")).toContainText(/Sense connexió|Offline|Sin conexión/);
   await expect.poll(() => page.evaluate(() => window.__openedUrls.length)).toBe(0);
 
   await context.setOffline(false);

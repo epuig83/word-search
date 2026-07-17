@@ -25,6 +25,7 @@
     persistCustomSamples,
     setStatus,
     debounce,
+    confirmDialog,
   }) {
     function resolveSelectedSample() {
       const value = dom.sampleSelect.value;
@@ -117,19 +118,19 @@
       // Tokens that normalize to 1-2 letters are silently dropped by parseWords
       // (the placement engine needs ≥3). Flag them so the teacher knows why the
       // count didn't move — common with short Catalan/Spanish words ("os", "au").
-      const shortCount = dom.wordsInput.value
+      const shortWords = dom.wordsInput.value
         .split(/[\n,;]+/)
         .map(token => token.trim())
         .filter(Boolean)
         .filter(token => {
           const length = normalizeWord(token).length;
           return length > 0 && length < 3;
-        }).length;
+        });
 
       dom.wordsCount.textContent = t.words_count.replace("{count}", count);
       dom.wordsCount.className = "words-count-pill" + (countTone ? ` is-${countTone}` : "");
-      const feedbackText = shortCount
-        ? `${t[feedbackKey]} ${t.words_too_short.replace("{count}", shortCount)}`
+      const feedbackText = shortWords.length
+        ? `${t[feedbackKey]} ${t.words_too_short.replace("{words}", shortWords.join(", "))}`
         : t[feedbackKey];
       dom.wordsFeedback.textContent = feedbackText;
       dom.wordsFeedback.className = "words-feedback" + (countTone ? ` is-${countTone}` : "");
@@ -246,14 +247,14 @@
       setStatus(getTranslations().msg_sample_saved, "success");
     }
 
-    function loadSelectedSample() {
+    async function loadSelectedSample() {
       const sample = resolveSelectedSample();
       if (!sample) {
         setStatus(getTranslations().msg_choose_sample, "error");
         return;
       }
 
-      if (isFormDirty() && !window.confirm(getTranslations().msg_confirm_replace)) {
+      if (isFormDirty() && !(await confirmDialog({ message: getTranslations().msg_confirm_replace }))) {
         return;
       }
 
@@ -402,7 +403,7 @@
         dom.sampleUndoButton.addEventListener("click", () => undoLastDelete());
       }
 
-      dom.saveSampleButton.addEventListener("click", () => {
+      dom.saveSampleButton.addEventListener("click", async () => {
         const sample = buildCurrentSampleFromForm();
         if (!sample) {
           return;
@@ -412,7 +413,7 @@
         const currentSamples = getCustomSamplePuzzles(state.lang);
         const existingSample = currentSamples.find(item => normalizeWord(item.title) === titleKey);
 
-        if (existingSample && !window.confirm(getTranslations().msg_confirm_replace_custom_sample)) {
+        if (existingSample && !(await confirmDialog({ message: getTranslations().msg_confirm_replace_custom_sample }))) {
           return;
         }
 
