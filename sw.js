@@ -6,6 +6,8 @@ const CACHE_NAME = "word-search-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./es.html",
+  "./en.html",
   "./styles.css",
   "./data.js",
   "./i18n.js",

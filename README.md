@@ -7,7 +7,7 @@ Small dependency-free web app for creating word search activities for primary sc
 1. Open `index.html` in the laptop browser.
 2. Enter a topic and a list of words, or use the side library to add vocabulary.
 3. Click `Generate new puzzle` in the teacher view, or `Generate and open student view` to jump straight into the student area.
-4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`).
+4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`; `H` requests a hint while focus is inside the grid).
 5. When the activity is ready, use `Share` or `Print / PDF`.
 
 ## Editable Data
@@ -34,7 +34,7 @@ Small dependency-free web app for creating word search activities for primary sc
 - The `Activity ready` card summarizes the current puzzle and gives quick access to the student area, sharing, and printing.
 - Shared links rebuild the exact same puzzle when opened.
 - The student start overlay shows the timer and available hints before the activity begins.
-- If you configure Google Forms, students can submit their result from the student view after finishing.
+- If you configure Google Forms, students see which data will be prepared for submission before entering a name or alias; surnames are optional.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
 
 ## If the Browser Shows Warnings with `file://`
@@ -75,13 +75,25 @@ pnpm install
 pnpm test:unit
 ```
 
-3. Run headless E2E tests:
+3. Run static analysis:
+
+```bash
+pnpm lint
+```
+
+4. Verify the generated Spanish and English pages:
+
+```bash
+pnpm check:locales
+```
+
+5. Run headless E2E tests:
 
 ```bash
 pnpm test:e2e
 ```
 
-4. Run the full test suite:
+6. Run the full quality suite:
 
 ```bash
 pnpm test
@@ -90,10 +102,11 @@ pnpm test
 ### Coverage
 
 - `tests/unit/*`: puzzle logic, app helper logic, translation integrity, and data consistency.
+- `tests/e2e/accessibility.spec.js`: Axe checks for teacher, active student, and completion states plus tab keyboard behavior.
 - `tests/e2e/student-flow.spec.js`: real teacher/student flow, start overlay, timer, reset, and return from teacher view.
 - `tests/e2e/share-hint-form.spec.js`: shared links, hints, student form flow, and malformed shared URLs.
 
 ## CI
 
-- GitHub Actions runs unit and E2E tests on every `push` to `main` or `master` and on every `pull request`.
+- GitHub Actions runs ESLint, unit tests, and E2E/accessibility tests on every `push` to `main` or `master` and on every `pull request`.
 - The workflow lives in `.github/workflows/test.yml`.

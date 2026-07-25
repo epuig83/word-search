@@ -217,6 +217,8 @@ test("student name modal and send results use the configured form URL", async ({
   await generatePuzzle(page, { words: wordsText, timer: "0", hints: "0", formTemplate });
 
   await expect(page.locator("#student-name-modal")).toBeVisible();
+  await expect(page.locator("#student-name-privacy")).toContainText("Google Form");
+  await expect(page.getByLabel("Cognoms (opcional)")).toBeVisible();
   await page.locator("#student-nom-input").fill("Ada");
   await page.locator("#student-cognoms-input").fill("Lovelace");
   await page.getByRole("button", { name: "Continuar" }).click();
@@ -230,9 +232,13 @@ test("student name modal and send results use the configured form URL", async ({
   const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
 
   for (let index = 0; index < puzzle.placements.length; index++) {
+    if (index === 0) {
+      await expect(page.locator("#word-list .word-item").first().locator(".check-icon")).toBeHidden();
+    }
     await solvePlacement(page, puzzle.placements[index]);
     await expect(page.locator("#word-list .word-item.is-found")).toHaveCount(index + 1);
   }
+  await expect(page.locator("#word-list .word-item.is-found").first().locator(".check-icon")).toBeVisible();
 
   await expect(page.locator("#completion-message")).toBeVisible();
   await expect(page.locator("#completion-message")).toBeInViewport();

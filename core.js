@@ -32,7 +32,7 @@
       .replace(/Ñ/g, "\u0000")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\u0000/g, "Ñ")
+      .split("\u0000").join("Ñ")
       .replace(/[^A-ZÑ]/g, "");
   }
 

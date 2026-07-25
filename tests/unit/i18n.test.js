@@ -9,7 +9,7 @@ const i18n = globalThis.WORD_SEARCH_I18N;
 
 const LANGS = ["ca", "es", "en"];
 const CRITICAL_KEYS = [
-  "page_title", "page_description",
+  "page_title", "page_description", "social_description", "site_name", "og_locale",
   "tab_teacher", "tab_student",
   "btn_generate", "btn_generate_open_student",
   "btn_show_solution", "btn_hide_solution", "btn_reset",
@@ -47,7 +47,9 @@ const ALL_EXPECTED_KEYS = new Set([...CRITICAL_KEYS, ...PLACEHOLDER_KEYS,
   "btn_send_results", "completion_note", "word_definition_kicker", "word_definition_placeholder_title",
   "word_definition_placeholder_text", "word_definition_found", "word_definition_close",
   "form_config_title", "form_url_label",
-  "name_modal_title", "name_modal_text", "btn_continue", "btn_start_game",
+  "name_modal_title", "name_modal_text", "name_modal_privacy",
+  "name_cognoms_optional", "form_privacy_note", "skip_to_main",
+  "btn_continue", "btn_start_game",
   "btn_generating", "msg_confirm_reset", "form_url_invalid",
   "pin_text", "pin_btn_validate", "pin_btn_cancel",
   "msg_no_examples", "msg_choose_sample", "msg_confirm_replace",

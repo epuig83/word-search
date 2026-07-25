@@ -77,6 +77,7 @@ async function measureGridVisibility(page) {
 
     const containerRect = container.getBoundingClientRect();
     const overflowAllowance = 0.5;
+    const cellRects = cells.map(cell => cell.getBoundingClientRect());
     const clippedCells = cells.filter(cell => {
       const rect = cell.getBoundingClientRect();
       return rect.left < containerRect.left - overflowAllowance ||
@@ -91,6 +92,9 @@ async function measureGridVisibility(page) {
       containerClientWidth: container.clientWidth,
       containerScrollWidth: container.scrollWidth,
       gridWidth: Math.round(grid.getBoundingClientRect().width),
+      minCellWidth: Math.min(...cellRects.map(rect => rect.width)),
+      minCellHeight: Math.min(...cellRects.map(rect => rect.height)),
+      isHorizontallyScrollable: container.scrollWidth > container.clientWidth + overflowAllowance,
       density: container.dataset.gridDensity || null,
       size: container.dataset.gridSize || null,
     };

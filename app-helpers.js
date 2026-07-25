@@ -110,7 +110,9 @@
       try {
         await writeText(url);
         return "copied";
-      } catch {}
+      } catch {
+        // Continue to the prompt fallback when clipboard access is unavailable.
+      }
     }
 
     if (typeof prompt === "function") {

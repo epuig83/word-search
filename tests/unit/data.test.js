@@ -110,7 +110,6 @@ test("every internal vocabulary and built-in sample word has a definition", () =
 // ── Sample puzzles ─────────────────────────────────────────────────────────
 
 test("samplePuzzles has the same number of entries per language", () => {
-  const counts = LANGS.map(lang => data.samplePuzzles[lang].length);
   // They don't need to be equal, but each should have at least 1
   for (const lang of LANGS) {
     assert.ok(
@@ -194,7 +193,7 @@ test("vocabulary categories have language-specific labels", () => {
   const caLabels = Object.entries(data.vocabulary.ca).map(([id, cat]) => [id, cat.label]);
   for (const lang of LANGS) {
     if (lang === "ca") continue;
-    for (const [id, caLabel] of caLabels) {
+    for (const [id] of caLabels) {
       const langLabel = data.vocabulary[lang][id]?.label;
       assert.ok(langLabel, `${lang}.${id} missing label`);
       // At least some labels should differ between languages

@@ -58,8 +58,10 @@
       document.body.dataset.tab = tab;
       dom.tabTeacher.classList.toggle("is-active", tab === "teacher");
       dom.tabTeacher.setAttribute("aria-selected", String(tab === "teacher"));
+      dom.tabTeacher.tabIndex = tab === "teacher" ? 0 : -1;
       dom.tabStudent.classList.toggle("is-active", tab === "student");
       dom.tabStudent.setAttribute("aria-selected", String(tab === "student"));
+      dom.tabStudent.tabIndex = tab === "student" ? 0 : -1;
       dom.sectionTeacher.hidden = tab !== "teacher";
       dom.sectionStudent.hidden = tab !== "student";
 
@@ -152,6 +154,23 @@
         });
       });
       dom.tabStudent.addEventListener("click", () => setTab("student"));
+
+      const tabs = [dom.tabTeacher, dom.tabStudent];
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("keydown", event => {
+          let nextIndex = null;
+          if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+          if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+          if (event.key === "Home") nextIndex = 0;
+          if (event.key === "End") nextIndex = tabs.length - 1;
+          if (nextIndex === null) return;
+          event.preventDefault();
+          tabs.forEach((candidate, candidateIndex) => {
+            candidate.tabIndex = candidateIndex === nextIndex ? 0 : -1;
+          });
+          tabs[nextIndex].focus();
+        });
+      });
 
       if (dom.generateOpenButton && onGenerateOpenStudent) {
         dom.generateOpenButton.addEventListener("click", () => {

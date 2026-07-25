@@ -38,6 +38,7 @@
     const updateTimerDisplayFn = typeof updateTimerDisplay === "function" ? updateTimerDisplay : () => {};
     let hintCooldownUntil = 0;
     let hintCooldownTimeoutId = null;
+    let launchConfetti = null;
     function buildGridCellLabel(letter, row, col, flags) {
       const t = getTranslations();
       const parts = [
@@ -92,6 +93,9 @@
       const density = getGridDensity(size);
       dom.puzzleGrid.innerHTML = "";
       dom.puzzleGrid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      // Use the largest possible gap when calculating the floor so every
+      // interactive cell remains at least 24 × 24 CSS px at every breakpoint.
+      dom.puzzleGrid.style.setProperty("--grid-min-width", `${size * 24 + (size - 1) * 6}px`);
       dom.puzzleGrid.dataset.gridSize = String(size);
       dom.puzzleGrid.dataset.gridDensity = density;
       if (dom.gridContainer) {
@@ -133,24 +137,19 @@
         item.className = "word-item";
         const isDefinable = Boolean(getDefinitionTextForWordId(word.id));
         item.dataset.definable = String(isDefinable);
-        const textSpan = document.createElement("span");
-        textSpan.textContent = word.display;
+        const textElement = document.createElement(isDefinable ? "button" : "span");
+        textElement.textContent = word.display;
         const checkSpan = document.createElement("span");
         checkSpan.className = "check-icon";
         checkSpan.innerHTML = svgCheck;
         if (isDefinable) {
           item.classList.add("is-definable");
-          item.tabIndex = 0;
-          item.setAttribute("role", "button");
-          item.setAttribute("aria-haspopup", "dialog");
-          item.addEventListener("click", () => openWordDefinition(word.id));
-          item.addEventListener("keydown", event => {
-            if (event.key !== "Enter" && event.key !== " ") return;
-            event.preventDefault();
-            openWordDefinition(word.id);
-          });
+          textElement.type = "button";
+          textElement.className = "word-definition-button";
+          textElement.setAttribute("aria-haspopup", "dialog");
+          textElement.addEventListener("click", () => openWordDefinition(word.id));
         }
-        item.appendChild(textSpan);
+        item.appendChild(textElement);
         item.appendChild(checkSpan);
         dom.wordList.appendChild(item);
         dom.wordListItems.set(word.id, item);
@@ -247,6 +246,11 @@
     function celebrate() {
       if (prefersReducedMotion()) return;
       if (typeof globalThis.confetti !== "function") return;
+      if (!launchConfetti) {
+        launchConfetti = dom.celebrationCanvas && typeof globalThis.confetti.create === "function"
+          ? globalThis.confetti.create(dom.celebrationCanvas, { resize: true, useWorker: false })
+          : globalThis.confetti;
+      }
 
       state.celebrationsInSession = (state.celebrationsInSession || 0) + 1;
       const intensity = state.celebrationsInSession === 1 ? 1 : 0.33;
@@ -264,7 +268,7 @@
         zIndex: 1600,
       };
 
-      globalThis.confetti({
+      launchConfetti({
         ...baseOptions,
         particleCount: scale(52),
         angle: 60,
@@ -274,7 +278,7 @@
       });
 
       window.setTimeout(() => {
-        globalThis.confetti({
+        launchConfetti({
           ...baseOptions,
           particleCount: scale(52),
           angle: 120,
@@ -285,7 +289,7 @@
       }, 120);
 
       window.setTimeout(() => {
-        globalThis.confetti({
+        launchConfetti({
           ...baseOptions,
           particleCount: scale(28),
           angle: 90,

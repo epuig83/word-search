@@ -1,4 +1,6 @@
 const { test, expect } = require("@playwright/test");
+const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const {
   generatePuzzle,
   measureGridVisibility,
@@ -25,6 +27,21 @@ const LARGE_RESPONSIVE_WORDS = [
   "dromedari",
   "ornitorrinc",
 ].join("\n");
+
+test("the app still opens directly from file protocol", async ({ page }) => {
+  const runtimeErrors = [];
+  page.on("pageerror", error => runtimeErrors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error") runtimeErrors.push(message.text());
+  });
+
+  const fileUrl = pathToFileURL(path.resolve(__dirname, "../../index.html")).href;
+  await page.goto(fileUrl);
+
+  await expect(page.locator("#generator-form")).toBeVisible();
+  await expect(page).toHaveTitle(/Sopes de Lletres/);
+  expect(runtimeErrors).toEqual([]);
+});
 
 test("student overlay gates the start of the timer", async ({ page }) => {
   await generatePuzzle(page);
@@ -218,7 +235,11 @@ test("H keyboard shortcut consumes a hint", async ({ page }) => {
   await startStudentSession(page);
 
   await expect(page.locator("#hint-button")).toContainText("3");
-  await page.locator("#puzzle-grid").focus();
+  await page.locator("#reset-progress-button").focus();
+  await page.keyboard.press("h");
+  await expect(page.locator("#hint-button")).toContainText("3");
+
+  await page.locator('#puzzle-grid .grid-cell[tabindex="0"]').focus();
   await page.keyboard.press("h");
   await expect(page.locator("#hint-button")).toContainText("2");
 });
@@ -244,11 +265,33 @@ test("language switch updates the main teacher controls in all locales", async (
   await page.getByRole("button", { name: "Castellano" }).click();
   await expect(page.locator("#tab-teacher")).toContainText("Panel de creación");
   await expect(page.locator("#generate-button")).toHaveText("Generar nueva sopa");
+  await expect(page).toHaveURL(/\/es\.html$/);
+  await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", "es_ES");
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Generador de Sopas de Letras para Primaria");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://epuig83.github.io/word-search/es.html");
 
   await page.getByRole("button", { name: "English" }).click();
   await expect(page.locator("#tab-teacher")).toContainText("Creation Panel");
   await expect(page.locator("#generate-button")).toHaveText("Generate new puzzle");
   await expect(page.locator("#tab-student")).toContainText("Student area");
+  await expect(page).toHaveURL(/\/en\.html$/);
+  await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", "en_US");
+  const structuredData = await page.locator("#structured-data").textContent();
+  expect(JSON.parse(structuredData).name).toBe("Word Search Generator for Primary School");
+});
+
+test("localized pages ship localized metadata before JavaScript runs", async ({ page }) => {
+  const spanishResponse = await page.request.get("/es.html");
+  expect(spanishResponse.ok()).toBeTruthy();
+  const spanishHtml = await spanishResponse.text();
+  expect(spanishHtml).toContain('<html lang="es" data-initial-lang="es">');
+  expect(spanishHtml).toContain('<meta property="og:locale" content="es_ES" />');
+  expect(spanishHtml).toContain('<link rel="canonical" href="https://epuig83.github.io/word-search/es.html" />');
+
+  await page.goto("/en.html");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page).toHaveTitle("Word Search Generator for Primary School");
+  await expect(page.locator("#generate-button")).toHaveText("Generate new puzzle");
 });
 
 test("language selector exposes a localized accessible label", async ({ page }) => {
@@ -317,12 +360,51 @@ test("print worksheet shows a localized name/date line and drops the screen back
     },
   },
   {
+    label: "mobile 320 with a 16x16 board",
+    context: {
+      viewport: { width: 320, height: 568 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 2,
+    },
+    puzzle: {
+      size: "16",
+      words: LARGE_RESPONSIVE_WORDS,
+    },
+  },
+  {
     label: "mobile 375 with a 16x16 board",
     context: {
       viewport: { width: 375, height: 812 },
       isMobile: true,
       hasTouch: true,
       deviceScaleFactor: 2,
+    },
+    puzzle: {
+      size: "16",
+      words: LARGE_RESPONSIVE_WORDS,
+    },
+  },
+  {
+    label: "mobile 390 with a 16x16 board",
+    context: {
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 3,
+    },
+    puzzle: {
+      size: "16",
+      words: LARGE_RESPONSIVE_WORDS,
+    },
+  },
+  {
+    label: "200 percent zoom equivalent at 683px with a 16x16 board",
+    context: {
+      viewport: { width: 683, height: 768 },
+      isMobile: false,
+      hasTouch: false,
+      deviceScaleFactor: 1,
     },
     puzzle: {
       size: "16",
@@ -356,7 +438,7 @@ test("print worksheet shows a localized name/date line and drops the screen back
     },
   },
 ].forEach(({ label, context, puzzle }) => {
-  test(`student board keeps all cells visible on ${label}`, async ({ browser }) => {
+  test(`student board keeps accessible targets on ${label}`, async ({ browser }) => {
     const pageContext = await browser.newContext(context);
     const page = await pageContext.newPage();
 
@@ -370,7 +452,11 @@ test("print worksheet shows a localized name/date line and drops the screen back
     const metrics = await measureGridVisibility(page);
     expect(metrics).not.toBeNull();
     expect(metrics.size).toBe(puzzle.size);
-    expect(metrics.clippedCells, JSON.stringify(metrics)).toBe(0);
+    expect(metrics.minCellWidth, JSON.stringify(metrics)).toBeGreaterThanOrEqual(24);
+    expect(metrics.minCellHeight, JSON.stringify(metrics)).toBeGreaterThanOrEqual(24);
+    if (context.viewport.width <= 683 && puzzle.size === "16") {
+      expect(metrics.isHorizontallyScrollable, JSON.stringify(metrics)).toBe(true);
+    }
 
     await pageContext.close();
   });

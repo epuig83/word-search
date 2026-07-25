@@ -470,6 +470,15 @@
 
   const dom = {
     metaDescription: document.querySelector('meta[name="description"]'),
+    canonicalLink: document.querySelector('link[rel="canonical"]'),
+    ogTitle: document.querySelector('meta[property="og:title"]'),
+    ogDescription: document.querySelector('meta[property="og:description"]'),
+    ogSiteName: document.querySelector('meta[property="og:site_name"]'),
+    ogLocale: document.querySelector('meta[property="og:locale"]'),
+    ogUrl: document.querySelector('meta[property="og:url"]'),
+    twitterTitle: document.querySelector('meta[name="twitter:title"]'),
+    twitterDescription: document.querySelector('meta[name="twitter:description"]'),
+    structuredData: document.querySelector("#structured-data"),
     form: document.querySelector("#generator-form"),
     generateButton: document.querySelector("#generate-button"),
     generateOpenButton: document.querySelector("#generate-open-button"),
@@ -522,6 +531,7 @@
     completionMessageTitle: document.querySelector("#completion-message-title"),
     completionNote: document.querySelector("#completion-note"),
     completionTime: document.querySelector("#completion-time"),
+    celebrationCanvas: document.querySelector("#celebration-canvas"),
     playAgainButton: document.querySelector("#play-again-button"),
     langBtns: document.querySelectorAll(".lang-btn"),
     themeBtns: document.querySelectorAll(".theme-btn"),
@@ -716,6 +726,40 @@
     document.documentElement.lang = lang;
     document.title = TRANSLATIONS[lang].page_title;
     if (dom.metaDescription) dom.metaDescription.setAttribute("content", TRANSLATIONS[lang].page_description);
+    const publicUrl = lang === "ca"
+      ? "https://epuig83.github.io/word-search/"
+      : `https://epuig83.github.io/word-search/${lang}.html`;
+    if (dom.canonicalLink) dom.canonicalLink.href = publicUrl;
+    if (dom.ogTitle) dom.ogTitle.setAttribute("content", TRANSLATIONS[lang].page_title);
+    if (dom.ogDescription) dom.ogDescription.setAttribute("content", TRANSLATIONS[lang].social_description);
+    if (dom.ogSiteName) dom.ogSiteName.setAttribute("content", TRANSLATIONS[lang].site_name);
+    if (dom.ogLocale) dom.ogLocale.setAttribute("content", TRANSLATIONS[lang].og_locale);
+    if (dom.ogUrl) dom.ogUrl.setAttribute("content", publicUrl);
+    if (dom.twitterTitle) dom.twitterTitle.setAttribute("content", TRANSLATIONS[lang].page_title);
+    if (dom.twitterDescription) dom.twitterDescription.setAttribute("content", TRANSLATIONS[lang].social_description);
+    if (dom.structuredData) {
+      try {
+        const structuredData = JSON.parse(dom.structuredData.textContent);
+        structuredData.name = TRANSLATIONS[lang].page_title;
+        structuredData.description = TRANSLATIONS[lang].page_description;
+        structuredData.inLanguage = lang;
+        structuredData.url = publicUrl;
+        dom.structuredData.textContent = JSON.stringify(structuredData);
+      } catch {
+        // Keep the valid server-rendered JSON-LD if an extension altered it.
+      }
+    }
+    const currentUrl = new URL(window.location.href);
+    if (!currentUrl.searchParams.has("p")) {
+      currentUrl.searchParams.delete("lang");
+      const directory = currentUrl.pathname.endsWith("/")
+        ? currentUrl.pathname
+        : currentUrl.pathname.slice(0, currentUrl.pathname.lastIndexOf("/") + 1);
+      const localizedPath = lang === "ca"
+        ? `${directory}${currentUrl.protocol === "file:" ? "index.html" : ""}`
+        : `${directory}${lang}.html`;
+      window.history.replaceState(null, "", `${localizedPath}${currentUrl.search}${currentUrl.hash}`);
+    }
     document.querySelectorAll("[data-t]").forEach(el => {
       const key = el.getAttribute("data-t");
       if (TRANSLATIONS[lang][key]) el.textContent = TRANSLATIONS[lang][key];
@@ -1030,7 +1074,7 @@
     if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key !== "h" && event.key !== "H") return;
     const target = event.target;
-    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    if (!(target instanceof Element) || !dom.puzzleGrid.contains(target)) return;
     if (!canInteractWithPuzzle() || !dom.hintButton || dom.hintButton.hidden || dom.hintButton.disabled) return;
     event.preventDefault();
     useHint();
@@ -1259,7 +1303,10 @@
   }
 
   if (!tryLoadFromUrl()) {
-    updateLanguage(loadLangFromStorage());
+    const queryLang = new URLSearchParams(window.location.search).get("lang");
+    const pathLang = window.location.pathname.match(/\/(es|en)\.html$/)?.[1];
+    const requestedLang = queryLang || pathLang;
+    updateLanguage(TRANSLATIONS[requestedLang] ? requestedLang : loadLangFromStorage());
     teacherController.updateWordsHelper();
     sessionController.setTab("teacher");
     if (new URLSearchParams(window.location.search).has("p")) {
