@@ -43,6 +43,30 @@ test("the app still opens directly from file protocol", async ({ page }) => {
   expect(runtimeErrors).toEqual([]);
 });
 
+test("teacher flow presents one creation CTA and grouped optional settings", async ({ page }) => {
+  await page.goto("/index.html");
+
+  await expect(page.locator("#generate-open-button")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Crear i revisar l'activitat" })).toBeVisible();
+  await expect(page.locator("#advanced-settings-details")).not.toHaveAttribute("open", "");
+  await expect(page.locator(".sample-management")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(0);
+});
+
+test("Andika is self-hosted and loaded as the classroom typeface", async ({ page }) => {
+  const regular = await page.request.get("/assets/fonts/andika-regular-latin.woff2");
+  const bold = await page.request.get("/assets/fonts/andika-bold-latin.woff2");
+  expect(regular.ok()).toBeTruthy();
+  expect(bold.ok()).toBeTruthy();
+  expect((await regular.body()).byteLength + (await bold.body()).byteLength).toBeLessThan(120_000);
+
+  await page.goto("/index.html");
+  await page.evaluate(() => document.fonts.ready);
+  const fontFamily = await page.locator("body").evaluate(element => getComputedStyle(element).fontFamily);
+  expect(fontFamily).toContain("Andika");
+  expect(await page.evaluate(() => document.fonts.check('16px "Andika"'))).toBe(true);
+});
+
 test("student overlay gates the start of the timer", async ({ page }) => {
   await generatePuzzle(page);
 
@@ -92,8 +116,10 @@ test("timer expiry reveals the completion card with a play-again CTA", async ({ 
   await page.goto("/index.html");
   await page.locator("#title-input").fill("Animals");
   await page.locator("#words-input").fill("balena\ndofi\npeix\ntauro");
+  await page.locator("#advanced-settings-details summary").click();
   await page.locator("#timer-input").selectOption("300");
-  await page.locator("#generate-open-button").click();
+  await page.locator("#generate-button").click();
+  await page.locator("#teacher-open-student-button").click();
   await expect(page.locator("#student-start-overlay")).toBeVisible();
   await page.getByRole("button", { name: "Començar" }).click();
   await expect(page.locator("#student-start-overlay")).toBeHidden();
@@ -115,8 +141,10 @@ test("pause halts the timer and resume keeps the remaining seconds", async ({ pa
   await page.goto("/index.html");
   await page.locator("#title-input").fill("Pause");
   await page.locator("#words-input").fill("gat\ngos\npeix\npop");
+  await page.locator("#advanced-settings-details summary").click();
   await page.locator("#timer-input").selectOption("300");
-  await page.locator("#generate-open-button").click();
+  await page.locator("#generate-button").click();
+  await page.locator("#teacher-open-student-button").click();
   await page.getByRole("button", { name: "Començar" }).click();
   await page.clock.runFor("00:10");
 
@@ -230,6 +258,60 @@ test("PWA manifest loads and the service worker registers", async ({ page }) => 
   expect(await registered.jsonValue()).toBe(true);
 });
 
+test("localized PWA shells remain localized offline without query cache entries", async ({ page, context }) => {
+  await page.goto("/es.html?source=classroom");
+  await page.waitForFunction(async () => {
+    if (!("serviceWorker" in navigator)) return false;
+    await navigator.serviceWorker.ready;
+    return Boolean(navigator.serviceWorker.controller);
+  }, null, { timeout: 8_000 });
+
+  const cachePaths = await page.evaluate(async () => {
+    const cache = await caches.open("word-search-v4");
+    return (await cache.keys()).map(request => new URL(request.url).pathname + new URL(request.url).search);
+  });
+  expect(cachePaths.some(pathname => pathname.includes("?"))).toBe(false);
+
+  await context.setOffline(true);
+  await page.goto("/es.html?source=offline");
+  await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  await expect(page.locator("#generate-button")).toHaveText("Crear y revisar la actividad");
+
+  await page.goto("/en.html?source=offline");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator("#generate-button")).toHaveText("Create and review activity");
+  await context.setOffline(false);
+});
+
+test("mobile game bar keeps timer, pause, and hint controls in reach", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await generatePuzzle(page, { timer: "300", hints: "3" });
+  await startStudentSession(page);
+  await page.locator("#word-bank-title").scrollIntoViewIfNeeded();
+
+  const metrics = await page.locator("#student-gamebar").evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const controls = Array.from(element.querySelectorAll("button:not([hidden]), .timer-pill:not([hidden])"));
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      width: rect.width,
+      targets: controls.map(control => {
+        const target = control.getBoundingClientRect();
+        return { width: target.width, height: target.height };
+      }),
+    };
+  });
+  expect(metrics.top).toBeGreaterThanOrEqual(0);
+  expect(metrics.bottom).toBeLessThanOrEqual(844);
+  expect(metrics.width).toBeLessThanOrEqual(390);
+  expect(metrics.targets).toHaveLength(3);
+  for (const target of metrics.targets) {
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test("H keyboard shortcut consumes a hint", async ({ page }) => {
   await generatePuzzle(page, { timer: "0", hints: "3" });
   await startStudentSession(page);
@@ -264,7 +346,7 @@ test("language switch updates the main teacher controls in all locales", async (
   await expect(page.locator("#tab-teacher")).toContainText("Panell de creació");
   await page.getByRole("button", { name: "Castellano" }).click();
   await expect(page.locator("#tab-teacher")).toContainText("Panel de creación");
-  await expect(page.locator("#generate-button")).toHaveText("Generar nueva sopa");
+  await expect(page.locator("#generate-button")).toHaveText("Crear y revisar la actividad");
   await expect(page).toHaveURL(/\/es\.html$/);
   await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", "es_ES");
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Generador de Sopas de Letras para Primaria");
@@ -272,7 +354,7 @@ test("language switch updates the main teacher controls in all locales", async (
 
   await page.getByRole("button", { name: "English" }).click();
   await expect(page.locator("#tab-teacher")).toContainText("Creation Panel");
-  await expect(page.locator("#generate-button")).toHaveText("Generate new puzzle");
+  await expect(page.locator("#generate-button")).toHaveText("Create and review activity");
   await expect(page.locator("#tab-student")).toContainText("Student area");
   await expect(page).toHaveURL(/\/en\.html$/);
   await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", "en_US");
@@ -291,7 +373,7 @@ test("localized pages ship localized metadata before JavaScript runs", async ({ 
   await page.goto("/en.html");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page).toHaveTitle("Word Search Generator for Primary School");
-  await expect(page.locator("#generate-button")).toHaveText("Generate new puzzle");
+  await expect(page.locator("#generate-button")).toHaveText("Create and review activity");
 });
 
 test("language selector exposes a localized accessible label", async ({ page }) => {

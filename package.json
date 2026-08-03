@@ -6,6 +6,7 @@
     "build:locales": "node scripts/generate-localized-pages.js",
     "check:locales": "node scripts/generate-localized-pages.js --check",
     "lint": "eslint .",
+    "security:audit": "pnpm audit --audit-level high",
     "test": "pnpm lint && pnpm check:locales && pnpm test:unit && pnpm test:e2e",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:e2e": "playwright test",
@@ -14,9 +15,9 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "eslint": "^10.8.0",
-    "globals": "^17.7.0"
+    "globals": "^17.9.0"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4"

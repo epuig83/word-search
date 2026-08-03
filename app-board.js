@@ -171,8 +171,10 @@
       const onCooldown = Date.now() < hintCooldownUntil;
       const setHintText = (count) => {
         const visibleText = t.btn_hint.replace("{n}", count);
-        dom.hintButton.textContent = visibleText;
-        dom.hintButton.setAttribute("aria-label", visibleText.replace(/^💡\s*/, ""));
+        const label = dom.hintButton.querySelector(".button-label");
+        if (label) label.textContent = visibleText;
+        else dom.hintButton.textContent = visibleText;
+        dom.hintButton.setAttribute("aria-label", visibleText);
       };
       if (allowed === -1) {
         setHintText("∞");
@@ -327,6 +329,7 @@
       document.body.dataset.mode = state.mode;
       document.body.dataset.tab = state.activeTab;
       dom.studentActions.hidden = !state.puzzle;
+      if (dom.studentGamebar) dom.studentGamebar.hidden = !state.puzzle;
 
       if (!state.puzzle) {
         if (dom.timerDisplay) dom.timerDisplay.hidden = true;
@@ -450,7 +453,9 @@
           !isComplete
         );
         dom.pauseButton.hidden = !showPause;
-        dom.pauseButton.textContent = state.timerPaused ? t.btn_resume : t.btn_pause;
+        const pauseLabel = dom.pauseButton.querySelector(".button-label");
+        if (pauseLabel) pauseLabel.textContent = state.timerPaused ? t.btn_resume : t.btn_pause;
+        else dom.pauseButton.textContent = state.timerPaused ? t.btn_resume : t.btn_pause;
         dom.pauseButton.setAttribute("aria-pressed", String(Boolean(state.timerPaused)));
       }
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-paused", Boolean(state.timerPaused));

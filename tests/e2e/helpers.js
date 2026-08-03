@@ -14,6 +14,9 @@ async function generatePuzzle(page, options = {}) {
   await page.goto("/index.html");
   await page.locator("#title-input").fill(title);
   await page.locator("#words-input").fill(words);
+  if (size !== undefined || timer !== undefined || hints !== undefined) {
+    await page.locator("#advanced-settings-details summary").click();
+  }
   if (size !== undefined) {
     await page.locator("#size-input").selectOption(String(size));
   }
@@ -27,7 +30,11 @@ async function generatePuzzle(page, options = {}) {
     await page.locator("#form-config-details summary").click();
     await page.locator("#form-template-input").fill(formTemplate);
   }
-  await page.locator(openStudent ? "#generate-open-button" : "#generate-button").click();
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#teacher-ready-card")).toBeVisible();
+  if (openStudent) {
+    await page.locator("#teacher-open-student-button").click();
+  }
 }
 
 async function readTimerSeconds(page) {

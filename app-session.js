@@ -108,7 +108,7 @@
       state.pinCallback = null;
     }
 
-    function bindEvents({ onGenerateOpenStudent } = {}) {
+    function bindEvents() {
       dom.solutionToggleButton.addEventListener("click", () => {
         if (!state.puzzle) {
           return;
@@ -171,13 +171,6 @@
           tabs[nextIndex].focus();
         });
       });
-
-      if (dom.generateOpenButton && onGenerateOpenStudent) {
-        dom.generateOpenButton.addEventListener("click", () => {
-          if (!dom.form.reportValidity()) return;
-          onGenerateOpenStudent();
-        });
-      }
 
       dom.teacherOpenStudentButton?.addEventListener("click", () => {
         if (state.puzzle) setTab("student");

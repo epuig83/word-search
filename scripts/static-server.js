@@ -16,6 +16,8 @@ const mimeTypes = new Map([
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
   [".ico", "image/x-icon"],
+  [".woff2", "font/woff2"],
+  [".txt", "text/plain; charset=utf-8"],
 ]);
 
 function resolveFilePath(requestUrl) {

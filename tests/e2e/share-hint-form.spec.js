@@ -115,13 +115,13 @@ test("spent hints resume after reopening the shared link", async ({ browser }) =
   await page.goto(shared.path);
   await startStudentSession(page);
   await page.locator("#hint-button").click();
-  await expect(page.locator("#hint-button")).toHaveText("💡 Pista (2)");
+  await expect(page.locator("#hint-button")).toHaveText("Pista (2)");
 
   const reopened = await context.newPage();
   await reopened.goto(shared.path);
   await expect(reopened.locator("#student-start-overlay")).toBeVisible();
   await startStudentSession(reopened);
-  await expect(reopened.locator("#hint-button")).toHaveText("💡 Pista (2)");
+  await expect(reopened.locator("#hint-button")).toHaveText("Pista (2)");
 
   await context.close();
 });
@@ -191,7 +191,7 @@ test("hint highlights the expected cell and decrements the counter", async ({ pa
 
   await page.locator("#hint-button").click();
 
-  await expect(page.locator("#hint-button")).toHaveText("💡 Pista (2)");
+  await expect(page.locator("#hint-button")).toHaveText("Pista (2)");
   await expect(page.locator(`[data-row="${hintedCell.row}"][data-col="${hintedCell.col}"]`)).toHaveClass(/is-hint/);
 });
 
@@ -284,6 +284,7 @@ test("sample delete is reversible via the undo toast", async ({ page }) => {
   await page.goto("/index.html");
   await page.locator("#title-input").fill("Cobais marines");
   await page.locator("#words-input").fill("balena\ndofi\npeix\ntauro");
+  await page.locator(".sample-management summary").click();
   await page.locator("#save-sample-button").click();
   await expect(page.locator("#sample-select")).toContainText("Cobais marines");
 
@@ -366,6 +367,35 @@ test("mobile library starts category-first instead of showing the full word clou
   await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(17);
 });
 
+test("desktop library also waits for a category or a search", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/index.html");
+
+  await expect(page.locator("#lib-results")).toContainText("Tria una categoria o escriu al cercador per veure paraules.");
+  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(0);
+
+  await page.locator("#lib-search").fill("gos");
+  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(1);
+  await expect(page.locator("#lib-results .lib-word-chip")).toHaveText("gos");
+});
+
+test("a shared puzzle opens from the canonical cached shell while offline", async ({ page, context }) => {
+  const shared = createSharedPuzzlePath({ title: "Enllaç sense xarxa", timer: 0 });
+  await page.goto("/index.html");
+  await page.waitForFunction(async () => {
+    if (!("serviceWorker" in navigator)) return false;
+    await navigator.serviceWorker.ready;
+    return Boolean(navigator.serviceWorker.controller);
+  }, null, { timeout: 8_000 });
+
+  await context.setOffline(true);
+  await page.goto(shared.path);
+  await expect(page.locator("#section-student")).toBeVisible();
+  await expect(page.locator("#board-title")).toHaveText("Enllaç sense xarxa");
+  await expect(page.locator("#student-start-overlay")).toBeVisible();
+  await context.setOffline(false);
+});
+
 test("defined student words open a definition modal and uncovered custom words stay inert", async ({ page }) => {
   await generatePuzzle(page, {
     title: "Animals barrejats",
@@ -381,6 +411,7 @@ test("defined student words open a definition modal and uncovered custom words s
   await expect(page.locator("#word-definition-modal")).toBeVisible();
   await expect(page.locator("#word-definition-title")).toHaveText("gos");
   await expect(page.locator("#word-definition-text")).toContainText("Animal domèstic");
+  await expect(page.locator("#word-definition-close")).toBeFocused();
 
   await page.keyboard.press("Escape");
   await expect(page.locator("#word-definition-modal")).toBeHidden();

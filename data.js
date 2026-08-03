@@ -179,7 +179,7 @@
             "taronja",
             "kiwi",
             "meló",
-            "raim",
+            "raïm",
             "cirera",
             "maduixa",
           ]),
@@ -803,7 +803,7 @@
           title: "Fruites del mercat",
           difficulty: "easy",
           size: "auto",
-          words: ["poma", "pera", "plàtan", "taronja", "kiwi", "meló", "raim", "cirera"].join("\n"),
+          words: ["poma", "pera", "plàtan", "taronja", "kiwi", "meló", "raïm", "cirera"].join("\n"),
         }),
         Object.freeze({
           title: "Verdures de l'hort",

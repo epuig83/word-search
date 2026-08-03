@@ -481,7 +481,6 @@
     structuredData: document.querySelector("#structured-data"),
     form: document.querySelector("#generator-form"),
     generateButton: document.querySelector("#generate-button"),
-    generateOpenButton: document.querySelector("#generate-open-button"),
     titleInput: document.querySelector("#title-input"),
     wordsInput: document.querySelector("#words-input"),
     clearWordsButton: document.querySelector("#clear-words-button"),
@@ -521,6 +520,7 @@
     wordList: document.querySelector("#word-list"),
     wordBankCount: document.querySelector("#word-bank-count"),
     studentActions: document.querySelector("#student-actions"),
+    studentGamebar: document.querySelector("#student-gamebar"),
     studentPlaySurface: document.querySelector("#student-play-surface"),
     studentStartOverlay: document.querySelector("#student-start-overlay"),
     studentStartTimer: document.querySelector("#student-start-timer"),
@@ -697,6 +697,20 @@
     dom.sizeInput.value = preset.size;
     if (dom.timerInput) dom.timerInput.value = preset.timer;
     if (dom.hintsInput) dom.hintsInput.value = preset.hints;
+    syncDifficultyPresetState();
+  }
+
+  function syncDifficultyPresetState() {
+    dom.presetBtns.forEach(button => {
+      const preset = DIFFICULTY_PRESETS[button.dataset.preset];
+      const isActive = Boolean(preset) &&
+        dom.difficultyInput.value === preset.difficulty &&
+        dom.sizeInput.value === preset.size &&
+        dom.timerInput?.value === preset.timer &&
+        dom.hintsInput?.value === preset.hints;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
   }
 
   function applyTheme(theme) {
@@ -1001,10 +1015,11 @@
     confirmDialog,
   });
 
-  function generatePuzzle({ openStudent = false, triggerButton = dom.generateButton } = {}) {
+  function generatePuzzle({ triggerButton = dom.generateButton } = {}) {
     const t = TRANSLATIONS[state.lang];
     const parsed = parseWords(dom.wordsInput.value);
-    const originalTriggerText = triggerButton?.textContent || "";
+    const triggerLabel = triggerButton?.querySelector("[data-t]") || triggerButton;
+    const originalTriggerText = triggerLabel?.textContent || "";
 
     if (state.formTemplate && !parseFormEntries(state.formTemplate)) {
       setStatus(t.form_url_invalid, "error");
@@ -1014,12 +1029,8 @@
       return;
     }
 
-    [dom.generateButton, dom.generateOpenButton].forEach(button => {
-      if (button) button.disabled = true;
-    });
-    if (triggerButton) {
-      triggerButton.textContent = t.btn_generating || "...";
-    }
+    if (dom.generateButton) dom.generateButton.disabled = true;
+    if (triggerLabel) triggerLabel.textContent = t.btn_generating || "...";
 
     try {
       if (parsed.words.length < 1) throw new Error("no_words");
@@ -1035,7 +1046,6 @@
       resetPuzzleProgress();
       setStatus(t.msg_success, "success");
       render();
-      if (openStudent) sessionController.setTab("student");
     } catch (err) {
       const wordTooLong = err.message?.startsWith("WORD_TOO_LONG:");
       const errMsg = wordTooLong
@@ -1043,9 +1053,10 @@
         : (t.msg_puzzle_error || err.message);
       setStatus(errMsg, "error");
     } finally {
-      if (triggerButton) triggerButton.textContent = originalTriggerText;
-      if (dom.generateButton) dom.generateButton.textContent = t.btn_generate;
-      if (dom.generateOpenButton) dom.generateOpenButton.textContent = t.btn_generate_open_student;
+      if (triggerLabel) triggerLabel.textContent = originalTriggerText;
+      const generateLabel = dom.generateButton?.querySelector("[data-t]");
+      if (generateLabel) generateLabel.textContent = t.btn_generate;
+      syncDifficultyPresetState();
       teacherController.updateWordsHelper();
     }
   }
@@ -1055,9 +1066,7 @@
     generatePuzzle({ triggerButton: e.submitter || dom.generateButton });
   });
   teacherController.bindEvents();
-  sessionController.bindEvents({
-    onGenerateOpenStudent: () => generatePuzzle({ openStudent: true, triggerButton: dom.generateOpenButton }),
-  });
+  sessionController.bindEvents();
 
   if (dom.hintButton) {
     dom.hintButton.addEventListener("click", () => useHint());
@@ -1204,6 +1213,10 @@
     applyContrast(document.documentElement.dataset.contrast === "high" ? "normal" : "high");
   });
   dom.presetBtns.forEach(btn => btn.addEventListener("click", () => applyDifficultyPreset(btn.dataset.preset)));
+  [dom.difficultyInput, dom.sizeInput, dom.timerInput, dom.hintsInput].forEach(input => {
+    input?.addEventListener("change", syncDifficultyPresetState);
+  });
+  syncDifficultyPresetState();
   dom.printSolutionButton?.addEventListener("click", () => printAnswerKey());
   dom.teacherPrintSolutionButton?.addEventListener("click", () => printAnswerKey());
 
@@ -1261,6 +1274,7 @@
       dom.sizeInput.value = SAMPLE_SIZES.has(config.requestedSize) ? config.requestedSize : "auto";
       if (dom.timerInput) dom.timerInput.value = config.timer;
       if (dom.hintsInput) dom.hintsInput.value = config.hints;
+      syncDifficultyPresetState();
       state.formTemplate = config.formTemplate || "";
       state.studentName = { nom: "", cognoms: "" };
       if (dom.formTemplateInput) dom.formTemplateInput.value = state.formTemplate;
@@ -1293,6 +1307,7 @@
       dom.sizeInput.value = prevSize;
       if (dom.timerInput) dom.timerInput.value = prevTimer;
       if (dom.hintsInput) dom.hintsInput.value = prevHints;
+      syncDifficultyPresetState();
       state.formTemplate = prevFormTemplate;
       state.puzzle = prevPuzzle;
       if (dom.formTemplateInput) dom.formTemplateInput.value = state.formTemplate;

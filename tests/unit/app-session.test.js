@@ -133,12 +133,7 @@ function createFixture() {
     resetProgressButton: createFakeElement(),
     playAgainButton: createFakeElement(),
     printButton: createFakeElement(),
-    form: createFakeElement({
-      reportValidity() {
-        return true;
-      },
-    }),
-    generateOpenButton: createFakeElement(),
+    form: createFakeElement(),
     teacherOpenStudentButton: createFakeElement(),
     teacherShareButton: createFakeElement(),
     teacherPrintButton: createFakeElement(),

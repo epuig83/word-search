@@ -6,9 +6,9 @@ Small dependency-free web app for creating word search activities for primary sc
 
 1. Open `index.html` in the laptop browser.
 2. Enter a topic and a list of words, or use the side library to add vocabulary.
-3. Click `Generate new puzzle` in the teacher view, or `Generate and open student view` to jump straight into the student area.
+3. Click `Create and review activity`, check the `Activity ready` summary, then open the student area, share, or print.
 4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`; `H` requests a hint while focus is inside the grid).
-5. When the activity is ready, use `Share` or `Print / PDF`.
+5. On phones, the timer, pause, and hint controls stay available in the bottom game bar.
 
 ## Editable Data
 
@@ -53,7 +53,9 @@ Then open `http://localhost:8000` in the browser.
 - Automatic grid generation.
 - Easy, medium, and hard difficulty levels.
 - Mouse, touch, and keyboard solving.
-- Direct launch into the student area after generation.
+- Review step before opening the student area, sharing, or printing.
+- Category-first vocabulary library and grouped advanced settings.
+- Locally hosted Andika typeface for clear classroom reading.
 - Teacher view with visible solution and quick actions.
 - Optional timer and hint system.
 - Shareable links that preserve the exact puzzle.
@@ -108,5 +110,5 @@ pnpm test
 
 ## CI
 
-- GitHub Actions runs ESLint, unit tests, and E2E/accessibility tests on every `push` to `main` or `master` and on every `pull request`.
+- GitHub Actions audits high-severity dependencies, then runs ESLint, unit tests, and E2E/accessibility tests on every `push` to `main` or `master` and on every `pull request`.
 - The workflow lives in `.github/workflows/test.yml`.

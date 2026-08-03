@@ -11,7 +11,7 @@ const LANGS = ["ca", "es", "en"];
 const CRITICAL_KEYS = [
   "page_title", "page_description", "social_description", "site_name", "og_locale",
   "tab_teacher", "tab_student",
-  "btn_generate", "btn_generate_open_student",
+  "btn_generate",
   "btn_show_solution", "btn_hide_solution", "btn_reset",
   "msg_success", "msg_puzzle_error", "msg_found",
   "msg_share_opened", "msg_share_manual", "msg_share_unavailable",
@@ -39,6 +39,7 @@ const PLACEHOLDER_KEYS = [
 const ALL_EXPECTED_KEYS = new Set([...CRITICAL_KEYS, ...PLACEHOLDER_KEYS,
   "hero_eyebrow", "hero_title", "hero_text", "config_title", "field_topic",
   "field_words", "btn_clear_words", "field_sample", "btn_example",
+  "sample_management_summary", "advanced_settings_title", "advanced_settings_summary",
   "btn_save_sample", "btn_export_samples", "btn_import_samples",
   "btn_print", "btn_share", "btn_share_copied", "btn_student", "btn_teacher",
   "status_default", "board_instructions", "board_status_pending",

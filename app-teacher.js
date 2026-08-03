@@ -137,7 +137,6 @@
 
       if (dom.clearWordsButton) dom.clearWordsButton.disabled = count === 0;
       if (dom.generateButton) dom.generateButton.disabled = count === 0;
-      if (dom.generateOpenButton) dom.generateOpenButton.disabled = count === 0;
     }
 
     function syncWordsUi() {
@@ -292,14 +291,9 @@
       syncWordsUi();
     }
 
-    function shouldUseCompactLibraryBrowse() {
-      return Boolean(globalThis.matchMedia?.("(max-width: 640px)")?.matches);
-    }
-
     function renderLibrary() {
       const lang = state.lang;
       const search = dom.libSearch.value.trim().toLowerCase();
-      const isCompactBrowse = shouldUseCompactLibraryBrowse();
       const categories = getVocabularyCategories(lang);
       const categoryEntries = Object.entries(categories);
       const isAllCategoriesSelected = state.activeCategory === allCategoryId;
@@ -307,11 +301,7 @@
       dom.libCategories.innerHTML = "";
       const allButton = document.createElement("button");
       allButton.type = "button";
-      allButton.className = "category-chip" + (
-        isAllCategoriesSelected || (!isCompactBrowse && !state.activeCategory)
-          ? " is-active"
-          : ""
-      );
+      allButton.className = "category-chip" + (isAllCategoriesSelected ? " is-active" : "");
       allButton.textContent = getTranslations().all_categories;
       allButton.addEventListener("click", () => {
         state.activeCategory = allCategoryId;
@@ -333,7 +323,7 @@
 
       dom.libResults.innerHTML = "";
       let wordsToShow = [];
-      const shouldShowCategoryPrompt = isCompactBrowse && !state.activeCategory && !search;
+      const shouldShowCategoryPrompt = !state.activeCategory && !search;
       if (state.activeCategory && state.activeCategory !== allCategoryId && categories[state.activeCategory]) {
         wordsToShow = categories[state.activeCategory].words;
       } else if (!shouldShowCategoryPrompt) {

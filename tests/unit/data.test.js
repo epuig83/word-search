@@ -222,3 +222,12 @@ test("catalan vocabulary and samples use 'tomàquet' with accent", () => {
     "Expected at least one Catalan sample puzzle to include tomàquet"
   );
 });
+
+test("catalan vocabulary and samples use 'raïm' with diaeresis", () => {
+  assert.ok(data.vocabulary.ca.fruits.words.includes("raïm"));
+  assert.ok(
+    data.samplePuzzles.ca.some(sample => sample.words.includes("raïm")),
+    "Expected at least one Catalan sample puzzle to include raïm"
+  );
+  assert.equal(data.vocabulary.ca.fruits.words.includes("raim"), false);
+});

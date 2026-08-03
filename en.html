@@ -40,6 +40,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🔤</text></svg>" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="manifest" href="manifest.webmanifest" />
+    <script src="font-init.js"></script>
     <link rel="stylesheet" href="styles.css" />
     <script src="data.js" defer></script>
     <script src="i18n.js" defer></script>
@@ -68,6 +69,23 @@
     </script>
   </head>
   <body>
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+      <symbol id="icon-cap" viewBox="0 0 24 24"><path d="m2 10 10-5 10 5-10 5-10-5Z"/><path d="M6 12.5V17c3.5 2.5 8.5 2.5 12 0v-4.5M22 10v6"/></symbol>
+      <symbol id="icon-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+      <symbol id="icon-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></symbol>
+      <symbol id="icon-board" viewBox="0 0 24 24"><path d="M4 3h16v13H4zM8 21l4-5 4 5M8 8h8M8 12h5"/></symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24"><path d="M3 5.5A3.5 3.5 0 0 1 6.5 2H11v17H6.5A3.5 3.5 0 0 0 3 22V5.5ZM21 5.5A3.5 3.5 0 0 0 17.5 2H13v17h4.5A3.5 3.5 0 0 1 21 22V5.5Z"/></symbol>
+      <symbol id="icon-save" viewBox="0 0 24 24"><path d="M5 3h12l2 2v16H5zM8 3v6h8V3M8 21v-7h8v7"/></symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"/></symbol>
+      <symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v8h14v-8"/></symbol>
+      <symbol id="icon-import" viewBox="0 0 24 24"><path d="M12 15V3M7 10l5 5 5-5M5 13v8h14v-8"/></symbol>
+      <symbol id="icon-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m15 9 6-6M17 3h4v4"/></symbol>
+      <symbol id="icon-size" viewBox="0 0 24 24"><path d="M8 3H3v5M3 3l6 6M16 21h5v-5M21 21l-6-6M16 3h5v5M21 3l-6 6M8 21H3v-5M3 21l6-6"/></symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v5l3 2M9 2h6"/></symbol>
+      <symbol id="icon-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M8.5 15.5A7 7 0 1 1 15.5 15.5L15 18H9l-.5-2.5Z"/></symbol>
+      <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+      <symbol id="icon-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18A9 9 0 0 0 12 3Z" fill="currentColor" stroke="none"/></symbol>
+    </svg>
     <a href="#main-content" class="skip-link" data-t="skip_to_main">Vés al contingut principal</a>
     <div class="page-shell">
       <header class="hero">
@@ -93,21 +111,21 @@
 
         <div class="hero-card">
           <div class="hero-stat">
-              <span class="stat-icon" aria-hidden="true">🎓</span>
+              <svg class="ui-icon stat-icon" aria-hidden="true"><use href="#icon-cap"></use></svg>
               <div>
                 <span data-t="stat_age">Edat</span>
                 <strong data-t="stat_age_value">8 a 12 anys</strong>
               </div>
             </div>
           <div class="hero-stat">
-              <span class="stat-icon" aria-hidden="true">💻</span>
+              <svg class="ui-icon stat-icon" aria-hidden="true"><use href="#icon-monitor"></use></svg>
               <div>
               <span data-t="stat_use">Ús</span>
               <strong data-t="stat_use_value">PC o Paper</strong>
               </div>
             </div>
           <div class="hero-stat">
-            <span class="stat-icon" aria-hidden="true">⚡</span>
+            <svg class="ui-icon stat-icon" aria-hidden="true"><use href="#icon-zap"></use></svg>
             <div>
               <span data-t="stat_speed">Rapidesa</span>
               <strong data-t="stat_speed_value">Generació a l'instant</strong>
@@ -119,11 +137,11 @@
       <main id="main-content" class="workspace" tabindex="-1">
         <nav class="main-tabs" role="tablist" aria-label="Seccions">
           <button type="button" id="tab-teacher" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="section-teacher" tabindex="0">
-            <span class="tab-icon" aria-hidden="true">👩‍🏫</span>
+            <svg class="ui-icon tab-icon" aria-hidden="true"><use href="#icon-board"></use></svg>
             <span data-t="tab_teacher">Panell de creació</span>
           </button>
           <button type="button" id="tab-student" class="tab-btn" role="tab" aria-selected="false" aria-controls="section-student" tabindex="-1">
-            <span class="tab-icon" aria-hidden="true">🎒</span>
+            <svg class="ui-icon tab-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
             <span data-t="tab_student">Zona de l'alumnat</span>
           </button>
         </nav>
@@ -135,6 +153,47 @@
           </div>
 
           <form id="generator-form" class="generator-form">
+            <div class="field sample-field">
+              <label for="sample-select" data-t="field_sample">Exemple guiat</label>
+              <div class="sample-picker">
+                <select id="sample-select" name="sample">
+                  <option value="">Selecciona un exemple</option>
+                </select>
+                <button type="button" id="load-sample-button" class="ghost-button" data-t="btn_example">
+                  Carregar exemple
+                </button>
+              </div>
+              <details class="sample-management">
+                <summary class="teacher-tools-summary" data-t="sample_management_summary">Gestionar exemples propis</summary>
+                <div class="sample-actions">
+                  <button type="button" id="save-sample-button" class="sample-action-btn">
+                    <svg class="ui-icon" aria-hidden="true"><use href="#icon-save"></use></svg>
+                    <span data-t="btn_save_sample">Desar</span>
+                  </button>
+                  <button type="button" id="delete-sample-button" class="sample-action-btn" disabled>
+                    <svg class="ui-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>
+                    <span data-t="btn_delete_sample">Eliminar</span>
+                  </button>
+                  <button type="button" id="export-samples-button" class="sample-action-btn">
+                    <svg class="ui-icon" aria-hidden="true"><use href="#icon-export"></use></svg>
+                    <span data-t="btn_export_samples">Exportar</span>
+                  </button>
+                  <button type="button" id="import-samples-button" class="sample-action-btn">
+                    <svg class="ui-icon" aria-hidden="true"><use href="#icon-import"></use></svg>
+                    <span data-t="btn_import_samples">Importar</span>
+                  </button>
+                </div>
+                <p class="sample-note" data-t="sample_note">
+                  Els exemples guardats es desen en aquest portàtil.
+                </p>
+                <div id="sample-undo-toast" class="sample-undo-toast" role="status" aria-live="polite" hidden>
+                  <span id="sample-undo-text" data-t="msg_sample_deleted_undo">Exemple eliminat. Prem Desfer per recuperar-lo.</span>
+                  <button type="button" id="sample-undo-button" class="ghost-button" data-t="btn_undo">Desfer</button>
+                </div>
+                <input id="import-samples-input" type="file" accept="application/json,.json" hidden />
+              </details>
+            </div>
+
             <div class="field">
               <label for="title-input" data-t="field_topic">Tema de l'exercici</label>
               <input
@@ -185,40 +244,6 @@
               </div>
             </div>
 
-            <div class="field sample-field">
-              <label for="sample-select" data-t="field_sample">Exemple guiat</label>
-              <div class="sample-picker">
-                <select id="sample-select" name="sample">
-                  <option value="">Selecciona un exemple</option>
-                </select>
-                <button type="button" id="load-sample-button" class="ghost-button" data-t="btn_example">
-                  Carregar exemple
-                </button>
-              </div>
-              <div class="sample-actions">
-                <button type="button" id="save-sample-button" class="sample-action-btn">
-                  <span aria-hidden="true">💾</span> <span data-t="btn_save_sample">Desar</span>
-                </button>
-                <button type="button" id="delete-sample-button" class="sample-action-btn" disabled>
-                  <span aria-hidden="true">🗑️</span> <span data-t="btn_delete_sample">Eliminar</span>
-                </button>
-                <button type="button" id="export-samples-button" class="sample-action-btn">
-                  <span aria-hidden="true">📤</span> <span data-t="btn_export_samples">Exportar</span>
-                </button>
-                <button type="button" id="import-samples-button" class="sample-action-btn">
-                  <span aria-hidden="true">📥</span> <span data-t="btn_import_samples">Importar</span>
-                </button>
-              </div>
-              <p class="sample-note" data-t="sample_note">
-                Els exemples guardats es desen en aquest portàtil.
-              </p>
-              <div id="sample-undo-toast" class="sample-undo-toast" role="status" aria-live="polite" hidden>
-                <span id="sample-undo-text" data-t="msg_sample_deleted_undo">Exemple eliminat. Prem Desfer per recuperar-lo.</span>
-                <button type="button" id="sample-undo-button" class="ghost-button" data-t="btn_undo">Desfer</button>
-              </div>
-              <input id="import-samples-input" type="file" accept="application/json,.json" hidden />
-            </div>
-
             <div class="difficulty-presets-field">
               <span id="preset-label" class="preset-label" data-t="preset_label">Nivells ràpids</span>
               <div class="difficulty-presets" role="group" aria-labelledby="preset-label">
@@ -228,9 +253,14 @@
               </div>
             </div>
 
-            <div class="field-grid">
+            <details id="advanced-settings-details" class="advanced-settings">
+              <summary class="teacher-tools-summary">
+                <span data-t="advanced_settings_title">Ajustos avançats</span>
+                <span class="advanced-settings-summary" data-t="advanced_settings_summary">Mida, temps i pistes</span>
+              </summary>
+              <div class="field-grid">
               <div class="field">
-                <label for="difficulty-input"><span aria-hidden="true">🎯</span> <span data-t="field_difficulty">Dificultat</span></label>
+                <label for="difficulty-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-target"></use></svg> <span data-t="field_difficulty">Dificultat</span></label>
                 <select id="difficulty-input" name="difficulty">
                   <option value="easy" data-t="diff_easy">Fàcil</option>
                   <option value="medium" data-t="diff_medium">Mitjana</option>
@@ -239,7 +269,7 @@
               </div>
 
               <div class="field">
-                <label for="size-input"><span aria-hidden="true">📐</span> <span data-t="field_size">Mida</span></label>
+                <label for="size-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-size"></use></svg> <span data-t="field_size">Mida</span></label>
                 <select id="size-input" name="size">
                   <option value="auto" data-t="size_auto">Automàtic</option>
                   <option value="10">10 x 10</option>
@@ -250,7 +280,7 @@
               </div>
 
               <div class="field">
-                <label for="timer-input"><span aria-hidden="true">⏱️</span> <span data-t="timer_label">Temporitzador</span></label>
+                <label for="timer-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-clock"></use></svg> <span data-t="timer_label">Temporitzador</span></label>
                 <select id="timer-input" name="timer">
                   <option value="0" data-t="timer_none">Sense límit</option>
                   <option value="300">5 min</option>
@@ -261,7 +291,7 @@
               </div>
 
               <div class="field">
-                <label for="hints-input"><span aria-hidden="true">💡</span> <span data-t="hints_label">Pistes</span></label>
+                <label for="hints-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bulb"></use></svg> <span data-t="hints_label">Pistes</span></label>
                 <select id="hints-input" name="hints">
                   <option value="0" data-t="hints_none">Sense pistes</option>
                   <option value="1">1</option>
@@ -270,19 +300,13 @@
                   <option value="-1" data-t="hints_unlimited">Il·limitades</option>
                 </select>
               </div>
-            </div>
+            </details>
 
             <div class="action-row">
-              <button type="submit" id="generate-button" class="primary-button" data-t="btn_generate">
-                Generar nova sopa
-              </button>
-              <button type="button" id="generate-open-button" class="ghost-button action-secondary-button" data-t="btn_generate_open_student">
-                Generar i obrir la zona de l'alumnat
+              <button type="submit" id="generate-button" class="primary-button">
+                <span data-t="btn_generate">Crear i revisar l'activitat</span>
               </button>
             </div>
-            <p class="sample-note action-hint" data-t="action_hint">
-              "Generar nova sopa" es queda al panell docent; el segon botó la crea i obre directament la zona de l'alumnat.
-            </p>
           </form>
 
           <details id="form-config-details" class="pin-change-section">
@@ -374,7 +398,6 @@
 
             <div class="progress-container">
               <span class="section-kicker" data-t="board_progress">Progrés</span>
-              <div id="timer-display" class="timer-pill" hidden>00:00</div>
               <div id="progress-text" class="progress-pill">0 / 0</div>
               <div class="theme-selector" role="group" aria-label="Tema visual">
                 <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Pergamí</span></button>
@@ -383,10 +406,22 @@
                 <button type="button" class="theme-btn" data-theme="espai" aria-pressed="false"><span class="visually-hidden" data-t="theme_espai">Espai</span></button>
               </div>
               <button type="button" id="contrast-toggle" class="contrast-toggle" aria-pressed="false">
-                <span aria-hidden="true">◐</span>
+                <svg class="ui-icon" aria-hidden="true"><use href="#icon-contrast"></use></svg>
                 <span class="visually-hidden" data-t="contrast_toggle">Alt contrast</span>
               </button>
             </div>
+          </div>
+
+          <div id="student-gamebar" class="student-gamebar" hidden>
+            <div id="timer-display" class="timer-pill" hidden>00:00</div>
+            <button type="button" id="pause-button" class="ghost-button student-action-button" hidden>
+              <svg class="ui-icon" aria-hidden="true"><use href="#icon-pause"></use></svg>
+              <span class="button-label" data-t="btn_pause">Pausa</span>
+            </button>
+            <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" aria-label="Pista (3)" hidden>
+              <svg class="ui-icon" aria-hidden="true"><use href="#icon-bulb"></use></svg>
+              <span class="button-label">Pista (3)</span>
+            </button>
           </div>
 
           <div id="sr-announce" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -447,12 +482,6 @@
                   <div class="student-actions" id="student-actions" hidden>
                     <button type="button" id="reset-progress-button" class="ghost-button student-action-button" data-t="btn_reset">
                       Reiniciar joc
-                    </button>
-                    <button type="button" id="pause-button" class="ghost-button student-action-button" data-t="btn_pause" hidden>
-                      ⏸ Pausa
-                    </button>
-                    <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" aria-label="Pista (3)" hidden>
-                      💡 Pista (3)
                     </button>
                     <details id="teacher-tools" class="teacher-tools">
                       <summary class="teacher-tools-summary" data-t="teacher_tools_summary">Eines docents</summary>
