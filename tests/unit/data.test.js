@@ -9,7 +9,7 @@ const core = require(path.resolve(__dirname, "../../core.js"));
 
 const LANGS = ["ca", "es", "en"];
 const VALID_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
-const VALID_SIZES = new Set(["auto", "10", "12", "14", "16"]);
+const VALID_SIZES = new Set(["auto", "8", "10", "12", "14", "16"]);
 
 // ── Top-level structure ───────────────────────────────────────────────────
 

@@ -115,16 +115,14 @@
       const countTone = count >= 3 ? "ready" : count > 0 ? "sparse" : "";
       const feedbackKey = count >= 3 ? "words_summary_ready" : count > 0 ? "words_summary_sparse" : "words_summary_empty";
 
-      // Tokens that normalize to 1-2 letters are silently dropped by parseWords
-      // (the placement engine needs ≥3). Flag them so the teacher knows why the
-      // count didn't move — common with short Catalan/Spanish words ("os", "au").
+      // Two-letter words such as "os" are valid; flag single-letter entries.
       const shortWords = dom.wordsInput.value
         .split(/[\n,;]+/)
         .map(token => token.trim())
         .filter(Boolean)
         .filter(token => {
           const length = normalizeWord(token).length;
-          return length > 0 && length < 3;
+          return length === 1;
         });
 
       dom.wordsCount.textContent = t.words_count.replace("{count}", count);

@@ -519,6 +519,7 @@
     puzzleGrid: document.querySelector("#puzzle-grid"),
     wordList: document.querySelector("#word-list"),
     wordBankCount: document.querySelector("#word-bank-count"),
+    wordDefinitionsHelp: document.querySelector("#word-definitions-help"),
     studentActions: document.querySelector("#student-actions"),
     studentGamebar: document.querySelector("#student-gamebar"),
     studentPlaySurface: document.querySelector("#student-play-surface"),
@@ -685,6 +686,7 @@
   }
 
   const DIFFICULTY_PRESETS = {
+    inicial: { difficulty: "easy",   size: "8",  timer: "0",   hints: "-1" },
     facil:   { difficulty: "easy",   size: "10", timer: "900", hints: "5" },
     mitja:   { difficulty: "medium", size: "12", timer: "600", hints: "3" },
     dificil: { difficulty: "hard",   size: "16", timer: "300", hints: "1" },

@@ -6,7 +6,7 @@ const core = require("../../core.js");
 
 test("countValidWords returns the number of valid words", () => {
   assert.equal(core.countValidWords("sol\nluna\nmar"), 3);
-  assert.equal(core.countValidWords("so\nluna\nmar"), 2); // "so" is too short
+  assert.equal(core.countValidWords("so\nluna\nmar"), 3); // two-letter words are accepted
   assert.equal(core.countValidWords(""), 0);
   assert.equal(core.countValidWords("   \n  \n"), 0);
 });
@@ -113,7 +113,7 @@ test("buildPuzzleData throws when words cannot fit", () => {
   const words = core.parseWords("supercalifragilisticoespialidoso").words;
   assert.throws(() => {
     core.buildPuzzleData(words, "3", "easy", { title: "Impossible" }, { random: Math.random });
-  }, /Error generating puzzle/);
+  }, /WORD_TOO_LONG:supercalifragilisticoespialidoso/);
 });
 
 test("buildPuzzleData throws when too many long words for tiny grid", () => {
@@ -122,7 +122,7 @@ test("buildPuzzleData throws when too many long words for tiny grid", () => {
   ).words;
   assert.throws(() => {
     core.buildPuzzleData(words, "4", "easy", { title: "Tight" }, { random: Math.random });
-  }, /Error generating puzzle/);
+  }, /WORD_TOO_LONG:elefante/);
 });
 
 // ── parseGridRows with valid data ──────────────────────────────────────────

@@ -169,6 +169,16 @@ test("sanitizeStoredSample sanitizes a valid sample", () => {
   assert.ok(typeof result.id === "string" && result.id.length > 0);
 });
 
+test("saved and imported beginner samples preserve size, short words and unlimited hints", () => {
+  const original = { title: "Animals", words: "os\ngat\ngos", size: "8", difficulty: "easy", timerDuration: 0, hintsAllowed: -1 };
+  const saved = sanitizeStoredSample(original);
+  const imported = sanitizeStoredSample(JSON.parse(JSON.stringify(saved)));
+  assert.deepEqual(imported, saved);
+  assert.equal(imported.size, "8");
+  assert.equal(imported.words, "os\ngat\ngos");
+  assert.equal(imported.hintsAllowed, -1);
+});
+
 test("sanitizeStoredSample defaults invalid difficulty to easy", () => {
   const result = sanitizeStoredSample({
     title: "Test",

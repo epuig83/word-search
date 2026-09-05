@@ -147,6 +147,8 @@
           textElement.type = "button";
           textElement.className = "word-definition-button";
           textElement.setAttribute("aria-haspopup", "dialog");
+          textElement.setAttribute("aria-describedby", "word-definitions-help");
+          textElement.insertAdjacentHTML("beforeend", '<svg class="ui-icon definition-icon" aria-hidden="true"><use href="#icon-book"></use></svg>');
           textElement.addEventListener("click", () => openWordDefinition(word.id));
         }
         item.appendChild(textElement);
@@ -162,7 +164,7 @@
         return;
       }
       const allowed = state.puzzle.hintsAllowed;
-      if (allowed === 0) {
+      if (allowed === 0 || !state.studentSessionStarted || state.timerExpired || state.foundWordIds.size === state.puzzle.words.length) {
         dom.hintButton.hidden = true;
         return;
       }
@@ -178,10 +180,10 @@
       };
       if (allowed === -1) {
         setHintText("∞");
-        dom.hintButton.disabled = onCooldown;
+        dom.hintButton.disabled = !canInteractWithPuzzle() || onCooldown;
       } else {
         setHintText(state.hintsRemaining);
-        dom.hintButton.disabled = state.hintsRemaining <= 0 || onCooldown;
+        dom.hintButton.disabled = !canInteractWithPuzzle() || state.hintsRemaining <= 0 || onCooldown;
       }
       dom.hintButton.title = onCooldown ? t.hint_cooldown_wait : "";
     }
@@ -363,6 +365,9 @@
       dom.boardTitle.textContent = state.puzzle.title;
       dom.progressText.textContent = `${state.foundWordIds.size} / ${state.puzzle.words.length}`;
       dom.wordBankCount.textContent = state.puzzle.words.length;
+      if (dom.wordDefinitionsHelp) {
+        dom.wordDefinitionsHelp.hidden = !state.puzzle.words.some(word => getDefinitionTextForWordId(word.id));
+      }
       updateTeacherReadyCard();
 
       if (dom.timerDisplay) {
@@ -493,6 +498,9 @@
       }
 
       updateHintButton();
+      if (dom.studentGamebar) {
+        dom.studentGamebar.hidden = [dom.timerDisplay, dom.pauseButton, dom.hintButton].every(control => !control || control.hidden);
+      }
       if (dom.shareButton) dom.shareButton.disabled = !state.puzzle;
     }
 

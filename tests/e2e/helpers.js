@@ -4,7 +4,7 @@ async function generatePuzzle(page, options = {}) {
   const {
     title = "Animals del mar",
     words = "balena\ndofi\npeix\ntauro",
-    size,
+    size = "auto",
     timer = "300",
     hints = "3",
     formTemplate = "",
@@ -69,8 +69,8 @@ async function getGridLetters(page) {
 async function solvePlacement(page, placement) {
   const first = placement.cells[0];
   const last = placement.cells[placement.cells.length - 1];
-  await page.locator(`[data-row="${first.row}"][data-col="${first.col}"]`).click({ force: true });
-  await page.locator(`[data-row="${last.row}"][data-col="${last.col}"]`).click({ force: true });
+  await page.locator(`[data-row="${first.row}"][data-col="${first.col}"]`).click();
+  await page.locator(`[data-row="${last.row}"][data-col="${last.col}"]`).click();
 }
 
 async function measureGridVisibility(page) {

@@ -2737,3 +2737,212 @@ body[data-tab="student"] .panel {
     display: none;
   }
 }
+
+/* Classroom refinements: preserve native visibility even on styled controls.
+   The existing print rule explicitly reveals #section-student[hidden]. */
+[hidden] {
+  display: none !important;
+}
+
+.selection-demo {
+  margin: 1rem 0;
+  color: var(--ink-strong);
+}
+
+.selection-demo-letters {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.selection-demo-letters > span {
+  padding: 0.3rem 0.55rem;
+}
+
+.selection-demo-end {
+  border: 2px solid var(--teal-strong);
+  border-radius: var(--radius-sm);
+  background: var(--teal-soft);
+  color: var(--teal-strong);
+}
+
+.selection-demo figcaption,
+.word-definitions-help {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.word-definitions-help {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.word-definition-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.definition-icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.puzzle-layout {
+  grid-template-areas: "grid words" "grid actions";
+  grid-template-rows: auto 1fr;
+  align-items: start;
+  row-gap: 1.25rem;
+}
+
+.word-bank {
+  grid-area: words;
+  min-width: 0;
+}
+
+.grid-container {
+  grid-area: grid;
+  min-width: 0;
+}
+
+.grid-container::before {
+  inset: 4px;
+  border-radius: calc(var(--radius-lg) - 6px);
+}
+
+.student-actions {
+  grid-area: actions;
+}
+
+@media screen and (max-width: 640px) {
+  .difficulty-presets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .board-topbar {
+    gap: 0.6rem;
+    margin-bottom: 0.8rem;
+  }
+
+  #topic-label {
+    display: none;
+  }
+
+  .board-title-group h1 {
+    font-size: 1.5rem;
+  }
+
+  .board-instructions,
+  .board-status {
+    margin-top: 0.45rem;
+    font-size: 0.9rem;
+  }
+
+  .progress-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .puzzle-layout {
+    grid-template-areas: "words" "grid" "actions";
+    grid-template-rows: auto;
+    gap: 0.8rem;
+  }
+
+  .word-bank {
+    gap: 0.5rem;
+  }
+
+  .grid-container[data-grid-size="8"] {
+    --cell-font: 1.1rem;
+  }
+
+  .student-start-card {
+    padding: 1rem;
+  }
+
+  .student-start-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media print {
+  body {
+    min-height: 0;
+  }
+
+  /* @page already supplies the paper margins. */
+  .page-shell {
+    padding: 0;
+  }
+
+  .puzzle-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "grid" "words";
+    grid-template-rows: auto;
+    gap: 0.4cm;
+  }
+
+  .grid-container {
+    justify-self: center;
+    width: min(100%, 14cm);
+    break-inside: avoid;
+  }
+
+  .grid-container[data-grid-size="8"] {
+    width: min(100%, 15cm);
+  }
+
+  .puzzle-grid {
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .grid-cell {
+    min-width: 0;
+    min-height: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+
+  .grid-container[data-grid-size="8"] .grid-cell {
+    font-size: 18pt;
+  }
+
+  .word-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .word-bank {
+    gap: 0;
+  }
+
+  .word-definition-button {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .word-definitions-help,
+  .skip-link,
+  .definition-icon,
+  .selection-demo,
+  body[data-mode="teacher"] .print-learning-prompt {
+    display: none !important;
+  }
+
+  .print-learning-prompt {
+    margin: 0.5cm 0 0;
+    font-size: 11pt;
+    color: black;
+    break-inside: avoid;
+  }
+}

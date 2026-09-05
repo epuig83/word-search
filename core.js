@@ -8,18 +8,17 @@
   "use strict";
 
   const LETTERS = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
-  // Ñ never appears in English words, so it shouldn't show up as filler in an
-  // English puzzle. Catalan/Spanish keep it (e.g. "niño", "canya").
+  // Only Spanish uses Ñ as filler. Words and saved grids keep their own letters.
   const LETTERS_NO_ENYE = LETTERS.replace("Ñ", "");
   function fillerLettersForLang(lang) {
-    return lang === "en" ? LETTERS_NO_ENYE : LETTERS;
+    return lang === "en" || lang === "ca" ? LETTERS_NO_ENYE : LETTERS;
   }
   // If exceeded, buildPuzzleData throws and the UI shows the generic msg_puzzle_error.
   const MAX_GENERATION_ATTEMPTS = 180;
   const MAX_GRID_SIZE = 22;
   const SAMPLE_LANGS = ["ca", "es", "en"];
   const SAMPLE_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
-  const SAMPLE_SIZES = new Set(["auto", "10", "12", "14", "16"]);
+  const SAMPLE_SIZES = new Set(["auto", "8", "10", "12", "14", "16"]);
   const SHARED_PUZZLE_VERSION = 2;
 
   function createEmptyCustomSamples() {
@@ -42,7 +41,7 @@
     const seen = new Set();
     for (const token of tokens) {
       const cleaned = normalizeWord(token);
-      if (cleaned.length >= 3 && !seen.has(cleaned)) {
+      if (cleaned.length >= 2 && !seen.has(cleaned)) {
         seen.add(cleaned);
         words.push({ id: cleaned, cleaned, display: token });
       }
@@ -147,7 +146,7 @@
     }
 
     const tooLong = words.find(w => w.cleaned.length > size);
-    if (tooLong) throw new Error(`Error generating puzzle: WORD_TOO_LONG:${tooLong.display}`);
+    if (tooLong) throw new Error(`WORD_TOO_LONG:${tooLong.display}`);
 
     for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
       const grid = buildEmptyGrid(size);

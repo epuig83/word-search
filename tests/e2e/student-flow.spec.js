@@ -383,14 +383,14 @@ test("language selector exposes a localized accessible label", async ({ page }) 
   await expect(page.locator(".lang-selector")).toHaveAttribute("aria-label", "Language");
 });
 
-test("words helper flags entries shorter than 3 letters as undroppable", async ({ page }) => {
+test("words helper accepts two-letter words and flags single letters", async ({ page }) => {
   await page.goto("/index.html");
-  await page.locator("#words-input").fill("os\nau\ngat\ngos\npeix");
+  await page.locator("#words-input").fill("os\nau\ngat\ngos\npeix\na");
 
-  // Two 2-letter tokens (os, au) are dropped; three valid words remain.
-  await expect(page.locator("#words-count")).toContainText("3");
-  await expect(page.locator("#words-feedback")).toContainText("menys de 3 lletres");
-  await expect(page.locator("#words-feedback")).toContainText("os, au");
+  // Short vocabulary stays available; only the single letter is omitted.
+  await expect(page.locator("#words-count")).toContainText("5");
+  await expect(page.locator("#words-feedback")).toContainText("almenys 2 lletres");
+  await expect(page.locator("#words-feedback")).toContainText("S'ometen: a.");
 });
 
 test("print worksheet shows a localized name/date line and drops the screen background", async ({ page }) => {

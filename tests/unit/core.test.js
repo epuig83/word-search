@@ -12,9 +12,9 @@ test("normalizeWord removes accents and keeps Ñ", () => {
 });
 
 test("parseWords deduplicates normalized words and ignores short entries", () => {
-  const parsed = core.parseWords("avió\navio\nsol\nso\nsol");
-  assert.deepEqual(parsed.words.map(word => word.cleaned), ["AVIO", "SOL"]);
-  assert.deepEqual(parsed.words.map(word => word.display), ["avió", "sol"]);
+  const parsed = core.parseWords("avió\navio\nsol\nso\ns\nsol");
+  assert.deepEqual(parsed.words.map(word => word.cleaned), ["AVIO", "SOL", "SO"]);
+  assert.deepEqual(parsed.words.map(word => word.display), ["avió", "sol", "so"]);
 });
 
 test("normalizeSharedSize accepts valid numeric sizes and rejects invalid ones", () => {
@@ -37,8 +37,8 @@ test("buildPuzzleData creates a solvable puzzle with matching placements", () =>
   }
 });
 
-test("English puzzles never use Ñ as filler, but Spanish puzzles can", () => {
-  // random() => 0.53 maps to index 14 ("Ñ") in the 27-letter ca/es alphabet
+test("Catalan and English exclude Ñ filler while Spanish and supplied words retain it", () => {
+  // random() => 0.53 maps to index 14 ("Ñ") in the 27-letter Spanish alphabet
   // and index 13 ("N") in the 26-letter English one, so the fill differs by lang.
   const enWords = core.parseWords("cat\ndog\nfish").words;
   const enPuzzle = core.buildPuzzleData(enWords, "10", "easy", { sourceLang: "en" }, { random: () => 0.53 });
@@ -47,6 +47,36 @@ test("English puzzles never use Ñ as filler, but Spanish puzzles can", () => {
   const esWords = core.parseWords("casa\nsol\nmar").words;
   const esPuzzle = core.buildPuzzleData(esWords, "10", "easy", { sourceLang: "es" }, { random: () => 0.53 });
   assert.ok(esPuzzle.grid.flat().includes("Ñ"), "Spanish grid filler may contain Ñ");
+  const caPuzzle = core.buildPuzzleData(core.parseWords("os\ngat\ngos").words, "8", "easy", { sourceLang: "ca" }, { random: () => 0.53 });
+  assert.ok(!caPuzzle.grid.flat().includes("Ñ"), "Catalan grid must not contain Ñ filler");
+  const supplied = core.buildPuzzleData(core.parseWords("niño").words, "8", "easy", { sourceLang: "ca" }, { random: () => 0 });
+  assert.equal(lettersForPlacement(supplied.grid, supplied.placements[0]), "NIÑO");
+});
+
+test("two-letter words survive placement and shared snapshot roundtrips", () => {
+  const words = core.parseWords("os\ngat\ngos\no\nOS").words;
+  assert.deepEqual(words.map(word => word.id), ["OS", "GAT", "GOS"]);
+  const original = core.buildPuzzleData(words, "8", "easy", { sourceLang: "ca" });
+  const config = core.decodePuzzleConfig(core.encodePuzzleConfig({
+    version: 2, title: "Animals", words: "os\ngat\ngos", size: "8", difficulty: "easy",
+    lang: "ca", timer: 0, hints: -1, gridRows: core.serializeGridRows(original.grid),
+    placementPaths: original.placements.map(p => core.serializePlacementCells(p.cells)),
+  }));
+  assert.equal(config.size, "8");
+  const rebuilt = core.buildPuzzleFromSnapshotData(core.parseWords(config.words).words, config, {});
+  assert.deepEqual(rebuilt.grid, original.grid);
+  assert.equal(lettersForPlacement(rebuilt.grid, rebuilt.placements[0]), "OS");
+});
+
+test("existing snapshots retain their original filler letters", () => {
+  const words = core.parseWords("gat\ngos\nllop").words;
+  const original = core.buildPuzzleData(words, "10", "easy", { sourceLang: "es" }, { random: () => 0.53 });
+  const rebuilt = core.buildPuzzleFromSnapshotData(words, {
+    requestedSize: "10", difficulty: "easy", gridRows: core.serializeGridRows(original.grid),
+    placementPaths: original.placements.map(p => core.serializePlacementCells(p.cells)),
+  }, { sourceLang: "ca" });
+  assert.deepEqual(rebuilt.grid, original.grid);
+  assert.ok(rebuilt.grid.flat().includes("Ñ"));
 });
 
 test("snapshot serialization roundtrip rebuilds the same puzzle", () => {

@@ -744,6 +744,14 @@
     samplePuzzles: Object.freeze({
       es: Object.freeze([
         Object.freeze({
+          title: "Primeros pasos: animales",
+          difficulty: "easy",
+          size: "8",
+          timerDuration: 0,
+          hintsAllowed: -1,
+          words: ["perro", "gato", "oso", "vaca", "lobo", "león"].join("\n"),
+        }),
+        Object.freeze({
           title: "Animales del bosque",
           difficulty: "easy",
           size: "auto",
@@ -788,6 +796,14 @@
       ]),
       ca: Object.freeze([
         Object.freeze({
+          title: "Primers passos: animals",
+          difficulty: "easy",
+          size: "8",
+          timerDuration: 0,
+          hintsAllowed: -1,
+          words: ["gos", "gat", "os", "vaca", "llop", "lleó"].join("\n"),
+        }),
+        Object.freeze({
           title: "Animals del bosc",
           difficulty: "easy",
           size: "auto",
@@ -831,6 +847,14 @@
         }),
       ]),
       en: Object.freeze([
+        Object.freeze({
+          title: "First steps: animals",
+          difficulty: "easy",
+          size: "8",
+          timerDuration: 0,
+          hintsAllowed: -1,
+          words: ["dog", "cat", "bear", "cow", "wolf", "lion"].join("\n"),
+        }),
         Object.freeze({
           title: "Forest animals",
           difficulty: "easy",

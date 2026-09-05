@@ -18,7 +18,7 @@ async function expectNoAccessibilityViolations(page, state) {
     id: violation.id,
     impact: violation.impact,
     help: violation.help,
-    targets: violation.nodes.map(node => node.target),
+    targets: violation.nodes.map(node => ({ target: node.target, summary: node.failureSummary })),
   }));
   expect(violations, `${state}\n${JSON.stringify(violations, null, 2)}`).toEqual([]);
 }
@@ -60,6 +60,8 @@ test("completion state and decorative confetti remain accessible", async ({ page
 
   await expect(page.getByRole("region", { name: /Excel·lent treball/ })).toBeVisible();
   await expect(page.locator("#celebration-canvas")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#send-results-button")).toBeHidden();
+  await expect(page.locator("#pause-button")).toBeHidden();
   await expectNoAccessibilityViolations(page, "completion state");
 });
 

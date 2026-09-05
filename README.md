@@ -10,6 +10,8 @@ Small dependency-free web app for creating word search activities for primary sc
 4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`; `H` requests a hint while focus is inside the grid).
 5. On phones, the timer, pause, and hint controls stay available in the bottom game bar.
 
+New activities start with the **First steps** preset: an 8×8 grid, words running right or down, no timer, and unlimited hints. Each language includes a six-animal example for getting started. Changing presets keeps the vocabulary you have entered; words can be as short as two letters.
+
 ## Editable Data
 
 - Built-in vocabulary and guided examples live in `data.js`.
@@ -34,6 +36,9 @@ Small dependency-free web app for creating word search activities for primary sc
 - The `Activity ready` card summarizes the current puzzle and gives quick access to the student area, sharing, and printing.
 - Shared links rebuild the exact same puzzle when opened.
 - The student start overlay shows the timer and available hints before the activity begins.
+- A first/last-letter example explains how to select a word. Words marked with a book icon open a definition.
+- On phones, the word list appears above the grid and the activity actions below it.
+- Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
 - If you configure Google Forms, students see which data will be prepared for submission before entering a name or alias; surnames are optional.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
 
@@ -107,6 +112,8 @@ pnpm test
 - `tests/e2e/accessibility.spec.js`: Axe checks for teacher, active student, and completion states plus tab keyboard behavior.
 - `tests/e2e/student-flow.spec.js`: real teacher/student flow, start overlay, timer, reset, and return from teacher view.
 - `tests/e2e/share-hint-form.spec.js`: shared links, hints, student form flow, and malformed shared URLs.
+- `tests/e2e/beginner-flow.spec.js`: beginner examples in all three languages, exact shared puzzles, small screens, and two-letter selection with touch and keyboard.
+- `tests/e2e/classroom-print.spec.js`: A4 worksheet and answer-key PDFs for 8×8 and 16×16 grids in all three languages, each checked for a single page.
 
 ## CI
 
