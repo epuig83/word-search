@@ -340,6 +340,26 @@ test("generate aborts when the Google Forms URL is invalid", async ({ page }) =>
   await expect(page.locator("#teacher-ready-card")).toBeHidden();
 });
 
+test("empty fields report a localized reason instead of a dead button", async ({ page }) => {
+  await page.goto("/index.html");
+
+  await expect(page.locator("#generate-button")).toBeEnabled();
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
+  await expect(page.locator("#status-message")).toContainText("tema");
+  await expect(page.locator("#title-input")).toBeFocused();
+
+  await page.locator("#title-input").fill("Animals");
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
+  await expect(page.locator("#status-message")).toContainText("Afegeix paraules");
+  await expect(page.locator("#words-input")).toBeFocused();
+
+  await page.locator("#words-input").fill("gat\ngos\npeix");
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#teacher-ready-card")).toBeVisible();
+});
+
 test("language switch updates the main teacher controls in all locales", async ({ page }) => {
   await page.goto("/index.html");
 

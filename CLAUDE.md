@@ -79,7 +79,7 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 
 - No external runtime dependencies beyond the vendored `canvas-confetti`; the app must work offline from `file://`.
 - `index.html` is the source for generated `es.html`/`en.html`; run `pnpm build:locales` after changing shared markup and `pnpm check:locales` to verify synchronization.
-- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 193 each for `es`/`ca`/`en`). Verify with:
+- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 202 each for `es`/`ca`/`en`). Verify with:
   ```bash
   node -e "require('./i18n.js'); for (const [lang, values] of Object.entries(globalThis.WORD_SEARCH_I18N)) console.log(lang, Object.keys(values).length)"
   ```

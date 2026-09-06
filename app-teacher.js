@@ -134,7 +134,6 @@
       dom.wordsFeedback.className = "words-feedback" + (countTone ? ` is-${countTone}` : "");
 
       if (dom.clearWordsButton) dom.clearWordsButton.disabled = count === 0;
-      if (dom.generateButton) dom.generateButton.disabled = count === 0;
     }
 
     function syncWordsUi() {

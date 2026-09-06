@@ -1023,6 +1023,18 @@
     const triggerLabel = triggerButton?.querySelector("[data-t]") || triggerButton;
     const originalTriggerText = triggerLabel?.textContent || "";
 
+    if (!dom.titleInput.value.trim()) {
+      setStatus(t.msg_requires_title, "error");
+      dom.titleInput.focus();
+      return;
+    }
+
+    if (parsed.words.length < 1) {
+      setStatus(t.words_summary_empty, "error");
+      dom.wordsInput.focus();
+      return;
+    }
+
     if (state.formTemplate && !parseFormEntries(state.formTemplate)) {
       setStatus(t.form_url_invalid, "error");
       const formConfigDetails = document.querySelector("#form-config-details");
@@ -1035,7 +1047,6 @@
     if (triggerLabel) triggerLabel.textContent = t.btn_generating || "...";
 
     try {
-      if (parsed.words.length < 1) throw new Error("no_words");
       state.puzzle = buildPuzzle(parsed.words, dom.sizeInput.value, dom.difficultyInput.value, {
         title: dom.titleInput.value,
         requestedSize: dom.sizeInput.value,
@@ -1055,6 +1066,7 @@
         : (t.msg_puzzle_error || err.message);
       setStatus(errMsg, "error");
     } finally {
+      if (dom.generateButton) dom.generateButton.disabled = false;
       if (triggerLabel) triggerLabel.textContent = originalTriggerText;
       const generateLabel = dom.generateButton?.querySelector("[data-t]");
       if (generateLabel) generateLabel.textContent = t.btn_generate;
