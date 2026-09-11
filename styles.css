@@ -1126,6 +1126,13 @@ body {
   color: var(--found-strong);
 }
 
+/* The share worked but the link may get truncated by a messenger: not an error. */
+.status-message.is-warning {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
 .status-message.is-error {
   background: #fff0f0;
   border-color: #f0a0a0;
@@ -1286,6 +1293,33 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.5rem;
+}
+
+/* The numeric pill stays for exact counts; the bar is what a seven-year-old reads. */
+.progress-bar {
+  flex: 1 1 6rem;
+  min-width: 4rem;
+  max-width: 12rem;
+  height: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--paper-soft);
+  overflow: hidden;
+  appearance: none;
+}
+
+.progress-bar::-webkit-progress-bar {
+  background: var(--paper-soft);
+}
+
+.progress-bar::-webkit-progress-value {
+  background: var(--found);
+  border-radius: 999px;
+}
+
+.progress-bar::-moz-progress-bar {
+  background: var(--found);
+  border-radius: 999px;
 }
 
 .progress-pill {
@@ -1519,10 +1553,17 @@ body {
   min-width: var(--grid-min-width, 0);
   gap: var(--cell-gap);
   user-select: none;
-  touch-action: pan-x;
+  /* pan-x is only needed while the board is wider than its frame. When it fits, the
+     browser was stealing the horizontal drag — the very gesture used to trace a word
+     left to right — and cancelling the selection. See .is-scrollable in app-board.js. */
+  touch-action: none;
   position: relative;
   z-index: 0;
   transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.grid-container.is-scrollable .puzzle-grid {
+  touch-action: pan-x;
 }
 
 .grid-container.is-complete .puzzle-grid {
@@ -1633,6 +1674,23 @@ body {
   border-color: var(--hint-border);
   box-shadow: 0 0 0 5px rgba(196, 144, 10, 0.25);
   animation: hintGlow 2s ease forwards;
+}
+
+/* A wrong selection used to produce nothing at all — same as a right one that
+   silently failed. The shake is the only cue for a child who can't read the message yet. */
+.grid-cell.is-wrong {
+  background: linear-gradient(175deg, #fde2e2 0%, #f9c9c9 100%);
+  border-color: #c2410c;
+  color: #7f1d1d;
+  animation: wrongShake 0.36s ease;
+}
+
+@keyframes wrongShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-3px); }
+  40%      { transform: translateX(3px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
 }
 
 @keyframes hintGlow {
@@ -2002,6 +2060,8 @@ body.has-modal {
   border-radius: 24px 24px 16px 16px;
   max-width: 400px;
   width: 90%;
+  max-height: min(90vh, 100%);
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   text-align: center;
   border: 2px solid var(--panel-border);
@@ -2540,6 +2600,19 @@ body[data-tab="student"] .panel {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* hintGlow's last keyframe restores the normal cell background, so with animations
+     collapsed to 0.01ms the hint was invisible for its whole 4s window. Same for the
+     wrong-answer shake. Both need a static state instead. */
+  .grid-cell.is-hint {
+    background: linear-gradient(175deg, #fef3c7 0%, #fde68a 100%) !important;
+    box-shadow: 0 0 0 5px rgba(196, 144, 10, 0.35) !important;
+  }
+
+  .grid-cell.is-wrong {
+    background: linear-gradient(175deg, #fde2e2 0%, #f9c9c9 100%) !important;
+    box-shadow: 0 0 0 4px rgba(194, 65, 12, 0.3) !important;
+  }
 }
 
 /* ========================
@@ -2718,6 +2791,8 @@ body[data-tab="student"] .panel {
 
   /* Teacher-mode print doubles as an answer key: solution cells stay highlighted. */
   body[data-mode="teacher"] .grid-cell.is-solution {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
     background: #ffeaa0 !important;
     color: #000 !important;
     font-weight: 700 !important;

@@ -170,7 +170,7 @@ test("student progress resumes after reopening the shared link", async ({ browse
   // Starting over clears the saved progress.
   await reopened.getByRole("button", { name: "Començar" }).click();
   await reopened.getByRole("button", { name: "Reiniciar joc" }).click();
-  await reopened.getByRole("button", { name: "Confirmar" }).click();
+  await reopened.getByRole("button", { name: "Sí, continuar" }).click();
   await expect(reopened.locator("#progress-text")).toHaveText("0 / 4");
 
   await context.close();
@@ -187,12 +187,18 @@ test("hint highlights the expected cell and decrements the counter", async ({ pa
 
   const words = core.parseWords(wordsText).words;
   const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
-  const hintedCell = puzzle.placements[0].cells[0];
+  // The shortest remaining word is the easiest win, so that is the one lit up.
+  const shortest = puzzle.placements.reduce((best, candidate) => (
+    candidate.cells.length < best.cells.length ? candidate : best
+  ));
+  const hintedCell = shortest.cells[0];
 
   await page.locator("#hint-button").click();
 
   await expect(page.locator("#hint-button")).toHaveText("Pista (2)");
   await expect(page.locator(`[data-row="${hintedCell.row}"][data-col="${hintedCell.col}"]`)).toHaveClass(/is-hint/);
+  // Naming the word is what makes a hint worth spending.
+  await expect(page.locator("#board-status")).toContainText(shortest.display);
 });
 
 test("student name modal and send results use the configured form URL", async ({ page }) => {
@@ -215,13 +221,6 @@ test("student name modal and send results use the configured form URL", async ({
   });
 
   await generatePuzzle(page, { words: wordsText, timer: "0", hints: "0", formTemplate });
-
-  await expect(page.locator("#student-name-modal")).toBeVisible();
-  await expect(page.locator("#student-name-privacy")).toContainText("Google Form");
-  await expect(page.getByLabel("Cognoms (opcional)")).toBeVisible();
-  await page.locator("#student-nom-input").fill("Ada");
-  await page.locator("#student-cognoms-input").fill("Lovelace");
-  await page.getByRole("button", { name: "Continuar" }).click();
 
   await expect(page.locator("#student-name-modal")).toBeHidden();
   await expect(page.locator("#student-start-overlay")).toBeVisible();
@@ -248,6 +247,14 @@ test("student name modal and send results use the configured form URL", async ({
   expect(runtimeErrors).toEqual([]);
 
   await page.locator("#send-results-button").click();
+
+  // The name is only asked for here, once there is a result worth sending.
+  await expect(page.locator("#student-name-modal")).toBeVisible();
+  await expect(page.getByLabel("Cognoms (opcional)")).toBeVisible();
+  await page.locator("#student-nom-input").fill("Ada");
+  await page.locator("#student-cognoms-input").fill("Lovelace");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.locator("#student-name-modal")).toBeHidden();
 
   const openedUrl = await page.evaluate(() => window.__openedUrls[0]?.[0] || "");
   const url = new URL(openedUrl);
@@ -318,7 +325,7 @@ test("share status warns when the encoded URL approaches messenger limits", asyn
   });
 
   await page.locator("#teacher-share-button").click();
-  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
+  await expect(page.locator("#status-message")).toHaveClass(/is-warning/);
   await expect(page.locator("#status-message")).toContainText(/Enllaç molt llarg|long/i);
 });
 
@@ -336,9 +343,6 @@ test("send-results blocks with an inline message when the device is offline", as
     hints: "0",
     formTemplate,
   });
-  await page.locator("#student-nom-input").fill("Ada");
-  await page.locator("#student-cognoms-input").fill("Lovelace");
-  await page.getByRole("button", { name: "Continuar" }).click();
   await startStudentSession(page);
 
   const words = core.parseWords("balena\ndofi\npeix").words;
@@ -350,29 +354,32 @@ test("send-results blocks with an inline message when the device is offline", as
 
   await context.setOffline(true);
   await page.locator("#send-results-button").click();
-  await expect(page.locator("#board-status")).toContainText(/Sense connexió|Offline|Sin conexión/);
+  await expect(page.locator("#board-status")).toContainText(/no hi ha internet|no internet|no hay internet/i);
+  // The offline check runs before the name prompt: nothing to type, nothing sent.
+  await expect(page.locator("#student-name-modal")).toBeHidden();
   await expect.poll(() => page.evaluate(() => window.__openedUrls.length)).toBe(0);
 
   await context.setOffline(false);
 });
 
-test("mobile library starts category-first instead of showing the full word cloud", async ({ page }) => {
+test("mobile library opens on one category instead of the full word cloud", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/index.html");
 
-  await expect(page.locator("#lib-results")).toContainText("Tria una categoria o escriu al cercador per veure paraules.");
-  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(0);
-
-  await page.getByRole("button", { name: "Animals" }).click();
+  // Starting on an empty "choose a category" prompt hit every device, not just mobile.
+  // One category is the useful default; the flat cloud is still opt-in.
+  await expect(page.locator("#lib-categories .category-chip.is-active")).toHaveText("Animals");
   await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(17);
+
+  await page.getByRole("button", { name: "Tots", exact: true }).click();
+  await expect(page.locator("#lib-results .lib-word-chip").count()).resolves.toBeGreaterThan(17);
 });
 
-test("desktop library also waits for a category or a search", async ({ page }) => {
+test("desktop library narrows to a search across every category", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/index.html");
 
-  await expect(page.locator("#lib-results")).toContainText("Tria una categoria o escriu al cercador per veure paraules.");
-  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(0);
+  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(17);
 
   await page.locator("#lib-search").fill("gos");
   await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(1);

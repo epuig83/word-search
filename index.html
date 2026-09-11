@@ -256,7 +256,7 @@
             <details id="advanced-settings-details" class="advanced-settings">
               <summary class="teacher-tools-summary">
                 <span data-t="advanced_settings_title">Ajustos avançats</span>
-                <span class="advanced-settings-summary" data-t="advanced_settings_summary">Mida, temps i pistes</span>
+                <span id="advanced-settings-summary" class="advanced-settings-summary"></span>
               </summary>
               <div class="field-grid">
               <div class="field">
@@ -329,7 +329,7 @@
           </details>
 
           <p id="default-pin-warning" class="default-pin-warning" hidden data-t="msg_default_pin_warning">
-            Canvia el PIN per defecte (1234) per protegir el panell docent.
+            Canvia el PIN per defecte per protegir el panell docent.
           </p>
 
           <details id="pin-change-details" class="pin-change-section">
@@ -401,6 +401,7 @@
             <div class="progress-container">
               <span class="section-kicker" data-t="board_progress">Progrés</span>
               <div id="progress-text" class="progress-pill">0 / 0</div>
+              <progress id="progress-bar" class="progress-bar" value="0" max="1" aria-hidden="true"></progress>
               <div class="theme-selector" role="group" aria-label="Tema visual">
                 <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Pergamí</span></button>
                 <button type="button" class="theme-btn" data-theme="ocea" aria-pressed="false"><span class="visually-hidden" data-t="theme_ocea">Oceà</span></button>
@@ -479,8 +480,8 @@
                   <div id="completion-message" class="completion-message" role="region" hidden tabindex="-1" aria-labelledby="completion-message-title" aria-live="polite">
                     <div class="completion-card">
                       <p id="completion-message-title" class="completion-message-title" data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</p>
-                      <p id="completion-note" class="completion-note" data-t="completion_note">Ja pots revisar la sopa o reiniciar-la per tornar a jugar.</p>
-                      <p class="completion-note" data-t="learning_prompt">Tria dues paraules i explica què volen dir.</p>
+                      <p id="completion-note" class="completion-note" data-t="completion_note">Pots mirar la sopa una altra vegada o tornar a jugar.</p>
+                      <p class="completion-note" data-t="learning_prompt">Sabries dir què volen dir dues d'aquestes paraules?</p>
                       <p id="completion-time" class="completion-note" hidden></p>
                       <button type="button" id="send-results-button" class="primary-button completion-message-button" data-t="btn_send_results" hidden>
                         Enviar resultats
@@ -515,7 +516,7 @@
                   </details>
                 </div>
               </div>
-              <p class="print-only print-learning-prompt" data-t="learning_prompt" aria-hidden="true">Tria dues paraules i explica què volen dir.</p>
+              <p class="print-only print-learning-prompt" data-t="learning_prompt" aria-hidden="true">Sabries dir què volen dir dues d'aquestes paraules?</p>
             </div>
           </div>
         </section>
@@ -536,7 +537,7 @@
         <h3 id="student-name-title" data-t="name_modal_title">Qui ets?</h3>
         <p id="student-name-text" data-t="name_modal_text">Escriu el teu nom per començar el joc.</p>
         <p id="student-name-privacy" class="privacy-note" data-t="name_modal_privacy">
-          En continuar, el nom o àlies, els cognoms opcionals, el resultat i el tema es prepararan per enviar-los al Google Form configurat pel docent quan premis «Enviar resultats».
+          La teva mestra veurà el teu nom i quantes paraules has trobat. Pots posar un sobrenom si ho prefereixes.
         </p>
         <form id="student-name-form">
           <div class="field" style="margin-bottom:0.75rem;">
@@ -548,6 +549,7 @@
             <input type="text" id="student-cognoms-input" autocomplete="family-name" style="width:100%;" />
           </div>
           <button type="submit" class="primary-button" style="width:100%;" data-t="btn_continue">Continuar</button>
+          <button type="button" id="student-name-cancel" class="ghost-button" style="width:100%; margin-top:0.75rem;" data-t="pin_btn_cancel">Cancel·lar</button>
         </form>
       </div>
     </div>
@@ -593,7 +595,7 @@
         <h3 id="confirm-modal-title" data-t="confirm_title">Segur?</h3>
         <p id="confirm-modal-text"></p>
         <div class="confirm-modal-actions">
-          <button type="button" id="confirm-modal-confirm" class="primary-button" data-t="btn_confirm">Confirmar</button>
+          <button type="button" id="confirm-modal-confirm" class="primary-button" data-t="btn_confirm">Sí, continuar</button>
           <button type="button" id="confirm-modal-cancel" class="ghost-button" data-t="btn_cancel">Cancel·lar</button>
         </div>
       </div>

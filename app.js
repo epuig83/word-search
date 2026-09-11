@@ -344,6 +344,11 @@
     celebrated: false,
     activeCategory: null,
     pinCallback: null,
+    nameCallback: null,
+    boardFlash: null,
+    wrongCells: [],
+    hintCell: null,
+    progressSaveWarned: false,
     customSamples: loadCustomSamplesFromStorage(),
     teacherPin: loadTeacherPinFromStorage(),
     theme: loadThemeFromStorage(),
@@ -389,6 +394,9 @@
       activeDefinitionWordId: null,
       timerSecondsLeft: state.puzzle?.timerDuration || 0,
       focusedCell: null,
+      boardFlash: null,
+      wrongCells: [],
+      hintCell: null,
     };
   }
 
@@ -438,13 +446,19 @@
       clearProgressFromStorage();
       return;
     }
-    saveProgressToStorage({
+    const saved = saveProgressToStorage({
       key: puzzleProgressKey(state.puzzle),
       foundWordIds: [...state.foundWordIds],
       timerSecondsLeft: state.timerSecondsLeft,
       timerExpired: state.timerExpired,
       hintsRemaining: state.hintsRemaining,
     });
+    // Private mode and a full quota both fail here, and this runs every 5 timer
+    // seconds — so warn once instead of silently losing a 20-minute session on reload.
+    if (!saved && !state.progressSaveWarned) {
+      state.progressSaveWarned = true;
+      setStatus(TRANSLATIONS[state.lang].msg_storage_unavailable, "error");
+    }
   }
 
   // Re-apply saved progress by word id (placements are recomputed against the
@@ -489,6 +503,7 @@
     difficultyInput: document.querySelector("#difficulty-input"),
     sizeInput: document.querySelector("#size-input"),
     presetBtns: document.querySelectorAll(".preset-btn"),
+    advancedSettingsSummary: document.querySelector("#advanced-settings-summary"),
     sampleSelect: document.querySelector("#sample-select"),
     loadSampleButton: document.querySelector("#load-sample-button"),
     saveSampleButton: document.querySelector("#save-sample-button"),
@@ -516,6 +531,7 @@
     boardInstructions: document.querySelector("#board-instructions"),
     boardStatus: document.querySelector("#board-status"),
     progressText: document.querySelector("#progress-text"),
+    progressBar: document.querySelector("#progress-bar"),
     puzzleGrid: document.querySelector("#puzzle-grid"),
     wordList: document.querySelector("#word-list"),
     wordBankCount: document.querySelector("#word-bank-count"),
@@ -561,6 +577,7 @@
     sendResultsButton: document.querySelector("#send-results-button"),
     studentNameModal: document.querySelector("#student-name-modal"),
     studentNameForm: document.querySelector("#student-name-form"),
+    studentNameCancel: document.querySelector("#student-name-cancel"),
     studentNomInput: document.querySelector("#student-nom-input"),
     studentCognomsInput: document.querySelector("#student-cognoms-input"),
     wordDefinitionModal: document.querySelector("#word-definition-modal"),
@@ -702,7 +719,22 @@
     syncDifficultyPresetState();
   }
 
+  // The four presets and the four advanced selects write the same four values, so the
+  // collapsed <details> now reports what is actually set rather than a fixed label.
+  // Without this, touching any select silently un-highlighted every preset.
+  function buildAdvancedSettingsSummary() {
+    const t = TRANSLATIONS[state.lang];
+    const rawSize = dom.sizeInput.value;
+    const size = rawSize === "auto" ? t.size_auto : `${rawSize} × ${rawSize}`;
+    const timer = formatTimerSummary(Number(dom.timerInput?.value) || 0, t);
+    const hints = `${t.hints_label}: ${formatHintsSummary(Number(dom.hintsInput?.value), t)}`;
+    return [t[`diff_${dom.difficultyInput.value}`], size, timer, hints].filter(Boolean).join(" · ");
+  }
+
   function syncDifficultyPresetState() {
+    if (dom.advancedSettingsSummary) {
+      dom.advancedSettingsSummary.textContent = buildAdvancedSettingsSummary();
+    }
     dom.presetBtns.forEach(button => {
       const preset = DIFFICULTY_PRESETS[button.dataset.preset];
       const isActive = Boolean(preset) &&
@@ -800,6 +832,7 @@
     });
     state.activeCategory = null;
     teacherController.renderSampleOptions();
+    syncDifficultyPresetState();
     teacherController.updateWordsHelper();
     teacherController.renderLibrary();
     render();
@@ -812,10 +845,20 @@
     dom.statusMessage.className = "status-message" + (tone ? ` is-${tone}` : "");
   }
 
+  let announceTimeoutId = null;
+  let pendingAnnouncement = "";
+
   function announce(msg) {
     if (!dom.srAnnounce || !msg) return;
     dom.srAnnounce.textContent = "";
-    setTimeout(() => { dom.srAnnounce.textContent = msg; }, 50);
+    // Finding the last word announces "found X" and then the completion message in the
+    // same tick. With a bare 50ms timer each call the second overwrote the first.
+    pendingAnnouncement = pendingAnnouncement ? `${pendingAnnouncement}. ${msg}` : msg;
+    clearTimeout(announceTimeoutId);
+    announceTimeoutId = setTimeout(() => {
+      dom.srAnnounce.textContent = pendingAnnouncement;
+      pendingAnnouncement = "";
+    }, 50);
   }
 
   function refreshDefaultPinWarning() {
@@ -938,22 +981,26 @@
     }
 
     if (outcome === "shared") {
-      setStatus(isLong ? t.msg_share_url_long : t.msg_share_opened, isLong ? "error" : "success");
+      setStatus(isLong ? t.msg_share_url_long : t.msg_share_opened, isLong ? "warning" : "success");
       return;
     }
 
     if (outcome === "copied") {
       flashButtonText(button, t.btn_share_copied, t.btn_share);
-      setStatus(isLong ? t.msg_share_url_long : t.btn_share_copied, isLong ? "error" : "success");
+      setStatus(isLong ? t.msg_share_url_long : t.btn_share_copied, isLong ? "warning" : "success");
       return;
     }
 
     if (outcome === "prompted") {
-      setStatus(isLong ? t.msg_share_url_long : t.msg_share_manual, isLong ? "error" : "success");
+      // The share itself worked; the student view can't see #status-message, so the
+      // button label carries the outcome there the way "copied" already does.
+      flashButtonText(button, t.btn_share_copied, t.btn_share);
+      setStatus(isLong ? t.msg_share_url_long : t.msg_share_manual, isLong ? "warning" : "success");
       return;
     }
 
     if (outcome === "unavailable") {
+      flashButtonText(button, t.msg_share_unavailable, t.btn_share);
       setStatus(t.msg_share_unavailable, "error");
     }
   }
@@ -1055,6 +1102,9 @@
         sourceLang: state.lang,
       });
       state.studentName = { nom: "", cognoms: "" };
+      // A new puzzle is a new party; the damping is only meant to stop confetti
+      // spamming within one puzzle.
+      state.celebrationsInSession = 0;
       stopTimer();
       resetPuzzleProgress();
       setStatus(t.msg_success, "success");
@@ -1158,8 +1208,18 @@
   // next interaction would resume the orphaned drag.
   window.addEventListener("pointercancel", () => {
     if (!state.dragSelection) return;
+    const wasDragging = state.dragSelection.moved;
     state.dragSelection = null;
     clearSelection();
+    // A stray touch shouldn't talk; an interrupted drag should, or the selection just
+    // vanishes and the child has no idea the attempt was registered at all.
+    if (wasDragging && canInteractWithPuzzle()) {
+      state.boardFlash = {
+        text: TRANSLATIONS[state.lang].msg_not_found,
+        tone: "error",
+        expires: Date.now() + 2600,
+      };
+    }
     render();
   });
 

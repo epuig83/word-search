@@ -16,6 +16,11 @@
   // If exceeded, buildPuzzleData throws and the UI shows the generic msg_puzzle_error.
   const MAX_GENERATION_ATTEMPTS = 180;
   const MAX_GRID_SIZE = 22;
+  // Backtracking is O(size² × directions × wordLength) per word per attempt and runs
+  // synchronously on the main thread. Without these two ceilings a pasted list of a
+  // few hundred words — or a crafted ?p= link — freezes a classroom tablet outright.
+  const MAX_WORDS = 60;
+  const MAX_GENERATION_MS = 1500;
   const SAMPLE_LANGS = ["ca", "es", "en"];
   const SAMPLE_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const SAMPLE_SIZES = new Set(["auto", "8", "10", "12", "14", "16"]);
@@ -44,6 +49,7 @@
       if (cleaned.length >= 2 && !seen.has(cleaned)) {
         seen.add(cleaned);
         words.push({ id: cleaned, cleaned, display: token });
+        if (words.length >= MAX_WORDS) break;
       }
     }
     return { words };
@@ -148,7 +154,11 @@
     const tooLong = words.find(w => w.cleaned.length > size);
     if (tooLong) throw new Error(`WORD_TOO_LONG:${tooLong.display}`);
 
+    const deadline = Date.now() + MAX_GENERATION_MS;
     for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
+      // Give up on wall-clock time as well as attempt count: a hard word set can burn
+      // all 180 attempts and each one gets slower as the grid fills.
+      if (attempt > 0 && Date.now() > deadline) break;
       const grid = buildEmptyGrid(size);
       const placements = [];
       let success = true;
@@ -347,7 +357,9 @@
   return Object.freeze({
     LETTERS,
     MAX_GENERATION_ATTEMPTS,
+    MAX_GENERATION_MS,
     MAX_GRID_SIZE,
+    MAX_WORDS,
     SAMPLE_LANGS,
     SAMPLE_DIFFICULTIES,
     SAMPLE_SIZES,

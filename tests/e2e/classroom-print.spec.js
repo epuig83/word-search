@@ -28,6 +28,11 @@ for (const lang of ["ca", "es", "en"]) {
         if (solution) {
           await expect(page.locator(".grid-cell.is-solution").first()).toBeVisible();
           await expect(page.locator(".print-learning-prompt")).toBeHidden();
+          // Browsers drop backgrounds unless "Background graphics" is ticked, which is
+          // off by default — so the answer key has to ask for its colour explicitly or
+          // the teacher prints a sheet with no highlight at all.
+          await expect(page.locator(".grid-cell.is-solution").first())
+            .toHaveCSS("print-color-adjust", "exact");
         } else {
           await expect(page.locator("#print-meta")).toBeVisible();
           await expect(page.locator(".print-learning-prompt")).toBeVisible();
@@ -36,6 +41,10 @@ for (const lang of ["ca", "es", "en"]) {
         const pdf = await page.pdf({ path: testInfo.outputPath(filename), format: "A4", preferCSSPageSize: true, printBackground: true });
         expect((pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length).toBe(1);
         await testInfo.attach(filename, { body: pdf, contentType: "application/pdf" });
+
+        // The default print path: no background graphics requested by the user.
+        const plainPdf = await page.pdf({ format: "A4", preferCSSPageSize: true, printBackground: false });
+        expect((plainPdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length).toBe(1);
       }
     });
   }

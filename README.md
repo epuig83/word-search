@@ -39,7 +39,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - A first/last-letter example explains how to select a word. Words marked with a book icon open a definition.
 - On phones, the word list appears above the grid and the activity actions below it.
 - Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
-- If you configure Google Forms, students see which data will be prepared for submission before entering a name or alias; surnames are optional.
+- If you configure Google Forms, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
 
 ## If the Browser Shows Warnings with `file://`
@@ -108,8 +108,8 @@ pnpm test
 
 ### Coverage
 
-- `tests/unit/*`: puzzle logic, app helper logic, translation integrity, and data consistency.
-- `tests/e2e/accessibility.spec.js`: Axe checks for teacher, active student, and completion states plus tab keyboard behavior.
+- `tests/unit/*`: puzzle logic, app helper logic, modal focus trapping, translation integrity, and data consistency.
+- `tests/e2e/accessibility.spec.js`: Axe checks for teacher, active student, and completion states, each modal while open, plus tab keyboard behavior.
 - `tests/e2e/student-flow.spec.js`: real teacher/student flow, start overlay, timer, reset, and return from teacher view.
 - `tests/e2e/share-hint-form.spec.js`: shared links, hints, student form flow, and malformed shared URLs.
 - `tests/e2e/beginner-flow.spec.js`: beginner examples in all three languages, exact shared puzzles, small screens, and two-letter selection with touch and keyboard.

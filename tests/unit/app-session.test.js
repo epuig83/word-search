@@ -241,7 +241,7 @@ function createFixture() {
   return { controller, dom, state, calls };
 }
 
-test("setTab('student') resumes the timer and opens the student-name modal when a form is configured", () => {
+test("setTab('student') resumes the timer and never traps the student in the name modal", () => {
   withBrowserGlobals(({ document }) => {
     const { controller, dom, state, calls } = createFixture();
     state.studentSessionStarted = true;
@@ -259,9 +259,9 @@ test("setTab('student') resumes the timer and opens the student-name modal when 
     assert.deepEqual(calls.startTimer, [120]);
     assert.equal(calls.render, 1);
     assert.equal(calls.updateHintButton, 1);
-    assert.deepEqual(calls.openModal, [[dom.studentNameModal, dom.studentNomInput]]);
-    assert.equal(dom.studentNomInput.placeholder, TRANSLATIONS.ca.name_nom_placeholder);
-    assert.equal(dom.studentCognomsInput.placeholder, TRANSLATIONS.ca.name_cognoms_placeholder);
+    // The name is asked for at send time, not on arrival: the modal refuses an empty
+    // name and has no way out, so opening it here left the student stuck.
+    assert.deepEqual(calls.openModal, []);
     assert.equal(dom.tabTeacher.getAttribute("aria-selected"), "false");
     assert.equal(dom.tabStudent.getAttribute("aria-selected"), "true");
     assert.equal(dom.tabStudent.classList.contains("is-active"), true);

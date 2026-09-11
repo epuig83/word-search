@@ -14,6 +14,7 @@ const CRITICAL_KEYS = [
   "btn_generate",
   "btn_show_solution", "btn_hide_solution", "btn_reset",
   "msg_success", "msg_puzzle_error", "msg_found",
+  "msg_not_found", "msg_not_straight", "msg_already_found",
   "msg_share_opened", "msg_share_manual", "msg_share_unavailable",
   "diff_easy", "diff_medium", "diff_hard",
   "timer_none", "timer_expired",
@@ -25,6 +26,7 @@ const CRITICAL_KEYS = [
   "msg_storage_unavailable",
   "completion_msg",
   "completion_note",
+  "completion_score",
   "grid_cell_label",
   "msg_link_error",
 ];
@@ -33,15 +35,16 @@ const CRITICAL_KEYS = [
 const PLACEHOLDER_KEYS = [
   "words_count", "msg_found", "btn_hint", "msg_import_success",
   "board_status_progress", "teacher_ready_meta", "grid_cell_label",
+  "completion_score", "msg_hint_used",
 ];
 
 // Keys that must exist in every language (superset of critical + placeholders)
 const ALL_EXPECTED_KEYS = new Set([...CRITICAL_KEYS, ...PLACEHOLDER_KEYS,
   "hero_eyebrow", "hero_title", "hero_text", "config_title", "field_topic",
   "field_words", "btn_clear_words", "field_sample", "btn_example",
-  "sample_management_summary", "advanced_settings_title", "advanced_settings_summary",
+  "sample_management_summary", "advanced_settings_title",
   "btn_save_sample", "btn_export_samples", "btn_import_samples",
-  "btn_print", "btn_share", "btn_share_copied", "btn_student", "btn_teacher",
+  "btn_print", "btn_share", "btn_share_copied",
   "status_default", "board_instructions", "board_status_pending",
   "board_status_start", "board_status_complete", "board_status_expired",
   "board_progress", "word_bank_title", "teacher_tools_summary",
@@ -56,7 +59,7 @@ const ALL_EXPECTED_KEYS = new Set([...CRITICAL_KEYS, ...PLACEHOLDER_KEYS,
   "msg_no_examples", "msg_choose_sample", "msg_confirm_replace",
   "msg_confirm_replace_custom_sample", "msg_sample_requires_title",
   "msg_sample_requires_words", "msg_import_empty", "msg_import_read_error",
-  "msg_print_without_puzzle", "view_teacher", "lib_title",
+  "msg_print_without_puzzle", "lib_title",
   "lib_search_placeholder", "sample_placeholder", "sample_group_builtin",
   "sample_group_custom", "sample_note", "lib_empty_mobile", "lib_empty_search",
   "words_summary_empty", "words_summary_sparse", "words_summary_ready",
@@ -131,6 +134,8 @@ test("placeholder keys contain expected tokens across all languages", () => {
     board_status_progress: ["{found}", "{total}"],
     teacher_ready_meta: ["{count}", "{size}", "{difficulty}"],
     grid_cell_label: ["{letter}", "{row}", "{col}"],
+    completion_score: ["{found}", "{total}"],
+    msg_hint_used: ["{word}"],
   };
 
   for (const [key, tokens] of Object.entries(expectedTokens)) {

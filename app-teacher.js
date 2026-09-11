@@ -128,7 +128,7 @@
       dom.wordsCount.textContent = t.words_count.replace("{count}", count);
       dom.wordsCount.className = "words-count-pill" + (countTone ? ` is-${countTone}` : "");
       const feedbackText = shortWords.length
-        ? `${t[feedbackKey]} ${t.words_too_short.replace("{words}", shortWords.join(", "))}`
+        ? t.words_too_short.replace("{words}", shortWords.join(", "))
         : t[feedbackKey];
       dom.wordsFeedback.textContent = feedbackText;
       dom.wordsFeedback.className = "words-feedback" + (countTone ? ` is-${countTone}` : "");
@@ -223,6 +223,8 @@
       undoSnapshot = { lang, sample: removed, index };
       if (dom.sampleUndoToast) {
         dom.sampleUndoToast.hidden = false;
+        const container = dom.sampleUndoToast.closest("details");
+        if (container) container.open = true;
       }
       undoTimeoutId = setTimeout(() => commitPendingUndo(), 5000);
     }
@@ -293,6 +295,11 @@
       const search = dom.libSearch.value.trim().toLowerCase();
       const categories = getVocabularyCategories(lang);
       const categoryEntries = Object.entries(categories);
+      // Starting on null showed "choose a category" on first load on every device, not
+      // just on mobile as the string name suggests. Open on the first category instead.
+      if (!state.activeCategory && categoryEntries.length) {
+        state.activeCategory = categoryEntries[0][0];
+      }
       const isAllCategoriesSelected = state.activeCategory === allCategoryId;
 
       dom.libCategories.innerHTML = "";

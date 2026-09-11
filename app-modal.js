@@ -17,7 +17,14 @@
     let lastFocusedElement = null;
 
     function getFocusableElements(container) {
-      return [...container.querySelectorAll(focusableSelector)].filter(element => !element.hasAttribute("hidden"));
+      // The autocomplete honeypots in the PIN forms match the input selector but carry
+      // tabindex="-1" + aria-hidden, so the browser never tabs to them. Leaving them in
+      // made focusable[0] unreachable and Shift+Tab escaped the modal entirely.
+      return [...container.querySelectorAll(focusableSelector)].filter(element => (
+        !element.hasAttribute("hidden") &&
+        element.getAttribute("tabindex") !== "-1" &&
+        element.getAttribute("aria-hidden") !== "true"
+      ));
     }
 
     function openModal(overlay, focusTarget) {

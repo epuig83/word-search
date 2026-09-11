@@ -1,10 +1,12 @@
 const { test, expect } = require("@playwright/test");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const core = require("../../core.js");
 const {
   generatePuzzle,
   measureGridVisibility,
   readTimerSeconds,
+  solvePlacement,
   startStudentSession,
   unlockTeacherView,
 } = require("./helpers");
@@ -50,7 +52,7 @@ test("teacher flow presents one creation CTA and grouped optional settings", asy
   await expect(page.getByRole("button", { name: "Crear i revisar l'activitat" })).toBeVisible();
   await expect(page.locator("#advanced-settings-details")).not.toHaveAttribute("open", "");
   await expect(page.locator(".sample-management")).not.toHaveAttribute("open", "");
-  await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(0);
+  await expect(page.locator("#lib-results .lib-word-chip").first()).toBeVisible();
 });
 
 test("Andika is self-hosted and loaded as the classroom typeface", async ({ page }) => {
@@ -72,7 +74,7 @@ test("student overlay gates the start of the timer", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Tot a punt per començar" })).toBeVisible();
   await expect(page.locator("#timer-display")).toBeHidden();
-  await expect(page.getByText("Prem Començar per iniciar l'activitat.")).toBeVisible();
+  await expect(page.getByText("Prem Començar quan vulguis.")).toBeVisible();
 
   await startStudentSession(page);
 
@@ -87,11 +89,11 @@ test("reset returns the student view to the pre-start overlay", async ({ page })
   await expect.poll(() => readTimerSeconds(page), { timeout: 4_000 }).toBeLessThan(300);
 
   await page.getByRole("button", { name: "Reiniciar joc" }).click();
-  await page.getByRole("button", { name: "Confirmar" }).click();
+  await page.getByRole("button", { name: "Sí, continuar" }).click();
 
   await expect(page.locator("#student-start-overlay")).toBeVisible();
   await expect(page.locator("#timer-display")).toBeHidden();
-  await expect(page.getByText("Prem Començar per iniciar l'activitat.")).toBeVisible();
+  await expect(page.getByText("Prem Començar quan vulguis.")).toBeVisible();
 });
 
 test("returning from teacher view resumes the running timer without resetting it", async ({ page }) => {
@@ -168,7 +170,7 @@ test("pause halts the timer and resume keeps the remaining seconds", async ({ pa
 test("default PIN warning appears until the teacher changes the PIN", async ({ page }) => {
   await page.goto("/index.html");
   await expect(page.locator("#default-pin-warning")).toBeVisible();
-  await expect(page.locator("#default-pin-warning")).toContainText("1234");
+  await expect(page.locator("#default-pin-warning")).not.toContainText("1234");
 
   await page.locator("#pin-change-details summary").click();
   await page.locator("#new-pin-input").fill("74920");
@@ -562,4 +564,111 @@ test("print worksheet shows a localized name/date line and drops the screen back
 
     await pageContext.close();
   });
+});
+
+test("a selection that is not a straight line says so instead of doing nothing", async ({ page }) => {
+  await generatePuzzle(page, { timer: "0", hints: "0" });
+  await startStudentSession(page);
+
+  // (0,0) to (1,2) is neither a row, a column, nor a diagonal, so it can never match
+  // any puzzle. Before, the highlight just vanished and the child got no response.
+  await page.locator('[data-row="0"][data-col="0"]').click();
+  await page.locator('[data-row="1"][data-col="2"]').click();
+
+  await expect(page.locator("#board-status")).toContainText("línia recta");
+  await expect(page.locator("#board-status")).toHaveClass(/is-error/);
+  await expect(page.locator(".grid-cell.is-wrong")).toHaveCount(0);
+});
+
+test("re-selecting a word already found says so rather than staying silent", async ({ page }) => {
+  const wordsText = "balena\ndofi\npeix";
+  await page.addInitScript(() => { Math.random = () => 0; });
+  await generatePuzzle(page, { words: wordsText, timer: "0", hints: "0" });
+  await startStudentSession(page);
+
+  const words = core.parseWords(wordsText).words;
+  const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
+  const [placement] = puzzle.placements;
+
+  await solvePlacement(page, placement);
+  await expect(page.locator("#board-status")).toContainText("Has trobat");
+
+  await solvePlacement(page, placement);
+  await expect(page.locator("#board-status")).toContainText("ja la tens");
+  await expect(page.locator(".grid-cell.is-wrong").first()).toBeVisible();
+});
+
+test("running out of time shows the score and where the words were", async ({ page }) => {
+  await page.clock.install();
+  await generatePuzzle(page, { timer: "300", hints: "0" });
+  await startStudentSession(page);
+  await expect(page.locator(".grid-cell.is-solution")).toHaveCount(0);
+
+  await page.clock.runFor("05:05");
+
+  // A frozen, blank board teaches nothing: reveal the answers and the tally.
+  await expect(page.locator(".grid-cell.is-solution").first()).toBeVisible();
+  await expect(page.locator("#completion-time")).toContainText("0 de 4");
+});
+
+test("the progress bar tracks found words alongside the count", async ({ page }) => {
+  const wordsText = "balena\ndofi\npeix";
+  await page.addInitScript(() => { Math.random = () => 0; });
+  await generatePuzzle(page, { words: wordsText, timer: "0", hints: "0" });
+  await startStudentSession(page);
+
+  const bar = page.locator("#progress-bar");
+  await expect(bar).toHaveJSProperty("max", 3);
+  await expect(bar).toHaveJSProperty("value", 0);
+
+  const words = core.parseWords(wordsText).words;
+  const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
+  await solvePlacement(page, puzzle.placements[0]);
+
+  await expect(bar).toHaveJSProperty("value", 1);
+});
+
+test("drag selection wins on a board that fits and yields to panning on one that does not", async ({ page }) => {
+  // touch-action: pan-x let the browser claim horizontal drags — the exact gesture used
+  // to trace a word left to right — and cancel the selection. It is now scoped to the
+  // only case that needs it: a board too wide for its frame.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await generatePuzzle(page, { size: "8", timer: "0", hints: "0" });
+  await startStudentSession(page);
+
+  await expect(page.locator("#grid-container")).not.toHaveClass(/is-scrollable/);
+  await expect(page.locator("#puzzle-grid")).toHaveCSS("touch-action", "none");
+
+  await generatePuzzle(page, { size: "16", timer: "0", hints: "0" });
+  await startStudentSession(page);
+
+  await expect(page.locator("#grid-container")).toHaveClass(/is-scrollable/);
+  await expect(page.locator("#puzzle-grid")).toHaveCSS("touch-action", "pan-x");
+});
+
+test("dragging across a word finds it", async ({ page }) => {
+  const wordsText = "balena\ndofi\npeix";
+  await page.addInitScript(() => { Math.random = () => 0; });
+  await generatePuzzle(page, { words: wordsText, timer: "0", hints: "0" });
+  await startStudentSession(page);
+
+  const words = core.parseWords(wordsText).words;
+  const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
+  const placement = puzzle.placements[0];
+  const first = placement.cells[0];
+  const last = placement.cells[placement.cells.length - 1];
+
+  // pointermove resolves cells with elementFromPoint, which returns null outside the
+  // viewport — so the board has to be on screen before the coordinates are read.
+  await page.locator(`[data-row="${first.row}"][data-col="${first.col}"]`).scrollIntoViewIfNeeded();
+  const from = await page.locator(`[data-row="${first.row}"][data-col="${first.col}"]`).boundingBox();
+  const to = await page.locator(`[data-row="${last.row}"][data-col="${last.col}"]`).boundingBox();
+
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(page.locator("#board-status")).toContainText("Has trobat");
+  await expect(page.locator("#word-list .word-item.is-found")).toHaveCount(1);
 });

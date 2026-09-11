@@ -4,9 +4,9 @@ const core = require("../../core");
 const { generatePuzzle, solvePlacement, measureGridVisibility } = require("./helpers");
 
 const examples = [
-  { lang: "ca", path: "/index.html", title: "Primers passos: animals", words: "gos\ngat\nos\nvaca\nllop\nlleó", start: "Començar" },
-  { lang: "es", path: "/es.html", title: "Primeros pasos: animales", words: "perro\ngato\noso\nvaca\nlobo\nleón", start: "Empezar" },
-  { lang: "en", path: "/en.html", title: "First steps: animals", words: "dog\ncat\nbear\ncow\nwolf\nlion", start: "Start" },
+  { lang: "ca", path: "/index.html", title: "Primers passos: animals", words: "gos\ngat\nos\nvaca\nllop\nlleó", start: "Començar", hints: "Pistes" },
+  { lang: "es", path: "/es.html", title: "Primeros pasos: animales", words: "perro\ngato\noso\nvaca\nlobo\nleón", start: "Empezar", hints: "Pistas" },
+  { lang: "en", path: "/en.html", title: "First steps: animals", words: "dog\ncat\nbear\ncow\nwolf\nlion", start: "Start", hints: "Hints" },
 ];
 
 for (const example of examples) {
@@ -37,10 +37,10 @@ for (const example of examples) {
     await expect(page.locator("#pause-button")).toBeHidden();
     await page.getByRole("button", { name: example.start, exact: true }).click();
     await expect(page.locator("#timer-display")).toBeHidden();
-    await expect(page.locator("#hint-button")).toContainText("∞");
+    await expect(page.locator("#hint-button")).toContainText(example.hints);
     await page.locator("#hint-button").click();
     await expect(page.locator(".grid-cell.is-hint")).toHaveCount(1);
-    await expect(page.locator("#hint-button")).toContainText("∞");
+    await expect(page.locator("#hint-button")).toContainText(example.hints);
     await expect(page.locator("#word-definitions-help")).toBeVisible();
     await page.locator(".word-definition-button").first().click();
     await expect(page.locator("#word-definition-modal")).toBeVisible();

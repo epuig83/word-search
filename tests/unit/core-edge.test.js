@@ -169,3 +169,46 @@ test("LETTERS contains Spanish alphabet including Ñ", () => {
   assert.ok(core.LETTERS.includes("Ñ"));
   assert.equal(core.LETTERS.length, 27); // A-Z + Ñ
 });
+
+// ── Generation ceilings ────────────────────────────────────────────────────
+// Backtracking runs synchronously on the main thread, so an oversized word list —
+// pasted by a teacher or carried in a crafted ?p= link — used to freeze the tablet.
+
+// normalizeWord strips digits, so numbered words would all collapse into one.
+function distinctWords(count, length) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  return Array.from({ length: count }, (_, index) => {
+    let remainder = index;
+    let word = "";
+    for (let position = 0; position < length; position++) {
+      word += alphabet[remainder % 26];
+      remainder = Math.floor(remainder / 26);
+    }
+    return word;
+  });
+}
+
+test("parseWords caps how many words one puzzle can carry", () => {
+  const rawText = distinctWords(core.MAX_WORDS + 40, 4).join("\n");
+  assert.equal(core.parseWords(rawText).words.length, core.MAX_WORDS);
+});
+
+test("parseWords keeps every word when under the cap", () => {
+  const rawText = distinctWords(12, 4).join("\n");
+  assert.equal(core.parseWords(rawText).words.length, 12);
+});
+
+test("buildPuzzleData aborts on an impossible word set instead of hanging", () => {
+  // 60 eight-letter words is 480 letters for 100 cells: every attempt must fail.
+  const { words } = core.parseWords(distinctWords(core.MAX_WORDS, 8).join("\n"));
+  assert.equal(words.length, core.MAX_WORDS);
+
+  const started = Date.now();
+  assert.throws(() => core.buildPuzzleData(words, 10, "hard", {}), /Error generating puzzle/);
+  const elapsed = Date.now() - started;
+
+  assert.ok(
+    elapsed < core.MAX_GENERATION_MS * 3,
+    `generation took ${elapsed}ms, expected the attempt and time budgets to stop it sooner`
+  );
+});

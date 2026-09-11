@@ -85,15 +85,26 @@
       render();
       updateHintButton();
 
-      const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
-      if (formParsed && !state.studentName.nom && dom.studentNameModal) {
-        const t = getTranslations();
-        if (dom.studentNomInput) dom.studentNomInput.placeholder = t.name_nom_placeholder;
-        if (dom.studentCognomsInput) dom.studentCognomsInput.placeholder = t.name_cognoms_placeholder;
-        openModal(dom.studentNameModal, dom.studentNomInput);
-      } else if (shouldShowStudentStartOverlay()) {
+      if (shouldShowStudentStartOverlay()) {
         focusStudentStartButton();
       }
+    }
+
+    // The name is only ever needed to submit results, so it is asked for at that
+    // moment. Asking on arrival put a two-field form in front of a six-year-old and,
+    // because the form refuses an empty name, left them with no way out of the modal.
+    function openStudentNameModal(callback) {
+      if (!dom.studentNameModal) return;
+      state.nameCallback = callback || null;
+      const t = getTranslations();
+      if (dom.studentNomInput) dom.studentNomInput.placeholder = t.name_nom_placeholder;
+      if (dom.studentCognomsInput) dom.studentCognomsInput.placeholder = t.name_cognoms_placeholder;
+      openModal(dom.studentNameModal, dom.studentNomInput);
+    }
+
+    function dismissStudentNameModal() {
+      closeModal(dom.studentNameModal);
+      state.nameCallback = null;
     }
 
     function openPinModal(callback) {
@@ -210,7 +221,19 @@
 
       dom.studentNameModal?.addEventListener("keydown", event => {
         trapModalFocus(event, dom.studentNameModal);
+        if (event.key === "Escape") {
+          event.preventDefault();
+          dismissStudentNameModal();
+        }
       });
+
+      dom.studentNameModal?.addEventListener("click", event => {
+        if (event.target === event.currentTarget) {
+          dismissStudentNameModal();
+        }
+      });
+
+      dom.studentNameCancel?.addEventListener("click", () => dismissStudentNameModal());
 
       if (dom.studentNameForm) {
         dom.studentNameForm.addEventListener("submit", event => {
@@ -219,12 +242,10 @@
           if (!nom) return;
           state.studentName = { nom, cognoms: dom.studentCognomsInput?.value.trim() || "" };
           closeModal(dom.studentNameModal, { restoreFocus: false });
+          const callback = state.nameCallback;
+          state.nameCallback = null;
           render();
-          if (shouldShowStudentStartOverlay()) {
-            focusStudentStartButton();
-            return;
-          }
-          focusGridCell(setFocusedCell(state.focusedCell || { row: 0, col: 0 }));
+          if (callback) callback();
         });
       }
 
@@ -284,7 +305,7 @@
       }
 
       if (dom.sendResultsButton) {
-        dom.sendResultsButton.addEventListener("click", () => {
+        const submitResults = () => {
           const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
           if (!formParsed || !state.puzzle) return;
           if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -302,6 +323,21 @@
             state.puzzle.title || ""
           );
           window.open(url, "_blank", "noopener");
+        };
+
+        dom.sendResultsButton.addEventListener("click", () => {
+          const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+          if (!formParsed || !state.puzzle) return;
+          // Check the connection first: no point asking for a name we cannot send.
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            if (dom.boardStatus) dom.boardStatus.textContent = getTranslations().msg_send_offline;
+            return;
+          }
+          if (!state.studentName.nom) {
+            openStudentNameModal(submitResults);
+            return;
+          }
+          submitResults();
         });
       }
     }

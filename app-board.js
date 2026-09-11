@@ -9,6 +9,8 @@
 
   const HINT_HIGHLIGHT_MS = 4000;
   const HINT_COOLDOWN_MS = 4000;
+  const BOARD_FLASH_MS = 2600;
+  const WRONG_FLASH_MS = 600;
 
   function createBoardController({
     dom,
@@ -38,6 +40,10 @@
     const updateTimerDisplayFn = typeof updateTimerDisplay === "function" ? updateTimerDisplay : () => {};
     let hintCooldownUntil = 0;
     let hintCooldownTimeoutId = null;
+    let boardFlashTimeoutId = null;
+    let wrongFlashTimeoutId = null;
+    let hintHighlightTimeoutId = null;
+    let gridOverflowObserver = null;
     let launchConfetti = null;
     function buildGridCellLabel(letter, row, col, flags) {
       const t = getTranslations();
@@ -72,7 +78,11 @@
 
     function buildSolutionCells() {
       const solutionCells = new Set();
-      if (state.mode === "teacher") {
+      // The teacher's answer key, plus the child's own: an expired board that stays
+      // blank teaches nothing, and the board is frozen at that point anyway.
+      const expiredUnfinished = state.timerExpired &&
+        state.foundWordIds.size < state.puzzle.words.length;
+      if (state.mode === "teacher" || expiredUnfinished) {
         state.puzzle.placements.forEach(placement => {
           placement.cells.forEach(cell => solutionCells.add(`${cell.row}:${cell.col}`));
         });
@@ -85,6 +95,22 @@
       if (size >= 13) return "compact";
       if (size >= 11) return "dense";
       return "standard";
+    }
+
+    // The grid only scrolls sideways when it is wider than its frame. Marking that case
+    // lets CSS hand horizontal drags back to the selection logic everywhere else.
+    function syncGridOverflow() {
+      if (!dom.gridContainer || !dom.puzzleGrid) return;
+      const overflows = dom.puzzleGrid.scrollWidth > dom.gridContainer.clientWidth + 1;
+      dom.gridContainer.classList.toggle("is-scrollable", overflows);
+    }
+
+    function watchGridOverflow() {
+      syncGridOverflow();
+      if (gridOverflowObserver || typeof globalThis.ResizeObserver !== "function") return;
+      if (!dom.gridContainer) return;
+      gridOverflowObserver = new globalThis.ResizeObserver(() => syncGridOverflow());
+      gridOverflowObserver.observe(dom.gridContainer);
     }
 
     function initGrid() {
@@ -125,6 +151,7 @@
         fragment.appendChild(rowEl);
       });
       dom.puzzleGrid.appendChild(fragment);
+      watchGridOverflow();
     }
 
     function initWordList() {
@@ -179,7 +206,11 @@
         dom.hintButton.setAttribute("aria-label", visibleText);
       };
       if (allowed === -1) {
-        setHintText("∞");
+        const visibleText = t.hints_label;
+        const label = dom.hintButton.querySelector(".button-label");
+        if (label) label.textContent = visibleText;
+        else dom.hintButton.textContent = visibleText;
+        dom.hintButton.setAttribute("aria-label", visibleText);
         dom.hintButton.disabled = !canInteractWithPuzzle() || onCooldown;
       } else {
         setHintText(state.hintsRemaining);
@@ -190,17 +221,22 @@
 
     function useHint() {
       if (!canInteractWithPuzzle() || (state.puzzle.hintsAllowed !== -1 && state.hintsRemaining <= 0)) return;
-      if (Date.now() < hintCooldownUntil) return;
+      if (Date.now() < hintCooldownUntil) {
+        flashBoard(getTranslations().hint_cooldown_wait, "paused");
+        render();
+        return;
+      }
       const unsolved = state.puzzle.placements.filter(placement => !state.foundPlacementIds.has(placement.placementId));
       if (!unsolved.length) return;
-      const placement = unsolved[Math.floor(Math.random() * unsolved.length)];
-      const firstCell = placement.cells[0];
-      const size = state.puzzle.actualSize;
-      const cellElement = dom.gridCells[firstCell.row * size + firstCell.col];
-      if (cellElement) {
-        cellElement.classList.add("is-hint");
-        setTimeout(() => cellElement.classList.remove("is-hint"), HINT_HIGHLIGHT_MS);
-      }
+      const placement = unsolved.reduce((shortest, candidate) => (
+        candidate.cells.length < shortest.cells.length ? candidate : shortest
+      ));
+      state.hintCell = placement.cells[0];
+      clearTimeout(hintHighlightTimeoutId);
+      hintHighlightTimeoutId = setTimeout(() => {
+        state.hintCell = null;
+        render();
+      }, HINT_HIGHLIGHT_MS);
       if (state.puzzle.hintsAllowed !== -1) {
         state.hintsRemaining = Math.max(0, state.hintsRemaining - 1);
       }
@@ -208,21 +244,37 @@
       clearTimeout(hintCooldownTimeoutId);
       hintCooldownTimeoutId = setTimeout(() => updateHintButton(), HINT_COOLDOWN_MS);
       updateHintButton();
-      const hintMsg = getTranslations().msg_hint_used;
+      const hintMsg = getTranslations().msg_hint_used.replace("{word}", placement.display);
       setStatus(hintMsg, "success");
-      announceFn(hintMsg);
+      flashBoard(hintMsg, "success");
       onHintUsedFn();
+      // useHint is also reachable from the H shortcut, and neither caller renders.
+      render();
     }
 
     // Single source of truth for a cell's class string. render() sets isFoundNew;
     // renderGridHighlights (the RAF drag path) leaves it false.
-    function cellClassName({ isFound, wordColor, isFoundNew, isPreview, isAnchor, isSolution }) {
+    function cellClassName({ isFound, wordColor, isFoundNew, isPreview, isAnchor, isSolution, isWrong, isHint }) {
       return "grid-cell" +
         (isFound ? ` is-found ${wordColor}` : "") +
         (isFoundNew ? " is-found-new" : "") +
         (isPreview ? " is-preview" : "") +
         (isAnchor ? " is-anchor" : "") +
-        (isSolution ? " is-solution" : "");
+        (isSolution ? " is-solution" : "") +
+        (isWrong ? " is-wrong" : "") +
+        (isHint ? " is-hint" : "");
+    }
+
+    function buildWrongCellSet() {
+      return new Set((state.wrongCells || []).map(cell => `${cell.row}:${cell.col}`));
+    }
+
+    // Transient cell marks have to be rendered state: both render paths rewrite every
+    // className, so a class poked on with classList.add is wiped by the next render.
+    function isHintCell(rowIndex, colIndex) {
+      return Boolean(state.hintCell &&
+        state.hintCell.row === rowIndex &&
+        state.hintCell.col === colIndex);
     }
 
     function renderGridHighlights() {
@@ -230,6 +282,7 @@
       const foundColorMap = buildFoundColorMap();
       const previewSet = new Set(state.previewCells.map(cell => `${cell.row}:${cell.col}`));
       const solutionCells = buildSolutionCells();
+      const wrongSet = buildWrongCellSet();
       const size = state.puzzle.actualSize;
 
       for (let rowIndex = 0; rowIndex < size; rowIndex++) {
@@ -240,7 +293,11 @@
           const isPreview = previewSet.has(key);
           const isFound = foundColorMap.has(key);
           const isSolution = solutionCells.has(key);
-          const nextClass = cellClassName({ isFound, wordColor, isPreview, isAnchor, isSolution });
+          const nextClass = cellClassName({
+            isFound, wordColor, isPreview, isAnchor, isSolution,
+            isWrong: wrongSet.has(key),
+            isHint: isHintCell(rowIndex, colIndex),
+          });
           const cell = dom.gridCells[rowIndex * size + colIndex];
           if (cell.className !== nextClass) cell.className = nextClass;
         }
@@ -257,7 +314,7 @@
       }
 
       state.celebrationsInSession = (state.celebrationsInSession || 0) + 1;
-      const intensity = state.celebrationsInSession === 1 ? 1 : 0.33;
+      const intensity = state.celebrationsInSession === 1 ? 1 : 0.6;
       const scale = count => Math.max(6, Math.round(count * intensity));
 
       const baseOptions = {
@@ -306,23 +363,60 @@
       }, 240);
     }
 
-    function checkMatch(path) {
-      if (!path || path.length < 2) return false;
-      const key = path.map(cell => `${cell.row}:${cell.col}`).join("|");
-      const match = state.puzzle.placements.find(placement => (
-        (placement.key === key || placement.reversedKey === key) &&
-        !state.foundPlacementIds.has(placement.placementId)
-      ));
-      if (!match) return false;
+    // Transient message on the board itself. render() rewrites #board-status on every
+    // pass, so the message has to live in state to survive the render that follows a
+    // selection; it also keeps the teacher panel from being the only place feedback goes.
+    function flashBoard(text, tone) {
+      if (!text) return;
+      state.boardFlash = { text, tone, expires: Date.now() + BOARD_FLASH_MS };
+      clearTimeout(boardFlashTimeoutId);
+      boardFlashTimeoutId = setTimeout(() => {
+        state.boardFlash = null;
+        render();
+      }, BOARD_FLASH_MS);
+      announceFn(text);
+    }
 
-      state.foundPlacementIds.add(match.placementId);
-      state.foundWordIds.add(match.wordId);
-      if (!state.foundWordColors.has(match.wordId)) {
-        state.foundWordColors.set(match.wordId, `wc-${state.foundWordColors.size % 5}`);
+    function flashWrongCells(path) {
+      state.wrongCells = path && path.length ? path : [];
+      clearTimeout(wrongFlashTimeoutId);
+      if (!state.wrongCells.length) return;
+      wrongFlashTimeoutId = setTimeout(() => {
+        state.wrongCells = [];
+        render();
+      }, WRONG_FLASH_MS);
+    }
+
+    function rejectSelection(messageKey, path) {
+      flashBoard(getTranslations()[messageKey], "error");
+      flashWrongCells(path);
+      return false;
+    }
+
+    function checkMatch(path) {
+      // A single cell is not an attempt (tap-then-tap-the-same-cell just clears).
+      if (path && path.length === 1) return false;
+      // buildSelectionPath returns [] when the two cells are not on one straight line.
+      if (!path || !path.length) return rejectSelection("msg_not_straight", path);
+
+      const key = path.map(cell => `${cell.row}:${cell.col}`).join("|");
+      const placement = state.puzzle.placements.find(candidate => (
+        candidate.key === key || candidate.reversedKey === key
+      ));
+      if (!placement) return rejectSelection("msg_not_found", path);
+      if (state.foundPlacementIds.has(placement.placementId)) {
+        return rejectSelection("msg_already_found", path);
       }
-      const foundMsg = getTranslations().msg_found.replace("{word}", match.display);
+
+      flashWrongCells(null);
+      state.foundPlacementIds.add(placement.placementId);
+      state.foundWordIds.add(placement.wordId);
+      if (!state.foundWordColors.has(placement.wordId)) {
+        state.foundWordColors.set(placement.wordId, `wc-${state.foundWordColors.size % 5}`);
+      }
+      const foundMsg = getTranslations().msg_found.replace("{word}", placement.display);
       setStatus(foundMsg, "success");
-      announceFn(foundMsg);
+      flashBoard(foundMsg, "success");
       onWordFoundFn();
       return true;
     }
@@ -364,6 +458,10 @@
           : t.board_instructions_pointer || t.board_instructions;
       dom.boardTitle.textContent = state.puzzle.title;
       dom.progressText.textContent = `${state.foundWordIds.size} / ${state.puzzle.words.length}`;
+      if (dom.progressBar) {
+        dom.progressBar.max = state.puzzle.words.length;
+        dom.progressBar.value = state.foundWordIds.size;
+      }
       dom.wordBankCount.textContent = state.puzzle.words.length;
       if (dom.wordDefinitionsHelp) {
         dom.wordDefinitionsHelp.hidden = !state.puzzle.words.some(word => getDefinitionTextForWordId(word.id));
@@ -408,6 +506,7 @@
 
       const solutionCells = buildSolutionCells();
       const previewSet = new Set(state.previewCells.map(cell => `${cell.row}:${cell.col}`));
+      const wrongSet = buildWrongCellSet();
       const gridSize = state.puzzle.actualSize;
       state.puzzle.grid.forEach((row, rowIndex) => {
         row.forEach((letter, colIndex) => {
@@ -418,7 +517,11 @@
           const isFound = foundColorMap.has(key);
           const isSolution = solutionCells.has(key);
           const button = dom.gridCells[rowIndex * gridSize + colIndex];
-          button.className = cellClassName({ isFound, wordColor, isFoundNew: newlyFoundCells.has(key), isPreview, isAnchor, isSolution });
+          button.className = cellClassName({
+            isFound, wordColor, isFoundNew: newlyFoundCells.has(key), isPreview, isAnchor, isSolution,
+            isWrong: wrongSet.has(key),
+            isHint: isHintCell(rowIndex, colIndex),
+          });
           button.tabIndex = sameCell(state.focusedCell, { row: rowIndex, col: colIndex }) ? 0 : -1;
           button.setAttribute("aria-label", buildGridCellLabel(letter, rowIndex, colIndex, { isAnchor, isPreview, isFound, isSolution }));
         });
@@ -445,6 +548,11 @@
           const elapsed = state.puzzle.timerDuration - state.timerSecondsLeft;
           dom.completionTime.textContent = t.completion_time.replace("{time}", formatSecondsAsClock(Math.max(0, elapsed)));
           dom.completionTime.hidden = false;
+        } else if (isExpiredUnfinished) {
+          dom.completionTime.textContent = t.completion_score
+            .replace("{found}", state.foundWordIds.size)
+            .replace("{total}", state.puzzle.words.length);
+          dom.completionTime.hidden = false;
         } else {
           dom.completionTime.hidden = true;
         }
@@ -464,7 +572,10 @@
         dom.pauseButton.setAttribute("aria-pressed", String(Boolean(state.timerPaused)));
       }
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-paused", Boolean(state.timerPaused));
-      if (dom.boardStatus) {
+      if (dom.boardStatus && state.boardFlash && Date.now() < state.boardFlash.expires) {
+        dom.boardStatus.textContent = state.boardFlash.text;
+        dom.boardStatus.className = `board-status is-${state.boardFlash.tone}`;
+      } else if (dom.boardStatus) {
         const statusKey = state.timerExpired
           ? "expired"
           : isComplete

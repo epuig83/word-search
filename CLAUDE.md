@@ -45,15 +45,15 @@ Modules use a UMD-style factory so they can also be `require()`-ed from Node for
 
 ### State
 
-All mutable state lives in a single `state` object in `app.js`. It includes `puzzle`, found word/placement sets, colors, mode, active tab, custom samples, teacher PIN, visual preferences, timer fields, hints, student name, focused cell, and input mode. Puzzle-specific state is reset by `resetPuzzleProgress()`.
+All mutable state lives in a single `state` object in `app.js`. It includes `puzzle`, found word/placement sets, colors, mode, active tab, custom samples, teacher PIN, visual preferences, timer fields, hints, student name, focused cell, and input mode. Transient board marks (`boardFlash`, `wrongCells`, `hintCell`) also live here because both render paths rewrite every cell's `className` — a class added with `classList.add` is wiped by the next render. Puzzle-specific state is reset by `resetPuzzleProgress()`.
 
 ### Puzzle Generation (`core.js`)
 
-`buildPuzzleData` runs randomized backtracking up to `MAX_GENERATION_ATTEMPTS` (180) times to place all words. If the longest word exceeds grid size it throws `WORD_TOO_LONG`; any other failure surfaces to the user as the generic `msg_puzzle_error` string. Available directions depend on difficulty (easy: →↓, medium: + ↘, hard: all 8). Empty cells filled with random letters afterwards.
+`buildPuzzleData` runs randomized backtracking up to `MAX_GENERATION_ATTEMPTS` (180) times to place all words. If the longest word exceeds grid size it throws `WORD_TOO_LONG`; any other failure surfaces to the user as the generic `msg_puzzle_error` string. Available directions depend on difficulty (easy: →↓, medium: + ↘, hard: all 8). Empty cells filled with random letters afterwards. Generation is bounded by `MAX_GENERATION_MS` (1500) as well as the attempt count, and `parseWords` caps a puzzle at `MAX_WORDS` (60) — both guard the main thread against an oversized word list.
 
 ### Word Selection (`app-board.js`)
 
-Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a straight/diagonal line between two cells; `checkMatch` (in `app-board.js`) looks up the resulting key in `state.puzzle.placements` (both forward and reverse). Pointer events are used for mouse+touch+pen.
+Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a straight/diagonal line between two cells; `checkMatch` (in `app-board.js`) looks up the resulting key in `state.puzzle.placements` (both forward and reverse) and owns the feedback for **both** outcomes — a miss sets `state.boardFlash` and `state.wrongCells` rather than returning silently. Pointer events are used for mouse+touch+pen.
 
 ### Persistence
 
@@ -72,14 +72,14 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 
 ## Tests
 
-- **Unit** (`tests/unit/`): `node --test` on `core`, `core-edge`, `app-storage`, `app-logic`, `app-session`, `i18n`, `data`.
+- **Unit** (`tests/unit/`): `node --test` on `core`, `core-edge`, `app-storage`, `app-logic`, `app-modal`, `app-session`, `i18n`, `data`.
 - **E2E** (`tests/e2e/`): Playwright (Chromium) on student flow, sharing/forms, responsive target sizes, file-protocol compatibility, and Axe accessibility states. Static server at `scripts/static-server.js` on `:4173`.
 
 ## Key Constraints
 
 - No external runtime dependencies beyond the vendored `canvas-confetti`; the app must work offline from `file://`.
 - `index.html` is the source for generated `es.html`/`en.html`; run `pnpm build:locales` after changing shared markup and `pnpm check:locales` to verify synchronization.
-- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 202 each for `es`/`ca`/`en`). Verify with:
+- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 201 each for `es`/`ca`/`en`). Verify with:
   ```bash
   node -e "require('./i18n.js'); for (const [lang, values] of Object.entries(globalThis.WORD_SEARCH_I18N)) console.log(lang, Object.keys(values).length)"
   ```
