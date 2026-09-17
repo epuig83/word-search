@@ -48,6 +48,10 @@ async function startStudentSession(page) {
   await expect(page.locator("#student-start-overlay")).toBeVisible();
   await page.getByRole("button", { name: "Començar" }).click();
   await expect(page.locator("#student-start-overlay")).toBeHidden();
+  // The overlay disappears before the board's reveal transition finishes.
+  // Axe must inspect the active board rather than its dimmed starting frame.
+  await expect(page.locator("#student-play-surface")).toHaveCSS("opacity", "1");
+  await expect(page.locator("#student-play-surface")).toHaveCSS("filter", "none");
 }
 
 async function unlockTeacherView(page) {

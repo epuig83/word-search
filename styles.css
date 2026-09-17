@@ -3021,3 +3021,231 @@ body[data-tab="student"] .panel {
     break-inside: avoid;
   }
 }
+
+/* Classroom polish: keep the notebook palette and Andika; compact the screen
+   workspace without changing the worksheet's independent print layout.
+   Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 */
+@media screen {
+  :root {
+    --notebook-rule: color-mix(in srgb, var(--bg-dots) 45%, transparent);
+    --student-rule: color-mix(in srgb, var(--student-primary) 5%, transparent);
+    --classroom-shadow: 0 2px 6px color-mix(in srgb, var(--ink-strong) 7%, transparent);
+  }
+
+  body {
+    background-image: linear-gradient(0deg, transparent calc(100% - 1px), var(--notebook-rule) 0);
+  }
+
+  body[data-tab="student"] {
+    background-image:
+      linear-gradient(90deg, transparent calc(100% - 1px), var(--student-rule) 0),
+      linear-gradient(0deg, transparent calc(100% - 1px), var(--student-rule) 0);
+  }
+
+  .hero {
+    grid-template-areas: "copy languages" "details details";
+    align-items: start;
+    gap: 0.65rem 1.5rem;
+    padding: 0.5rem 0.5rem 0.25rem;
+  }
+
+  .hero-copy {
+    grid-area: copy;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    min-width: 0;
+  }
+
+  .hero-copy h1 {
+    margin: 0;
+    font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+    line-height: 1.2;
+  }
+
+  .hero-text {
+    max-width: 75ch;
+    font-size: 0.9rem;
+    margin-top: 0.4rem;
+  }
+
+  .hero .lang-selector {
+    grid-area: languages;
+    position: static;
+    justify-self: end;
+    margin: 0;
+    gap: 0.35rem;
+  }
+
+  .hero-card {
+    grid-area: details;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+  }
+
+  .hero-stat {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ink-soft);
+  }
+
+  .hero-stat:hover { transform: none; }
+  .hero-stat strong { font-weight: 400; }
+
+  .main-tabs,
+  .panel {
+    border-width: 1px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--classroom-shadow);
+  }
+
+  .main-tabs { padding: 0.3rem; }
+  .tab-btn { min-height: 44px; padding-block: 0.6rem; }
+  .tab-btn.is-active::after,
+  .panel-heading::before,
+  #topic-label { display: none; }
+
+  .panel-heading h2 { font-size: 1.4rem; }
+  .generator-form { gap: 1rem; }
+  .sample-management { margin-top: 0.25rem; }
+  .sample-management,
+  .advanced-settings { border-width: 1px; }
+  .advanced-settings > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .advanced-settings-summary { float: none; margin: 0; }
+  .difficulty-presets-field { margin-bottom: 0; }
+  .preset-btn { min-height: 44px; }
+
+  .teacher-ready-card {
+    background: var(--bg-cream);
+    border-width: 1px;
+    gap: 0.4rem;
+    scroll-margin-block: 1rem;
+  }
+
+  .teacher-ready-card .section-kicker { margin: 0; }
+  .teacher-ready-actions {
+    grid-template-columns: minmax(240px, 1.4fr) repeat(3, minmax(0, 1fr));
+  }
+
+  .teacher-ready-card:focus-visible,
+  .contrast-toggle:focus-visible {
+    outline: 3px solid var(--ink-strong);
+    outline-offset: 3px;
+  }
+
+  .lang-btn,
+  .tab-btn,
+  .primary-button,
+  .ghost-button,
+  .field input,
+  .field textarea,
+  .field select {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  .board-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .board-title-group { min-width: 0; }
+  .board-title-group h1 {
+    margin: 0;
+    font-size: clamp(1.45rem, 2.1vw, 1.85rem);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .board-instructions,
+  .board-status { font-size: 0.9rem; margin-top: 0.4rem; }
+  .progress-container { display: grid; gap: 0.45rem; min-width: 0; }
+  .progress-summary {
+    display: grid;
+    grid-template-columns: auto auto minmax(4rem, 1fr);
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .progress-label { color: var(--ink-soft); font-size: 0.85rem; }
+  .progress-pill {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progress-bar {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    height: 10px;
+    min-height: 10px;
+    max-height: 10px;
+  }
+
+  .board-appearance { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; }
+  .student-gamebar { margin: 0 0 0.85rem; }
+  .puzzle-layout {
+    grid-template-columns: minmax(0, 640px) minmax(180px, 1fr);
+    gap: 1rem 1.5rem;
+  }
+
+  .word-bank { gap: 0.75rem; }
+  .grid-container { box-shadow: var(--classroom-shadow); }
+  :root[data-contrast="high"] .panel,
+  :root[data-contrast="high"] .main-tabs,
+  :root[data-contrast="high"] .grid-container {
+    border-color: var(--panel-border);
+    box-shadow: var(--shadow-sm);
+  }
+  .student-start-card { padding: 1.5rem; }
+  .student-start-card h3 { font-size: 1.65rem; }
+
+  @media (max-width: 900px) {
+    .teacher-ready-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 640px) {
+    .hero { grid-template-areas: "languages" "copy"; gap: 0.5rem; }
+    .hero-card { display: none; }
+    .hero-copy h1 { font-size: 1.45rem; }
+    .hero-text { font-size: 0.88rem; }
+    .tab-btn { font-size: 0.85rem; gap: 0.4rem; padding: 0.5rem 0.4rem; }
+    .teacher-ready-actions { grid-template-columns: minmax(0, 1fr); }
+    .teacher-ready-card { padding: 1rem; }
+    .advanced-settings > summary { grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 0.75rem; }
+    .advanced-settings-summary { grid-row: 2; }
+    .advanced-settings > summary::after { grid-column: 2; grid-row: 1 / 3; }
+    .board-topbar { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+    .progress-container { gap: 0.4rem; }
+    .progress-summary { grid-template-columns: auto auto minmax(4rem, 1fr); }
+    .board-appearance { justify-content: flex-start; }
+    .puzzle-layout { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+    .word-bank { gap: 0.5rem; }
+    .student-gamebar { margin: 0; }
+    .student-start-card { padding: 1rem; }
+    .student-start-card h3 { font-size: 1.45rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lang-btn,
+    .tab-btn,
+    .primary-button,
+    .ghost-button,
+    .field input,
+    .field textarea,
+    .field select { transition: none; }
+  }
+}

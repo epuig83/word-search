@@ -33,7 +33,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 
 ## Classroom Flow
 
-- The `Activity ready` card summarizes the current puzzle and gives quick access to the student area, sharing, and printing.
+- The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
 - Shared links rebuild the exact same puzzle when opened.
 - The student start overlay shows the timer and available hints before the activity begins.
 - A first/last-letter example explains how to select a word. Words marked with a book icon open a definition.
@@ -114,6 +114,7 @@ pnpm test
 - `tests/e2e/share-hint-form.spec.js`: shared links, hints, student form flow, and malformed shared URLs.
 - `tests/e2e/beginner-flow.spec.js`: beginner examples in all three languages, exact shared puzzles, small screens, and two-letter selection with touch and keyboard.
 - `tests/e2e/classroom-print.spec.js`: A4 worksheet and answer-key PDFs for 8×8 and 16×16 grids in all three languages, each checked for a single page.
+- `tests/e2e/design-polish.spec.js`: compact progress through completion, responsive board sizing with long titles, and keyboard navigation from successful creation or validation errors.
 
 ## CI
 

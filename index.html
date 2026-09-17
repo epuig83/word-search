@@ -89,23 +89,23 @@
     <div class="page-shell">
       <header class="hero">
         <div class="hero-copy">
-          <div class="lang-selector" role="group" aria-label="Idioma">
-            <button type="button" class="lang-btn is-active" data-lang="ca" aria-pressed="true">
-              CA<span class="visually-hidden"> — Català</span>
-            </button>
-            <button type="button" class="lang-btn" data-lang="es" aria-pressed="false">
-              ES<span class="visually-hidden"> — Castellano</span>
-            </button>
-            <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">
-              EN<span class="visually-hidden"> — English</span>
-            </button>
-          </div>
-          <span class="eyebrow" data-t="hero_eyebrow">Recurs Educatiu</span>
           <h1 data-t="hero_title">Generador de Sopes de Lletres</h1>
           <p class="hero-text" data-t="hero_text">
             Crea exercicis personalitzats en segons. Perfecte per usar a classe amb ratolí o per
             imprimir en paper.
           </p>
+        </div>
+
+        <div class="lang-selector" role="group" aria-label="Idioma">
+          <button type="button" class="lang-btn is-active" data-lang="ca" aria-pressed="true">
+            CA<span class="visually-hidden"> — Català</span>
+          </button>
+          <button type="button" class="lang-btn" data-lang="es" aria-pressed="false">
+            ES<span class="visually-hidden"> — Castellano</span>
+          </button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">
+            EN<span class="visually-hidden"> — English</span>
+          </button>
         </div>
 
         <div class="hero-card">
@@ -147,7 +147,6 @@
 
         <section id="section-teacher" class="panel controls-panel" role="tabpanel" aria-labelledby="tab-teacher" tabindex="0">
           <div class="panel-heading">
-            <p class="section-kicker" data-t="config_kicker">Configuració</p>
             <h2 id="builder-title" data-t="config_title">Crea la teva sopa</h2>
           </div>
 
@@ -311,6 +310,33 @@
             </div>
           </form>
 
+          <section id="teacher-ready-card" class="teacher-ready-card" hidden tabindex="-1" aria-labelledby="teacher-ready-title teacher-ready-topic">
+            <p id="teacher-ready-title" class="section-kicker" data-t="teacher_ready_title">Activitat preparada</p>
+            <h3 id="teacher-ready-topic">Sopa de lletres</h3>
+            <p id="teacher-ready-meta" class="teacher-ready-meta"></p>
+            <p class="teacher-ready-note" data-t="teacher_ready_note">
+              Ja la pots obrir per a l'alumnat, compartir-la o imprimir-la.
+            </p>
+            <div class="teacher-ready-actions">
+              <button type="button" id="teacher-open-student-button" class="primary-button" data-t="btn_open_student">
+                Obrir la zona de l'alumnat
+              </button>
+              <button type="button" id="teacher-share-button" class="ghost-button" data-t="btn_share">
+                Compartir
+              </button>
+              <button type="button" id="teacher-print-button" class="ghost-button" data-t="btn_print">
+                Imprimir / PDF
+              </button>
+              <button type="button" id="teacher-print-solution-button" class="ghost-button" data-t="btn_print_solution">
+                Imprimir solucionari
+              </button>
+            </div>
+          </section>
+
+          <p id="status-message" class="status-message" role="status" aria-live="polite" data-t="status_default">
+            Escriu les teves paraules i prem "Generar".
+          </p>
+
           <details id="form-config-details" class="pin-change-section">
             <summary class="teacher-tools-summary" data-t="form_config_title">Resultats (Google Forms)</summary>
             <div class="pin-change-form">
@@ -352,32 +378,6 @@
             </p>
           </details>
 
-          <p id="status-message" class="status-message" role="status" aria-live="polite" data-t="status_default">
-            Escriu les teves paraules i prem "Generar".
-          </p>
-
-          <section id="teacher-ready-card" class="teacher-ready-card" hidden>
-            <p class="section-kicker" data-t="teacher_ready_title">Activitat preparada</p>
-            <h3 id="teacher-ready-topic">Sopa de lletres</h3>
-            <p id="teacher-ready-meta" class="teacher-ready-meta"></p>
-            <p class="teacher-ready-note" data-t="teacher_ready_note">
-              Ja la pots obrir per a l'alumnat, compartir-la o imprimir-la.
-            </p>
-            <div class="teacher-ready-actions">
-              <button type="button" id="teacher-open-student-button" class="primary-button" data-t="btn_open_student">
-                Obrir la zona de l'alumnat
-              </button>
-              <button type="button" id="teacher-share-button" class="ghost-button" data-t="btn_share">
-                Compartir
-              </button>
-              <button type="button" id="teacher-print-button" class="ghost-button" data-t="btn_print">
-                Imprimir / PDF
-              </button>
-              <button type="button" id="teacher-print-solution-button" class="ghost-button" data-t="btn_print_solution">
-                Imprimir solucionari
-              </button>
-            </div>
-          </section>
         </section>
 
         <section id="section-student" class="panel board-panel" role="tabpanel" aria-labelledby="tab-student" tabindex="0" hidden>
@@ -399,19 +399,23 @@
             </div>
 
             <div class="progress-container">
-              <span class="section-kicker" data-t="board_progress">Progrés</span>
-              <div id="progress-text" class="progress-pill">0 / 0</div>
-              <progress id="progress-bar" class="progress-bar" value="0" max="1" aria-hidden="true"></progress>
-              <div class="theme-selector" role="group" aria-label="Tema visual">
-                <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Pergamí</span></button>
-                <button type="button" class="theme-btn" data-theme="ocea" aria-pressed="false"><span class="visually-hidden" data-t="theme_ocea">Oceà</span></button>
-                <button type="button" class="theme-btn" data-theme="bosc" aria-pressed="false"><span class="visually-hidden" data-t="theme_bosc">Bosc</span></button>
-                <button type="button" class="theme-btn" data-theme="espai" aria-pressed="false"><span class="visually-hidden" data-t="theme_espai">Espai</span></button>
+              <div class="progress-summary">
+                <span class="progress-label" data-t="board_progress">Progrés</span>
+                <div id="progress-text" class="progress-pill">0 / 0</div>
+                <progress id="progress-bar" class="progress-bar" value="0" max="1" aria-hidden="true"></progress>
               </div>
-              <button type="button" id="contrast-toggle" class="contrast-toggle" aria-pressed="false">
-                <svg class="ui-icon" aria-hidden="true"><use href="#icon-contrast"></use></svg>
-                <span class="visually-hidden" data-t="contrast_toggle">Alt contrast</span>
-              </button>
+              <div class="board-appearance">
+                <div class="theme-selector" role="group" aria-label="Tema visual">
+                  <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Pergamí</span></button>
+                  <button type="button" class="theme-btn" data-theme="ocea" aria-pressed="false"><span class="visually-hidden" data-t="theme_ocea">Oceà</span></button>
+                  <button type="button" class="theme-btn" data-theme="bosc" aria-pressed="false"><span class="visually-hidden" data-t="theme_bosc">Bosc</span></button>
+                  <button type="button" class="theme-btn" data-theme="espai" aria-pressed="false"><span class="visually-hidden" data-t="theme_espai">Espai</span></button>
+                </div>
+                <button type="button" id="contrast-toggle" class="contrast-toggle" aria-pressed="false">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#icon-contrast"></use></svg>
+                  <span class="visually-hidden" data-t="contrast_toggle">Alt contrast</span>
+                </button>
+              </div>
             </div>
           </div>
 

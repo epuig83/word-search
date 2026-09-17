@@ -1109,6 +1109,16 @@
       resetPuzzleProgress();
       setStatus(t.msg_success, "success");
       render();
+      // Show the next step only after an explicit, successful creation. Rendering
+      // progress or returning from the student area must never steal focus.
+      const readyCard = dom.teacherReadyCard;
+      if (readyCard && state.activeTab === "teacher") {
+        readyCard.focus({ preventScroll: true });
+        readyCard.scrollIntoView({
+          block: "nearest",
+          behavior: prefersReducedMotion() ? "instant" : "smooth",
+        });
+      }
     } catch (err) {
       const wordTooLong = err.message?.startsWith("WORD_TOO_LONG:");
       const errMsg = wordTooLong
