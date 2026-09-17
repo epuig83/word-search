@@ -12,6 +12,7 @@ async function generatePuzzle(page, options = {}) {
   } = options;
 
   await page.goto("/index.html");
+  if (await page.locator("#section-student").isVisible()) await unlockTeacherView(page);
   await page.locator("#title-input").fill(title);
   await page.locator("#words-input").fill(words);
   if (size !== undefined || timer !== undefined || hints !== undefined) {
@@ -46,7 +47,7 @@ async function readTimerSeconds(page) {
 
 async function startStudentSession(page) {
   await expect(page.locator("#student-start-overlay")).toBeVisible();
-  await page.getByRole("button", { name: "Començar" }).click();
+  await page.locator("#student-start-button").click();
   await expect(page.locator("#student-start-overlay")).toBeHidden();
   // The overlay disappears before the board's reveal transition finishes.
   // Axe must inspect the active board rather than its dimmed starting frame.

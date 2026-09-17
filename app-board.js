@@ -7,7 +7,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const HINT_HIGHLIGHT_MS = 4000;
+  const HINT_HIGHLIGHT_MS = 8000;
   const HINT_COOLDOWN_MS = 4000;
   const BOARD_FLASH_MS = 2600;
   const WRONG_FLASH_MS = 600;
@@ -57,6 +57,7 @@
       if (flags.isPreview && !flags.isAnchor) parts.push(t.grid_cell_preview);
       if (flags.isFound) parts.push(t.grid_cell_found);
       if (flags.isSolution) parts.push(t.grid_cell_solution);
+      if (flags.isHint) parts.push(t.grid_cell_hint);
       return parts.join(", ");
     }
 
@@ -214,42 +215,59 @@
         dom.hintButton.disabled = !canInteractWithPuzzle() || onCooldown;
       } else {
         setHintText(state.hintsRemaining);
-        dom.hintButton.disabled = !canInteractWithPuzzle() || state.hintsRemaining <= 0 || onCooldown;
+        const canRepeat = state.puzzle.words.some(word => !state.foundWordIds.has(word.id) && state.hintStages[word.id]);
+        dom.hintButton.disabled = !canInteractWithPuzzle() || (state.hintsRemaining <= 0 && !canRepeat) || onCooldown;
       }
       dom.hintButton.title = onCooldown ? t.hint_cooldown_wait : "";
     }
 
-    function useHint() {
-      if (!canInteractWithPuzzle() || (state.puzzle.hintsAllowed !== -1 && state.hintsRemaining <= 0)) return;
+    function useHint(wordId, level = 1) {
+      if (!canInteractWithPuzzle() || state.puzzle.hintsAllowed === 0) return false;
       if (Date.now() < hintCooldownUntil) {
         flashBoard(getTranslations().hint_cooldown_wait, "paused");
         render();
-        return;
+        return false;
       }
-      const unsolved = state.puzzle.placements.filter(placement => !state.foundPlacementIds.has(placement.placementId));
-      if (!unsolved.length) return;
-      const placement = unsolved.reduce((shortest, candidate) => (
-        candidate.cells.length < shortest.cells.length ? candidate : shortest
-      ));
+      const placement = state.puzzle.placements.find(item => item.wordId === wordId && !state.foundWordIds.has(wordId));
+      if (!placement || (level !== 1 && level !== 2)) return false;
+      const previousLevel = state.hintStages[wordId] || 0;
+      if (level === 2 && previousLevel < 1) return false;
+      const newHelp = level > previousLevel;
+      if (newHelp && state.puzzle.hintsAllowed !== -1 && state.hintsRemaining <= 0) return false;
+      state.selectedHintWordId = wordId;
+      state.hintStages[wordId] = Math.max(previousLevel, level);
       state.hintCell = placement.cells[0];
+      state.hintDirectionCell = level === 2 ? placement.cells[1] : null;
       clearTimeout(hintHighlightTimeoutId);
       hintHighlightTimeoutId = setTimeout(() => {
         state.hintCell = null;
+        state.hintDirectionCell = null;
         render();
       }, HINT_HIGHLIGHT_MS);
-      if (state.puzzle.hintsAllowed !== -1) {
+      if (newHelp && state.puzzle.hintsAllowed !== -1) {
         state.hintsRemaining = Math.max(0, state.hintsRemaining - 1);
       }
       hintCooldownUntil = Date.now() + HINT_COOLDOWN_MS;
       clearTimeout(hintCooldownTimeoutId);
       hintCooldownTimeoutId = setTimeout(() => updateHintButton(), HINT_COOLDOWN_MS);
       updateHintButton();
-      const hintMsg = getTranslations().msg_hint_used.replace("{word}", placement.display);
+      const t = getTranslations();
+      const first = placement.cells[0];
+      const next = placement.cells[1];
+      const directionKeys = {
+        "0,1": "right", "0,-1": "left", "1,0": "down", "-1,0": "up",
+        "1,1": "down_right", "1,-1": "down_left", "-1,1": "up_right", "-1,-1": "up_left",
+      };
+      const direction = t[`hint_direction_${directionKeys[`${next.row - first.row},${next.col - first.col}`]}`];
+      const hintMsg = (level === 2 ? t.hint_direction_message : t.hint_start_message)
+        .replace("{word}", placement.display).replace("{row}", first.row + 1).replace("{col}", first.col + 1)
+        .replace("{direction}", direction);
       setStatus(hintMsg, "success");
-      flashBoard(hintMsg, "success");
+      flashBoard(hintMsg, "success", HINT_HIGHLIGHT_MS);
       onHintUsedFn();
       // useHint is also reachable from the H shortcut, and neither caller renders.
       render();
+      return true;
     }
 
     // Single source of truth for a cell's class string. render() sets isFoundNew;
@@ -272,9 +290,7 @@
     // Transient cell marks have to be rendered state: both render paths rewrite every
     // className, so a class poked on with classList.add is wiped by the next render.
     function isHintCell(rowIndex, colIndex) {
-      return Boolean(state.hintCell &&
-        state.hintCell.row === rowIndex &&
-        state.hintCell.col === colIndex);
+      return [state.hintCell, state.hintDirectionCell].some(cell => cell && cell.row === rowIndex && cell.col === colIndex);
     }
 
     function renderGridHighlights() {
@@ -366,14 +382,14 @@
     // Transient message on the board itself. render() rewrites #board-status on every
     // pass, so the message has to live in state to survive the render that follows a
     // selection; it also keeps the teacher panel from being the only place feedback goes.
-    function flashBoard(text, tone) {
+    function flashBoard(text, tone, duration = BOARD_FLASH_MS) {
       if (!text) return;
-      state.boardFlash = { text, tone, expires: Date.now() + BOARD_FLASH_MS };
+      state.boardFlash = { text, tone, expires: Date.now() + duration };
       clearTimeout(boardFlashTimeoutId);
       boardFlashTimeoutId = setTimeout(() => {
         state.boardFlash = null;
         render();
-      }, BOARD_FLASH_MS);
+      }, duration);
       announceFn(text);
     }
 
@@ -523,7 +539,7 @@
             isHint: isHintCell(rowIndex, colIndex),
           });
           button.tabIndex = sameCell(state.focusedCell, { row: rowIndex, col: colIndex }) ? 0 : -1;
-          button.setAttribute("aria-label", buildGridCellLabel(letter, rowIndex, colIndex, { isAnchor, isPreview, isFound, isSolution }));
+          button.setAttribute("aria-label", buildGridCellLabel(letter, rowIndex, colIndex, { isAnchor, isPreview, isFound, isSolution, isHint: isHintCell(rowIndex, colIndex) }));
         });
       });
 
@@ -587,7 +603,7 @@
                 : state.foundWordIds.size > 0
                   ? "progress"
                   : "start";
-        const boardStatusText = statusKey === "progress"
+        const boardStatusText = state.resumeAvailable ? t.student_resume_title : statusKey === "progress"
           ? t.board_status_progress
             .replace("{found}", state.foundWordIds.size)
             .replace("{total}", state.puzzle.words.length)
@@ -617,6 +633,9 @@
 
     function resetHintCooldown() {
       hintCooldownUntil = 0;
+      clearTimeout(hintHighlightTimeoutId);
+      clearTimeout(boardFlashTimeoutId);
+      clearTimeout(wrongFlashTimeoutId);
       if (hintCooldownTimeoutId !== null) {
         clearTimeout(hintCooldownTimeoutId);
         hintCooldownTimeoutId = null;

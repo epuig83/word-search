@@ -7,7 +7,7 @@ Small dependency-free web app for creating word search activities for primary sc
 1. Open `index.html` in the laptop browser.
 2. Enter a topic and a list of words, or use the side library to add vocabulary.
 3. Click `Create and review activity`, check the `Activity ready` summary, then open the student area, share, or print.
-4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`; `H` requests a hint while focus is inside the grid).
+4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`; `H` opens the hint picker while focus is inside the grid).
 5. On phones, the timer, pause, and hint controls stay available in the bottom game bar.
 
 New activities start with the **First steps** preset: an 8×8 grid, words running right or down, no timer, and unlimited hints. Each language includes a six-animal example for getting started. Changing presets keeps the vocabulary you have entered; words can be as short as two letters.
@@ -33,6 +33,10 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 
 ## Classroom Flow
 
+- The creation form saves incomplete drafts automatically in this browser. Reloading restores the last activity with its exact board, timer, progress, and hint usage; student names are not saved.
+- Editing a generated activity shows a pending-changes message and disables opening, sharing, and printing until it is generated again. Reverting the edits re-enables the actions.
+- A saved game offers **Continue** or **New pupil: start fresh**. Starting fresh keeps the same puzzle and resets the score, timer, hints, and any result-submission name. Completed and expired games can also be reviewed or restarted.
+- Hints let students choose an unsolved word, reveal its first letter, then request its direction. Each new clue consumes one hint when hints are limited; repeating a revealed clue is free. Opening or dismissing the picker does not spend a hint.
 - The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
 - Shared links rebuild the exact same puzzle when opened.
 - The student start overlay shows the timer and available hints before the activity begins.
@@ -115,6 +119,7 @@ pnpm test
 - `tests/e2e/beginner-flow.spec.js`: beginner examples in all three languages, exact shared puzzles, small screens, and two-letter selection with touch and keyboard.
 - `tests/e2e/classroom-print.spec.js`: A4 worksheet and answer-key PDFs for 8×8 and 16×16 grids in all three languages, each checked for a single page.
 - `tests/e2e/design-polish.spec.js`: compact progress through completion, responsive board sizing with long titles, and keyboard navigation from successful creation or validation errors.
+- `tests/e2e/recovery-hints.spec.js`: incomplete drafts, pending changes, exact local recovery, pupil handoff, staged hints, storage failures, and accessibility of the new states.
 
 ## CI
 

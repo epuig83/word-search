@@ -43,7 +43,6 @@ function createController(activeElement) {
   };
   const controller = modalModule.createModalController({
     documentRef,
-    requestAnimationFrameRef: callback => callback(),
   });
   return { controller, documentRef };
 }

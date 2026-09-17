@@ -60,11 +60,15 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 - `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection.
 - `word-search-teacher-pin-v1` — teacher PIN. Fallback: `"1234"`.
 - `word-search-theme-v1` — student-picked visual theme (`pergami`/`ocea`/`bosc`/`espai`). Fallback: `"pergami"`. Themes only retint palette vars; high-contrast mode overrides them.
-- `word-search-progress-v1` — single most-recent student progress record `{ key, foundWordIds[], timerSecondsLeft, timerExpired, hintsRemaining }`. `key` is `puzzleProgressKey()` (the encoded share config, including grid snapshot and placement paths). `tryLoadFromUrl()` auto-resumes by word id when a shared link's key matches; `resetPuzzleProgress()` and completion clear it.
+- `word-search-progress-v1` — single most-recent student progress record `{ key, foundWordIds[], timerSecondsLeft, timerExpired, hintsRemaining, started, hintStages }`. `key` is `puzzleProgressKey()` (the encoded share config, including grid snapshot and placement paths). `tryLoadPuzzle()` restores matching progress; the start overlay offers Continue or New pupil. Completed/expired games remain reviewable. Reset clears progress and result-submission identity.
+- `word-search-draft-v1` — incomplete teacher form, settings, and UI language. Saved automatically from both typed and programmatic edits. Does not contain pupil names or the teacher PIN.
+- `word-search-activity-v1` — latest puzzle snapshot, the form used to generate it, and the last active tab. Normal visits restore it without regenerating the board. Explicit shared URLs take precedence; editing or regenerating locally removes the old shared URL parameter so reloads recover the draft.
+- `state.generatedForm` tracks the generated activity separately from the draft. Pending changes block opening/sharing/printing until regenerated or reverted. `state.formTemplate` belongs to the generated activity, not the live input.
+- `state.hintStages` tracks the highest revealed clue per word (1 = first letter, 2 = direction). New clues consume limited hints; repeats are free. The picker preserves word definitions as separate actions.
 
 ### URL Sharing
 
-Full puzzle config is base64-encoded into a `?p=` query parameter (`encodePuzzleConfig`/`decodePuzzleConfig` in `core.js`, version `SHARED_PUZZLE_VERSION = 2`). Loaded at startup by `tryLoadFromUrl()`; on decode failure, rolls back to previous state and shows `msg_link_error`. Public language variants use generated `es.html` and `en.html` pages with localized server-rendered metadata; shared puzzle URLs keep their embedded language.
+Full puzzle config is base64-encoded into a `?p=` query parameter (`encodePuzzleConfig`/`decodePuzzleConfig` in `core.js`, version `SHARED_PUZZLE_VERSION = 2`). Loaded at startup by `tryLoadPuzzle()`; on decode failure, rolls back to previous state and shows `msg_link_error`. Public language variants use generated `es.html` and `en.html` pages with localized server-rendered metadata; shared puzzle URLs keep their embedded language.
 
 ### i18n
 
@@ -79,7 +83,7 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 
 - No external runtime dependencies beyond the vendored `canvas-confetti`; the app must work offline from `file://`.
 - `index.html` is the source for generated `es.html`/`en.html`; run `pnpm build:locales` after changing shared markup and `pnpm check:locales` to verify synchronization.
-- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** (currently 201 each for `es`/`ca`/`en`). Verify with:
+- **i18n invariant:** the three language blocks in `i18n.js` must have the **same set of keys** for `es`/`ca`/`en`. Verify with:
   ```bash
   node -e "require('./i18n.js'); for (const [lang, values] of Object.entries(globalThis.WORD_SEARCH_I18N)) console.log(lang, Object.keys(values).length)"
   ```

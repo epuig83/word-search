@@ -269,7 +269,8 @@ test("localized PWA shells remain localized offline without query cache entries"
   }, null, { timeout: 8_000 });
 
   const cachePaths = await page.evaluate(async () => {
-    const cache = await caches.open("word-search-v4");
+    const key = (await caches.keys()).find(name => name.startsWith("word-search-"));
+    const cache = await caches.open(key);
     return (await cache.keys()).map(request => new URL(request.url).pathname + new URL(request.url).search);
   });
   expect(cachePaths.some(pathname => pathname.includes("?"))).toBe(false);
@@ -314,7 +315,7 @@ test("mobile game bar keeps timer, pause, and hint controls in reach", async ({ 
   }
 });
 
-test("H keyboard shortcut consumes a hint", async ({ page }) => {
+test("H keyboard shortcut opens the hint picker only from the board", async ({ page }) => {
   await generatePuzzle(page, { timer: "0", hints: "3" });
   await startStudentSession(page);
 
@@ -325,6 +326,9 @@ test("H keyboard shortcut consumes a hint", async ({ page }) => {
 
   await page.locator('#puzzle-grid .grid-cell[tabindex="0"]').focus();
   await page.keyboard.press("h");
+  await expect(page.locator("#hint-modal")).toBeVisible();
+  await expect(page.locator("#hint-button")).toContainText("3");
+  await page.locator("#hint-start-button").click();
   await expect(page.locator("#hint-button")).toContainText("2");
 });
 

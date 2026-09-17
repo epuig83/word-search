@@ -151,6 +151,7 @@
             <h2 id="builder-title" data-t="config_title">Crea la teva sopa</h2>
           </div>
 
+          <p id="draft-status" class="draft-status" role="status" hidden></p>
           <form id="generator-form" class="generator-form" novalidate>
             <div class="field sample-field">
               <label for="sample-select" data-t="field_sample">Exemple guiat</label>
@@ -315,7 +316,8 @@
             <p id="teacher-ready-title" class="section-kicker" data-t="teacher_ready_title">Activitat preparada</p>
             <h3 id="teacher-ready-topic">Sopa de lletres</h3>
             <p id="teacher-ready-meta" class="teacher-ready-meta"></p>
-            <p class="teacher-ready-note" data-t="teacher_ready_note">
+            <p id="teacher-pending-changes" class="pending-changes" role="status" data-t="activity_pending" hidden>Has modificat l'activitat. Torna-la a crear abans d'obrir-la, compartir-la o imprimir-la.</p>
+            <p id="teacher-ready-note" class="teacher-ready-note" data-t="teacher_ready_note">
               Ja la pots obrir per a l'alumnat, compartir-la o imprimir-la.
             </p>
             <div class="teacher-ready-actions">
@@ -438,11 +440,11 @@
             <div id="student-start-overlay" class="student-start-overlay" hidden>
               <div class="student-start-card">
                 <p class="section-kicker" data-t="student_start_kicker">Preparats?</p>
-                <h3 id="student-start-title" data-t="student_start_title">Tot a punt per començar</h3>
+                <h2 id="student-start-title" data-t="student_start_title">Tot a punt per començar</h2>
                 <p id="student-start-text" data-t="student_start_text">
                   Busca les paraules de la llista. Prem Començar per veure el tauler.
                 </p>
-                <figure class="selection-demo">
+                <figure id="selection-demo" class="selection-demo">
                   <div class="selection-demo-letters" aria-hidden="true">
                     <span class="selection-demo-end" data-t="selection_demo_first">G</span>
                     <span data-t="selection_demo_middle">A</span>
@@ -463,6 +465,7 @@
                 <button type="button" id="student-start-button" class="primary-button" data-t="btn_start_game">
                   Començar
                 </button>
+                <button type="button" id="new-student-button" class="ghost-button" data-t="btn_new_student" hidden>Nou alumne: començar de zero</button>
               </div>
             </div>
 
@@ -583,6 +586,23 @@
         <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">
           Tancar
         </button>
+      </div>
+    </div>
+
+    <div id="hint-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="hint-title" aria-describedby="hint-explanation">
+      <div class="modal-content hint-modal-content" tabindex="-1">
+        <h3 id="hint-title" data-t="hint_title">Una mica d'ajuda</h3>
+        <div class="field">
+          <label for="hint-word-select" data-t="hint_choose_word">Quina paraula busques?</label>
+          <select id="hint-word-select"></select>
+        </div>
+        <p id="hint-explanation"></p>
+        <div class="hint-steps">
+          <button type="button" id="hint-start-button" class="primary-button" data-t="hint_show_start">1. Veure la primera lletra</button>
+          <button type="button" id="hint-direction-button" class="ghost-button" data-t="hint_show_direction">2. Veure la direcció</button>
+        </div>
+        <p class="hint-step-note" data-t="hint_step_note">Comença per la primera lletra. Si et cal, després mira la direcció.</p>
+        <button type="button" id="hint-close-button" class="ghost-button" data-t="word_definition_close">Tancar</button>
       </div>
     </div>
 

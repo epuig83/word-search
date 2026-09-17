@@ -63,6 +63,10 @@
     loadProgress: loadProgressFromStorage,
     saveProgress: saveProgressToStorage,
     clearProgress: clearProgressFromStorage,
+    loadDraft,
+    saveDraft,
+    loadActivity,
+    saveActivity,
   } = APP_STORAGE;
   const {
     openModal,
@@ -115,7 +119,7 @@
   }
 
   function shouldShowStudentStartOverlay() {
-    return Boolean(state.puzzle && state.activeTab === "student" && !state.studentSessionStarted && !state.timerExpired);
+    return Boolean(state.puzzle && state.activeTab === "student" && !state.studentSessionStarted && (state.resumeAvailable || !state.timerExpired));
   }
 
   function canInteractWithPuzzle() {
@@ -143,14 +147,23 @@
   }
 
   function syncStudentStartOverlay() {
+    const t = TRANSLATIONS[state.lang];
+    const resuming = state.resumeAvailable;
+    dom.studentStartTitle.textContent = resuming ? t.student_resume_title : t.student_start_title;
+    dom.studentStartText.textContent = resuming
+      ? t.student_resume_text.replace("{found}", state.foundWordIds.size).replace("{total}", state.puzzle.words.length)
+      : t.student_start_text;
+    dom.studentStartButton.textContent = resuming ? t.btn_continue : t.btn_start_game;
+    dom.newStudentButton.hidden = !resuming;
+    dom.selectionDemo.hidden = resuming;
     if (dom.studentStartTimer) {
       dom.studentStartTimer.textContent = state.puzzle
-        ? formatTimerSummary(state.puzzle.timerDuration, TRANSLATIONS[state.lang])
+        ? (resuming && state.puzzle.timerDuration > 0 ? formatSecondsAsClock(state.timerSecondsLeft) : formatTimerSummary(state.puzzle.timerDuration, t))
         : TRANSLATIONS[state.lang].timer_none;
     }
     if (dom.studentStartHints) {
       dom.studentStartHints.textContent = state.puzzle
-        ? formatHintsSummary(state.puzzle.hintsAllowed, TRANSLATIONS[state.lang])
+        ? formatHintsSummary(resuming ? state.hintsRemaining : state.puzzle.hintsAllowed, t)
         : TRANSLATIONS[state.lang].hints_none;
     }
     const shouldShow = shouldShowStudentStartOverlay();
@@ -202,6 +215,7 @@
     state.dragSelection = null;
     state.clickAnchor = null;
     state.previewCells = [];
+    closeModal(dom.hintModal, { restoreFocus: false });
     render();
     saveStudentProgress();
     if (state.foundWordIds.size < (state.puzzle?.words.length ?? 0)) {
@@ -349,6 +363,12 @@
     wrongCells: [],
     hintCell: null,
     progressSaveWarned: false,
+    restoring: true,
+    generatedForm: null,
+    resumeAvailable: false,
+    hintStages: {},
+    hintDirectionCell: null,
+    selectedHintWordId: null,
     customSamples: loadCustomSamplesFromStorage(),
     teacherPin: loadTeacherPinFromStorage(),
     theme: loadThemeFromStorage(),
@@ -391,6 +411,11 @@
       timerExpired: false,
       timerPaused: false,
       studentSessionStarted: false,
+      resumeAvailable: false,
+      studentName: { nom: "", cognoms: "" },
+      hintStages: {},
+      selectedHintWordId: null,
+      hintDirectionCell: null,
       activeDefinitionWordId: null,
       timerSecondsLeft: state.puzzle?.timerDuration || 0,
       focusedCell: null,
@@ -407,7 +432,10 @@
     dom.gridCells = null;
     dom.wordListItems = null;
     clearProgressFromStorage();
+    if (dom.studentNomInput) dom.studentNomInput.value = "";
+    if (dom.studentCognomsInput) dom.studentCognomsInput.value = "";
     closeWordDefinitionModal({ restoreFocus: false });
+    closeModal(dom.hintModal, { restoreFocus: false });
   }
 
   function buildShareConfigFromPuzzle(puzzle) {
@@ -433,31 +461,23 @@
   }
 
   function saveStudentProgress() {
-    if (!state.puzzle) return;
-    const duration = state.puzzle.timerDuration || 0;
-    const initialHints = state.puzzle.hintsAllowed;
-    const hintsUnchanged = initialHints === -1 || state.hintsRemaining === initialHints;
-    const pristine = state.foundWordIds.size === 0 &&
-      !state.timerExpired &&
-      state.timerSecondsLeft === duration &&
-      hintsUnchanged;
-    if (pristine) return;
-    if (state.foundWordIds.size === state.puzzle.words.length) {
-      clearProgressFromStorage();
-      return;
-    }
+    if (!state.puzzle || state.restoring) return;
+    saveWorkspace();
     const saved = saveProgressToStorage({
       key: puzzleProgressKey(state.puzzle),
       foundWordIds: [...state.foundWordIds],
       timerSecondsLeft: state.timerSecondsLeft,
       timerExpired: state.timerExpired,
       hintsRemaining: state.hintsRemaining,
+      started: state.studentSessionStarted || state.resumeAvailable,
+      hintStages: state.hintStages,
     });
     // Private mode and a full quota both fail here, and this runs every 5 timer
     // seconds — so warn once instead of silently losing a 20-minute session on reload.
     if (!saved && !state.progressSaveWarned) {
       state.progressSaveWarned = true;
       setStatus(TRANSLATIONS[state.lang].msg_storage_unavailable, "error");
+      announce(TRANSLATIONS[state.lang].msg_storage_unavailable);
     }
   }
 
@@ -472,14 +492,21 @@
       state.foundWordIds.add(wordId);
       state.foundWordColors.set(wordId, `wc-${state.foundWordColors.size % 5}`);
     });
-    if (typeof record.timerSecondsLeft === "number" && state.puzzle.timerDuration > 0) {
+    if (Number.isFinite(record.timerSecondsLeft) && state.puzzle.timerDuration > 0) {
       state.timerSecondsLeft = Math.max(0, Math.min(state.puzzle.timerDuration, record.timerSecondsLeft));
     }
-    if (typeof record.hintsRemaining === "number" && state.puzzle.hintsAllowed !== -1) {
+    if (Number.isFinite(record.hintsRemaining) && state.puzzle.hintsAllowed !== -1) {
       state.hintsRemaining = Math.max(0, Math.min(state.puzzle.hintsAllowed, record.hintsRemaining));
     }
     state.timerExpired = Boolean(record.timerExpired) && state.foundWordIds.size < state.puzzle.words.length;
-    saveStudentProgress();
+    state.puzzle.words.forEach(word => {
+      const stage = record.hintStages?.[word.id];
+      if (stage === 1 || stage === 2) state.hintStages[word.id] = stage;
+    });
+    state.resumeAvailable = Boolean(record.started || state.foundWordIds.size || state.timerExpired ||
+      state.timerSecondsLeft !== state.puzzle.timerDuration || state.hintsRemaining !== state.puzzle.hintsAllowed ||
+      Object.keys(state.hintStages).length);
+    if (state.foundWordIds.size === state.puzzle.words.length) state.celebrated = true;
   }
 
   const dom = {
@@ -495,6 +522,9 @@
     structuredData: document.querySelector("#structured-data"),
     form: document.querySelector("#generator-form"),
     generateButton: document.querySelector("#generate-button"),
+    draftStatus: document.querySelector("#draft-status"),
+    teacherPendingChanges: document.querySelector("#teacher-pending-changes"),
+    teacherReadyNote: document.querySelector("#teacher-ready-note"),
     titleInput: document.querySelector("#title-input"),
     wordsInput: document.querySelector("#words-input"),
     clearWordsButton: document.querySelector("#clear-words-button"),
@@ -543,6 +573,10 @@
     studentStartTimer: document.querySelector("#student-start-timer"),
     studentStartHints: document.querySelector("#student-start-hints"),
     studentStartButton: document.querySelector("#student-start-button"),
+    studentStartTitle: document.querySelector("#student-start-title"),
+    studentStartText: document.querySelector("#student-start-text"),
+    newStudentButton: document.querySelector("#new-student-button"),
+    selectionDemo: document.querySelector("#selection-demo"),
     gridContainer: document.querySelector("#grid-container"),
     completionMessage: document.querySelector("#completion-message"),
     completionMessageTitle: document.querySelector("#completion-message-title"),
@@ -564,6 +598,12 @@
     hintsInput: document.querySelector("#hints-input"),
     timerDisplay: document.querySelector("#timer-display"),
     hintButton: document.querySelector("#hint-button"),
+    hintModal: document.querySelector("#hint-modal"),
+    hintWordSelect: document.querySelector("#hint-word-select"),
+    hintExplanation: document.querySelector("#hint-explanation"),
+    hintStartButton: document.querySelector("#hint-start-button"),
+    hintDirectionButton: document.querySelector("#hint-direction-button"),
+    hintCloseButton: document.querySelector("#hint-close-button"),
     newPinInput: document.querySelector("#new-pin-input"),
     confirmPinInput: document.querySelector("#confirm-pin-input"),
     pinChangeForm: document.querySelector("#pin-change-form"),
@@ -700,7 +740,138 @@
     if (!state.puzzle) return;
     dom.teacherReadyTopic.textContent = state.puzzle.title;
     dom.teacherReadyMeta.textContent = buildTeacherReadyMeta(state.puzzle);
+    const pending = hasPendingChanges();
+    dom.teacherPendingChanges.hidden = !pending;
+    dom.teacherReadyNote.hidden = pending;
+    dom.teacherReadyCard.classList.toggle("has-pending-changes", pending);
+    [dom.teacherOpenStudentButton, dom.teacherShareButton, dom.teacherPrintButton, dom.teacherPrintSolutionButton]
+      .forEach(button => { if (button) button.disabled = pending; });
   }
+
+  function readTeacherForm() {
+    return {
+      lang: state.lang,
+      title: dom.titleInput.value,
+      words: dom.wordsInput.value,
+      difficulty: dom.difficultyInput.value,
+      size: dom.sizeInput.value,
+      timer: dom.timerInput.value,
+      hints: dom.hintsInput.value,
+      formTemplate: dom.formTemplateInput.value,
+    };
+  }
+
+  function writeTeacherForm(form) {
+    dom.titleInput.value = form.title;
+    dom.wordsInput.value = form.words;
+    dom.difficultyInput.value = form.difficulty;
+    dom.sizeInput.value = form.size;
+    dom.timerInput.value = form.timer;
+    dom.hintsInput.value = form.hints;
+    dom.formTemplateInput.value = form.formTemplate;
+    syncDifficultyPresetState();
+    teacherController.syncWordsUi();
+  }
+
+  function hasPendingChanges() {
+    if (!state.puzzle || !state.generatedForm) return false;
+    const current = readTeacherForm();
+    // A UI language switch does not change the activity's vocabulary.
+    return Object.keys(current).some(key => key !== "lang" && current[key] !== state.generatedForm[key]);
+  }
+
+  function requireCurrentActivity() {
+    if (!hasPendingChanges()) return true;
+    updateTeacherReadyCard();
+    setStatus(TRANSLATIONS[state.lang].activity_pending, "warning");
+    dom.generateButton.focus();
+    return false;
+  }
+
+  function saveWorkspace() {
+    if (state.restoring) return;
+    let saved = true;
+    if (state.activeTab === "teacher") saved = saveDraft(readTeacherForm());
+    if (state.puzzle && state.generatedForm) {
+      saved = saveActivity({ key: puzzleProgressKey(state.puzzle), form: state.generatedForm, activeTab: state.activeTab }) && saved;
+    }
+    dom.draftStatus.hidden = false;
+    dom.draftStatus.textContent = TRANSLATIONS[state.lang][saved ? "draft_saved" : "msg_storage_unavailable"];
+    dom.draftStatus.classList.toggle("is-error", !saved);
+  }
+
+  function onTeacherFormChange() {
+    if (state.restoring) return;
+    updateTeacherReadyCard();
+    if (hasPendingChanges()) {
+      // Once a shared activity is edited locally, reloading must recover that
+      // draft instead of treating the original link as a fresh navigation.
+      if (state.activeTab === "teacher") clearSharedPuzzleUrl();
+      setStatus(TRANSLATIONS[state.lang].activity_pending, "warning");
+    } else if (dom.statusMessage.textContent === TRANSLATIONS[state.lang].activity_pending) {
+      setStatus(TRANSLATIONS[state.lang].msg_success, "success");
+    }
+    saveWorkspace();
+  }
+
+  function clearSharedPuzzleUrl() {
+    const currentUrl = new URL(window.location.href);
+    if (!currentUrl.searchParams.has("p")) return;
+    currentUrl.searchParams.delete("p");
+    window.history.replaceState(null, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+  }
+
+  function updateHintPicker() {
+    const t = TRANSLATIONS[state.lang];
+    const wordId = dom.hintWordSelect.value;
+    const stage = state.hintStages[wordId] || 0;
+    const canSpend = state.puzzle.hintsAllowed === -1 || state.hintsRemaining > 0;
+    dom.hintStartButton.disabled = !canSpend && stage < 1;
+    dom.hintDirectionButton.disabled = stage < 1 || (!canSpend && stage < 2);
+    dom.hintExplanation.textContent = state.puzzle.hintsAllowed === -1
+      ? t.hint_unlimited_note
+      : t.hint_cost_note.replace("{count}", state.hintsRemaining);
+  }
+
+  function openHintPicker() {
+    if (!canInteractWithPuzzle() || dom.hintButton.disabled) return;
+    const unsolved = state.puzzle.words.filter(word => !state.foundWordIds.has(word.id));
+    if (!unsolved.length) return;
+    dom.hintWordSelect.replaceChildren(...unsolved.map(word => {
+      const option = document.createElement("option");
+      option.value = word.id;
+      option.textContent = word.display;
+      return option;
+    }));
+    if (unsolved.some(word => word.id === state.selectedHintWordId)) dom.hintWordSelect.value = state.selectedHintWordId;
+    updateHintPicker();
+    openModal(dom.hintModal, dom.hintWordSelect);
+  }
+
+  dom.hintWordSelect.addEventListener("change", updateHintPicker);
+  [dom.hintStartButton, dom.hintDirectionButton].forEach((button, index) => {
+    button.addEventListener("click", () => {
+      const wordId = dom.hintWordSelect.value;
+      closeModal(dom.hintModal, { restoreFocus: false });
+      clearSelection();
+      if (useHint(wordId, index + 1)) {
+        focusGridCell(setFocusedCell(state.hintCell));
+      } else {
+        dom.hintButton.focus();
+      }
+    });
+  });
+  dom.hintCloseButton.addEventListener("click", () => closeModal(dom.hintModal));
+  dom.hintModal.addEventListener("click", event => {
+    if (event.target === event.currentTarget) closeModal(dom.hintModal);
+  });
+  dom.hintModal.addEventListener("keydown", event => {
+    trapModalFocus(event, dom.hintModal);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeModal(dom.hintModal);
+    }
+  });
 
   const DIFFICULTY_PRESETS = {
     inicial: { difficulty: "easy",   size: "8",  timer: "0",   hints: "-1" },
@@ -717,6 +888,7 @@
     if (dom.timerInput) dom.timerInput.value = preset.timer;
     if (dom.hintsInput) dom.hintsInput.value = preset.hints;
     syncDifficultyPresetState();
+    onTeacherFormChange();
   }
 
   // The four presets and the four advanced selects write the same four values, so the
@@ -838,6 +1010,7 @@
     render();
     renderWordDefinitionModal();
     if (!state.activeDefinitionWordId) resetWordDefinitionModalContent();
+    onTeacherFormChange();
   }
 
   function setStatus(msg, tone) {
@@ -885,6 +1058,7 @@
     setStatus,
     debounce,
     confirmDialog,
+    onFormChange: onTeacherFormChange,
   });
 
   const {
@@ -931,7 +1105,7 @@
   const SHARE_URL_LONG_THRESHOLD = 1400;
 
   async function shareCurrentPuzzle(button) {
-    if (!state.puzzle) return;
+    if (!state.puzzle || !requireCurrentActivity()) return;
     const config = buildShareConfigFromPuzzle(state.puzzle);
     const encoded = encodePuzzleConfig(config);
     const shareUrl = new URL(window.location.href);
@@ -1006,6 +1180,7 @@
   }
 
   function printCurrentPuzzle() {
+    if (!requireCurrentActivity()) return;
     if (!state.puzzle) {
       setStatus(TRANSLATIONS[state.lang].msg_print_without_puzzle, "error");
       return;
@@ -1017,6 +1192,7 @@
   // Reveal the solution (mode "teacher" drives body[data-mode], which the print
   // CSS already renders as an answer key), print, then restore the prior mode.
   function printAnswerKey() {
+    if (!requireCurrentActivity()) return;
     if (!state.puzzle) {
       setStatus(TRANSLATIONS[state.lang].msg_print_without_puzzle, "error");
       return;
@@ -1062,6 +1238,8 @@
     printCurrentPuzzle,
     shareCurrentPuzzle,
     confirmDialog,
+    canOpenStudent: requireCurrentActivity,
+    onSessionChange: saveStudentProgress,
   });
 
   function generatePuzzle({ triggerButton = dom.generateButton } = {}) {
@@ -1082,7 +1260,8 @@
       return;
     }
 
-    if (state.formTemplate && !parseFormEntries(state.formTemplate)) {
+    const formTemplate = dom.formTemplateInput.value.trim();
+    if (formTemplate && !parseFormEntries(formTemplate)) {
       setStatus(t.form_url_invalid, "error");
       const formConfigDetails = document.querySelector("#form-config-details");
       if (formConfigDetails) formConfigDetails.open = true;
@@ -1102,11 +1281,16 @@
         sourceLang: state.lang,
       });
       state.studentName = { nom: "", cognoms: "" };
+      state.formTemplate = formTemplate;
+      state.generatedForm = readTeacherForm();
       // A new puzzle is a new party; the damping is only meant to stop confetti
       // spamming within one puzzle.
       state.celebrationsInSession = 0;
       stopTimer();
       resetPuzzleProgress();
+      // The URL must no longer point to the old shared board after regeneration.
+      clearSharedPuzzleUrl();
+      saveStudentProgress();
       setStatus(t.msg_success, "success");
       render();
       // Show the next step only after an explicit, successful creation. Rendering
@@ -1139,11 +1323,13 @@
     e.preventDefault();
     generatePuzzle({ triggerButton: e.submitter || dom.generateButton });
   });
+  dom.form.addEventListener("input", onTeacherFormChange);
+  dom.form.addEventListener("change", onTeacherFormChange);
   teacherController.bindEvents();
   sessionController.bindEvents();
 
   if (dom.hintButton) {
-    dom.hintButton.addEventListener("click", () => useHint());
+    dom.hintButton.addEventListener("click", openHintPicker);
   }
 
   if (dom.pauseButton) {
@@ -1160,7 +1346,7 @@
     if (!(target instanceof Element) || !dom.puzzleGrid.contains(target)) return;
     if (!canInteractWithPuzzle() || !dom.hintButton || dom.hintButton.hidden || dom.hintButton.disabled) return;
     event.preventDefault();
-    useHint();
+    openHintPicker();
   });
   
   dom.puzzleGrid.addEventListener("pointerdown", e => {
@@ -1308,6 +1494,7 @@
   // navigation, and lock-screen on tablets where timer ticks may not fire).
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
+      saveWorkspace();
       saveStudentProgress();
     } else if (state.timerIntervalId !== null) {
       // Reconcile immediately on return so a long background gap reflects real
@@ -1315,24 +1502,25 @@
       tickTimer();
     }
   });
-  window.addEventListener("pagehide", () => saveStudentProgress());
+  window.addEventListener("pagehide", () => { saveWorkspace(); saveStudentProgress(); });
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
-      state.formTemplate = dom.formTemplateInput.value.trim();
+      const value = dom.formTemplateInput.value.trim();
       const errorEl = document.querySelector("#form-url-error");
       if (errorEl) {
-        const invalid = state.formTemplate && !parseFormEntries(state.formTemplate);
+        const invalid = value && !parseFormEntries(value);
         errorEl.style.display = invalid ? "block" : "none";
         errorEl.textContent = invalid ? TRANSLATIONS[state.lang].form_url_invalid : "";
       }
+      onTeacherFormChange();
     });
   }
 
-  function tryLoadFromUrl() {
-    const param = new URLSearchParams(window.location.search).get("p");
+  function tryLoadPuzzle(param, localForm) {
     if (!param) return false;
     const config = decodePuzzleConfig(param);
     if (!config) return false;
+    if (localForm) config.formTemplate = localForm.formTemplate.trim();
 
     // Read any saved progress before resetPuzzleProgress() clears storage below.
     const savedProgress = loadProgressFromStorage();
@@ -1373,6 +1561,7 @@
       state.puzzle = config.version >= SHARED_PUZZLE_VERSION && config.gridRows && config.placementPaths
         ? buildPuzzleFromSnapshot(parsed.words, config, metadata)
         : buildPuzzle(parsed.words, config.size, config.difficulty, metadata);
+      state.generatedForm = readTeacherForm();
       resetPuzzleProgress();
       if (savedProgress && savedProgress.key === puzzleProgressKey(state.puzzle)) {
         applyResumeProgress(savedProgress);
@@ -1401,7 +1590,12 @@
     }
   }
 
-  if (!tryLoadFromUrl()) {
+  const sharedParam = new URLSearchParams(window.location.search).get("p");
+  const requestedPageLang = new URLSearchParams(window.location.search).get("lang") ||
+    window.location.pathname.match(/\/(es|en)\.html$/)?.[1];
+  const lastActivity = sharedParam === null ? loadActivity() : null;
+  const restoredPuzzle = tryLoadPuzzle(sharedParam ?? lastActivity?.key, lastActivity?.form);
+  if (!restoredPuzzle) {
     const queryLang = new URLSearchParams(window.location.search).get("lang");
     const pathLang = window.location.pathname.match(/\/(es|en)\.html$/)?.[1];
     const requestedLang = queryLang || pathLang;
@@ -1415,6 +1609,28 @@
       setStatus(TRANSLATIONS[errLang].msg_link_error, "error");
     }
   }
+  // Explicit shared links take precedence. On normal visits, recover the last
+  // board without regenerating it, and restore an unfinished teacher draft too.
+  if (sharedParam === null) {
+    const draft = loadDraft();
+    if (restoredPuzzle && lastActivity) {
+      state.generatedForm = lastActivity.form;
+      writeTeacherForm(lastActivity.form);
+    }
+    if (!restoredPuzzle || lastActivity?.activeTab === "teacher") {
+      sessionController.setTab("teacher");
+      if (draft) {
+        updateLanguage(TRANSLATIONS[requestedPageLang] ? requestedPageLang : draft.lang);
+        writeTeacherForm(draft);
+        dom.draftStatus.hidden = false;
+        dom.draftStatus.textContent = TRANSLATIONS[state.lang].draft_restored;
+      }
+    }
+    if (TRANSLATIONS[requestedPageLang]) updateLanguage(requestedPageLang);
+    render();
+  }
+  state.restoring = false;
+  if (state.puzzle) saveStudentProgress();
   refreshDefaultPinWarning();
 
   if ("serviceWorker" in navigator && (location.protocol === "http:" || location.protocol === "https:")) {

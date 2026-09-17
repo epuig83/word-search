@@ -80,3 +80,43 @@ test("loadCustomSamples returns an empty collection for malformed JSON", () => {
 
   assert.deepEqual(storageModule.loadCustomSamples(storage), core.createEmptyCustomSamples());
 });
+
+const draft = {
+  lang: "ca", title: "Work in progress", words: "gat\ng\n", difficulty: "easy",
+  size: "8", timer: "0", hints: "-1", formTemplate: "",
+};
+
+test("draft recovery preserves incomplete input and excludes unrelated personal fields", () => {
+  const storage = createMemoryStorage();
+  assert.equal(storageModule.saveDraft({ ...draft, studentName: "Ada", teacherPin: "9876" }, storage), true);
+  assert.deepEqual(storageModule.loadDraft(storage), draft);
+  assert.equal(storage.getItem(storageModule.DRAFT_STORAGE_KEY).includes("Ada"), false);
+});
+
+test("invalid drafts and activities fail closed without throwing", () => {
+  for (const raw of ["{broken", "null", "[]", '{"lang":"unknown"}']) {
+    const storage = createMemoryStorage({
+      [storageModule.DRAFT_STORAGE_KEY]: raw,
+      [storageModule.ACTIVITY_STORAGE_KEY]: raw,
+    });
+    assert.equal(storageModule.loadDraft(storage), null);
+    assert.equal(storageModule.loadActivity(storage), null);
+  }
+});
+
+test("draft recovery replaces invalid select values with supported defaults", () => {
+  const storage = createMemoryStorage();
+  storageModule.saveDraft({ ...draft, size: "999", difficulty: "other", timer: "NaN", hints: "999" }, storage);
+  assert.deepEqual(storageModule.loadDraft(storage), draft);
+});
+
+test("unavailable browser storage returns a save failure and safe recovery defaults", () => {
+  const storage = {
+    getItem() { throw new Error("denied"); },
+    setItem() { throw new Error("full"); },
+  };
+  assert.equal(storageModule.saveDraft(draft, storage), false);
+  assert.equal(storageModule.saveActivity({ key: "value", form: draft }, storage), false);
+  assert.equal(storageModule.loadDraft(storage), null);
+  assert.equal(storageModule.loadActivity(storage), null);
+});

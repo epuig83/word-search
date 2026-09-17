@@ -32,6 +32,8 @@
     printCurrentPuzzle,
     shareCurrentPuzzle,
     confirmDialog,
+    canOpenStudent = () => true,
+    onSessionChange = () => {},
   }) {
     function isTrivialPin(pin) {
       if (/^(\d)\1+$/.test(pin)) return true;
@@ -43,16 +45,20 @@
 
     function startStudentSession() {
       if (!state.puzzle || state.studentSessionStarted) return;
+      const resuming = state.resumeAvailable;
       state.studentSessionStarted = true;
+      state.resumeAvailable = false;
       clearSelection();
-      if (state.puzzle.timerDuration > 0 && !state.timerExpired) {
-        startTimer(state.timerSecondsLeft || state.puzzle.timerDuration);
+      if (state.puzzle.timerDuration > 0 && !state.timerExpired && state.foundWordIds?.size !== state.puzzle.words?.length) {
+        startTimer(resuming ? state.timerSecondsLeft : (state.timerSecondsLeft || state.puzzle.timerDuration));
       }
       render();
+      onSessionChange();
       focusGridCell(setFocusedCell(state.focusedCell || { row: 0, col: 0 }));
     }
 
     function setTab(tab) {
+      if (tab === "student" && !canOpenStudent()) return;
       closeWordDefinitionModal({ restoreFocus: false });
       state.activeTab = tab;
       document.body.dataset.tab = tab;
@@ -64,6 +70,7 @@
       dom.tabStudent.tabIndex = tab === "student" ? 0 : -1;
       dom.sectionTeacher.hidden = tab !== "teacher";
       dom.sectionStudent.hidden = tab !== "student";
+      onSessionChange();
 
       if (tab !== "student") {
         return;
@@ -143,8 +150,14 @@
       const restartPuzzle = () => {
         resetPuzzleProgress();
         render();
+        onSessionChange();
         if (shouldShowStudentStartOverlay()) focusStudentStartButton();
       };
+
+      dom.newStudentButton?.addEventListener("click", () => {
+        resetPuzzleProgress();
+        startStudentSession();
+      });
 
       dom.resetProgressButton.addEventListener("click", async () => {
         const ok = await confirmDialog({ message: getTranslations().msg_confirm_reset });

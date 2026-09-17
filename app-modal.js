@@ -11,7 +11,6 @@
 
   function createModalController({
     documentRef = globalThis.document,
-    requestAnimationFrameRef = globalThis.requestAnimationFrame?.bind(globalThis) || (callback => callback()),
     focusableSelector = DEFAULT_FOCUSABLE_SELECTOR,
   } = {}) {
     let lastFocusedElement = null;
@@ -35,10 +34,10 @@
       lastFocusedElement = isHtmlElement ? documentRef.activeElement : null;
       overlay.hidden = false;
       documentRef.body.classList.add("has-modal");
-      requestAnimationFrameRef(() => {
-        const fallbackTarget = overlay.querySelector(".modal-content");
-        (focusTarget || getFocusableElements(overlay)[0] || fallbackTarget)?.focus();
-      });
+      // The dialog is visible now. Deferring focus can steal it back from a
+      // second field (or from the board after a quick hint choice).
+      const fallbackTarget = overlay.querySelector(".modal-content");
+      (focusTarget || getFocusableElements(overlay)[0] || fallbackTarget)?.focus();
     }
 
     function closeModal(overlay, { restoreFocus = true } = {}) {
@@ -50,7 +49,7 @@
       const focusTarget = restoreFocus ? lastFocusedElement : null;
       lastFocusedElement = null;
       if (focusTarget?.isConnected) {
-        requestAnimationFrameRef(() => focusTarget.focus());
+        focusTarget.focus();
       }
     }
 

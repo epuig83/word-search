@@ -115,6 +115,7 @@ test("spent hints resume after reopening the shared link", async ({ browser }) =
   await page.goto(shared.path);
   await startStudentSession(page);
   await page.locator("#hint-button").click();
+  await page.locator("#hint-start-button").click();
   await expect(page.locator("#hint-button")).toHaveText("Pista (2)");
 
   const reopened = await context.newPage();
@@ -168,7 +169,8 @@ test("student progress resumes after reopening the shared link", async ({ browse
   await expect(reopened.locator("#progress-text")).toHaveText("1 / 4");
 
   // Starting over clears the saved progress.
-  await reopened.getByRole("button", { name: "Començar" }).click();
+  await expect(reopened.locator("#student-start-button")).toHaveText("Continuar");
+  await reopened.locator("#student-start-button").click();
   await reopened.getByRole("button", { name: "Reiniciar joc" }).click();
   await reopened.getByRole("button", { name: "Sí, continuar" }).click();
   await expect(reopened.locator("#progress-text")).toHaveText("0 / 4");
@@ -187,13 +189,15 @@ test("hint highlights the expected cell and decrements the counter", async ({ pa
 
   const words = core.parseWords(wordsText).words;
   const puzzle = core.buildPuzzleData(words, "auto", "easy", { title: "Animals del mar" }, { random: () => 0 });
-  // The shortest remaining word is the easiest win, so that is the one lit up.
+  // The child chooses which word needs help.
   const shortest = puzzle.placements.reduce((best, candidate) => (
     candidate.cells.length < best.cells.length ? candidate : best
   ));
   const hintedCell = shortest.cells[0];
 
   await page.locator("#hint-button").click();
+  await page.locator("#hint-word-select").selectOption(shortest.wordId);
+  await page.locator("#hint-start-button").click();
 
   await expect(page.locator("#hint-button")).toHaveText("Pista (2)");
   await expect(page.locator(`[data-row="${hintedCell.row}"][data-col="${hintedCell.col}"]`)).toHaveClass(/is-hint/);

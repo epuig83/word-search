@@ -39,6 +39,7 @@ for (const example of examples) {
     await expect(page.locator("#timer-display")).toBeHidden();
     await expect(page.locator("#hint-button")).toContainText(example.hints);
     await page.locator("#hint-button").click();
+    await page.locator("#hint-start-button").click();
     await expect(page.locator(".grid-cell.is-hint")).toHaveCount(1);
     await expect(page.locator("#hint-button")).toContainText(example.hints);
     await expect(page.locator("#word-definitions-help")).toBeVisible();

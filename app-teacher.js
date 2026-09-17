@@ -26,6 +26,7 @@
     setStatus,
     debounce,
     confirmDialog,
+    onFormChange,
   }) {
     function resolveSelectedSample() {
       const value = dom.sampleSelect.value;
@@ -139,6 +140,7 @@
     function syncWordsUi() {
       updateWordsHelper();
       renderLibrary();
+      onFormChange?.();
     }
 
     function isFormDirty() {
@@ -264,7 +266,6 @@
       if (dom.hintsInput && sample.hintsAllowed !== undefined) dom.hintsInput.value = String(sample.hintsAllowed);
       if (dom.formTemplateInput) {
         dom.formTemplateInput.value = sample.formTemplate || "";
-        state.formTemplate = sample.formTemplate || "";
       }
       syncWordsUi();
       if (typeof dom.form.requestSubmit === "function") {

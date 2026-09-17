@@ -2,7 +2,7 @@
 // stale-while-revalidate strategy below, individual asset updates converge
 // without a bump; only bump when changing cache semantics or removing files
 // from APP_SHELL that must no longer be served.
-const CACHE_NAME = "word-search-v4";
+const CACHE_NAME = "word-search-v5";
 const NAVIGATION_TIMEOUT_MS = 2500;
 const APP_SHELL = [
   "./",
