@@ -8,7 +8,7 @@ const APP_SHELL = [
   "index.html", "es.html", "en.html", "styles.css", "font-init.js",
   "assets/fonts/andika-regular-latin.woff2", "assets/fonts/andika-bold-latin.woff2",
   "data.js", "i18n.js", "core.js", "app-helpers.js", "app-storage.js",
-  "app-modal.js", "app-board.js", "app-teacher.js", "app-session.js", "app.js",
+  "app-modal.js", "app-board.js", "app-teacher.js", "app-session.js", "app-offline.js", "app-print.js", "app.js",
   "vendor/canvas-confetti.browser.js", "manifest.webmanifest", "icon.svg",
   "icon-192.png", "icon-512.png", "icon-maskable.png", "og-image.png",
 ];

@@ -3302,3 +3302,65 @@ body[data-tab="student"] .panel {
     .field select { transition: none; }
   }
 }
+
+/* Classroom preparation: quiet status, roomy controls and paper-like previews. */
+.offline-notice { margin: 0 0 1rem; font-size: 0.85rem; color: var(--ink-soft); }
+.offline-line { display: flex; align-items: baseline; gap: 0.45rem; margin: 0; }
+.offline-line[data-state="ready"] { color: var(--found-strong); }
+.offline-line[data-state="unknown"] { color: var(--warning-text); }
+#offline-icon { font-weight: 700; }
+.offline-update { margin: 0.4rem 0 0; max-width: 65ch; }
+#offline-retry { margin-top: 0.5rem; min-height: 44px; }
+.variants-dialog { max-width: 54rem; text-align: left; padding: 1.5rem; }
+.variants-dialog h2 { margin: 0 0 0.5rem; font-family: var(--font-display); }
+.variants-dialog > p { margin: 0 0 1rem; }
+.variants-options { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+.variants-options .field { min-width: 8rem; }
+/* iPad's native select needs an explicit height as well as its minimum. */
+#variants-count { height: 3.25rem; min-height: 44px; }
+.variants-checkbox { display: flex; gap: 0.5rem; align-items: center; min-height: 44px; flex: 1; }
+.variants-checkbox input { width: 1.25rem; height: 1.25rem; flex-shrink: 0; accent-color: var(--accent-strong); }
+.variants-dialog #variants-status { margin: 1rem 0; color: var(--ink-strong); }
+.variant-previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.variants-actions { display: flex; justify-content: flex-end; gap: 0.75rem; position: sticky; bottom: -1.5rem; background: var(--panel); padding: 1rem 0; margin-bottom: -1rem; border-top: 1px solid var(--panel-border); }
+.variant-sheet { background: white; color: #171717; padding: 1rem; border: 1px solid #c5c5c5; min-width: 0; text-align: left; }
+.variant-sheet .variant-label { margin: 0 0 0.35rem; color: #383838; font-size: 0.8rem; font-weight: 700; }
+.variant-sheet .variant-title { margin: 0 0 0.5rem; color: #171717; font-family: var(--font-display); font-size: 1.1rem; overflow-wrap: anywhere; }
+.variant-meta { display: flex; gap: 1rem; margin-bottom: 0.5rem; font-size: 0.7rem; }
+.variant-meta span { flex: 1; border-bottom: 1px solid #888; padding-bottom: 0.4rem; }
+.variant-sheet .variant-instructions, .variant-sheet .variant-learning { color: #303030; margin: 0.5rem 0; font-size: 0.75rem; line-height: 1.3; }
+.variant-grid { display: grid; grid-template-columns: repeat(var(--variant-size), minmax(0, 1fr)); width: 100%; aspect-ratio: 1; border-top: 1px solid #aaa; border-left: 1px solid #aaa; margin: 0.6rem auto; }
+.variant-cell { display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: clamp(0.65rem, 1.4vw, 1rem); line-height: 1; color: #000; background: #fff; border-right: 1px solid #aaa; border-bottom: 1px solid #aaa; }
+.variant-cell.is-answer { background: #ffeaa0; box-shadow: inset 0 0 0 1px #65531a; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.variant-words { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.2rem 0.5rem; padding: 0; margin: 0.5rem 0; list-style: none; font-size: 0.8rem; overflow-wrap: anywhere; }
+#variant-print-root { display: none; }
+#variant-print-root.is-measuring { display: block; position: fixed; top: 0; left: -100000px; width: 180mm; pointer-events: none; }
+/* Use identical dimensions when measuring and printing. Oversized content is
+   reported before opening print; it is never silently clipped or shrunk. */
+#variant-print-root .variant-sheet { width: 180mm; height: 266mm; padding: 0; border: 0; box-sizing: border-box; break-after: page; font-size: 10pt; line-height: 1.25; display: flow-root; }
+#variant-print-root .variant-sheet:last-child { break-after: auto; }
+#variant-print-root .variant-label { font-size: 11pt; margin: 0 0 2mm; }
+#variant-print-root .variant-title { font-size: 16pt; margin: 0 0 3mm; }
+#variant-print-root .variant-meta { font-size: 11pt; margin: 0 0 3mm; }
+#variant-print-root .variant-meta span { padding-bottom: 3mm; }
+#variant-print-root .variant-instructions, #variant-print-root .variant-learning { font-size: 10pt; margin: 3mm 0; }
+#variant-print-root .variant-grid { width: 140mm; height: 140mm; margin: 3mm auto; }
+#variant-print-root .variant-cell { font-size: 13pt; }
+#variant-print-root .variant-grid[data-size="8"] .variant-cell { font-size: 18pt; }
+#variant-print-root .is-dense .variant-grid { width: 110mm; height: 110mm; }
+#variant-print-root .is-dense .variant-cell { font-size: 10pt; }
+#variant-print-root .variant-words { font-size: 10pt; line-height: 1.2; gap: 1mm 3mm; margin: 3mm 0; }
+@media (max-width: 600px) {
+  .variants-dialog { padding: 1rem; width: calc(100% - 1rem); }
+  .variant-previews { grid-template-columns: minmax(0, 1fr); }
+  .variants-actions { bottom: -1rem; }
+  .variants-options { gap: 0.5rem; }
+  .variants-checkbox { flex-basis: 100%; }
+  .variant-cell { font-size: 0.9rem; }
+}
+@media print {
+  .offline-notice, #variants-modal { display: none !important; }
+  body[data-print-variants] { overflow: visible !important; margin: 0; padding: 0; }
+  body[data-print-variants] > * { display: none !important; }
+  body[data-print-variants] > #variant-print-root { display: block !important; position: static; width: 180mm; }
+}

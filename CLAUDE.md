@@ -40,8 +40,10 @@ Single-page app. Files loaded in strict order by `index.html` (all with `defer`)
 | 7 | `app-board.js` | `WORD_SEARCH_APP_BOARD` | `createBoardController` — accessible grid/list render, selection, hints, confetti |
 | 8 | `app-teacher.js` | `WORD_SEARCH_APP_TEACHER` | `createTeacherController` — teacher form, vocabulary library, sample CRUD |
 | 9 | `app-session.js` | `WORD_SEARCH_APP_SESSION` | `createSessionController` — ARIA tabs, PIN modal, student session, event binding |
-| 10 | `vendor/canvas-confetti.browser.js` | `globalThis.confetti` | Celebration animation |
-| 11 | `app.js` | (IIFE, no export) | Orchestrator: wires controllers, owns `state`, localized metadata, sharing, and timer |
+| 10 | `app-offline.js` | `WORD_SEARCH_APP_OFFLINE` | Offline readiness and waiting-update status |
+| 11 | `app-print.js` | `WORD_SEARCH_APP_PRINT` | Bounded variant generation, preview and isolated batch printing |
+| 12 | `vendor/canvas-confetti.browser.js` | `globalThis.confetti` | Celebration animation |
+| 13 | `app.js` | (IIFE, no export) | Orchestrator: wires controllers, owns `state`, localized metadata, sharing, and timer |
 
 Modules use a UMD-style factory so they can also be `require()`-ed from Node for unit tests. Each `app-*.js` exports a `create*Controller(deps)` factory; `app.js` instantiates them and passes shared state/DOM refs.
 
@@ -67,6 +69,7 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 - `word-search-activity-v1` — latest puzzle snapshot, the form used to generate it, and the last active tab. Normal visits restore it without regenerating the board. Explicit shared URLs take precedence; editing or regenerating locally removes the old shared URL parameter so reloads recover the draft.
 - `state.generatedForm` tracks the generated activity separately from the draft. Pending changes block opening/sharing/printing until regenerated or reverted. `state.formTemplate` belongs to the generated activity, not the live input.
 - `state.hintStages` tracks the highest revealed clue per word (1 = first letter, 2 = direction). New clues consume limited hints; repeats are free. The picker preserves word definitions as separate actions.
+- Printable versions are temporary controller state, never persisted over the classroom activity. A is the current puzzle; B–D use the same words, actual size and difficulty with different placements. Printing uses its own DOM container and does not switch game mode. Closing or cancelling a print clears only the print container; models remain reusable until the activity changes or the page reloads.
 
 ### URL Sharing
 
@@ -80,10 +83,13 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 
 - **Unit** (`tests/unit/`): `node --test` on `core`, `core-edge`, `app-storage`, `app-logic`, `app-modal`, `app-session`, `i18n`, `data`.
 - **E2E** (`tests/e2e/`): Playwright Chrome and WebKit on student flow, sharing/forms, responsive target sizes, file-protocol compatibility, and Axe accessibility states. PDF and service-worker tests are Chromium-only. Static server at `scripts/static-server.js` on `:4173`; update tests use isolated in-memory release servers.
+- **Tablet**: `ipad-webkit` runs `tablet.spec.js` with an iPad profile, tap input and portrait/landscape viewports. This is emulation; native Safari keyboard, physical dragging and system printing still require the [physical iPad check](docs/ipad-classroom-check.md).
 
 ### Offline Releases
 
 `scripts/generate-offline-manifest.js` owns the shell asset list and generates `offline-manifest.js` with SHA-256 integrity per file and a revision that also includes `sw.js`. The worker verifies downloads before installing a revision-specific cache, then serves only that revision. It neither skips waiting nor claims already loaded pages. Updates activate after every controlled tab closes. Register with `updateViaCache: "none"` so imported manifests are checked too. Cleanup preserves caches outside this app's scoped prefix, except its known `word-search-vN` legacy caches. Never return arbitrary network versions for a cached shell file or replace the active cache during revalidation.
+
+`OFFLINE_STATUS` requests use a transferred message port. The active worker returns `{ revision, complete }` after checking the presence of all its cached assets, without fetching or repairing them. The panel treats missing files, inaccessible caches and a three-second timeout (including legacy workers) as unconfirmed. A waiting update is an independent notice; a failed candidate must not turn a complete active release into an error.
 
 ## Key Constraints
 

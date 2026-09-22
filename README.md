@@ -19,6 +19,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - Pure puzzle generation and sharing logic lives in `core.js`.
 - Shared app-side helpers live in `app-helpers.js`.
 - Browser storage and modal helpers live in `app-storage.js` and `app-modal.js`.
+- Offline readiness and printable batches live in `app-offline.js` and `app-print.js`.
 - Board rendering and interaction logic lives in `app-board.js`.
 - Teacher examples, saved samples, and library interactions live in `app-teacher.js`.
 - Student session, tab switching, and modal flows live in `app-session.js`.
@@ -51,6 +52,10 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 
 ## Offline Updates
 
+The teacher panel reports **Ready to use offline** only after the active service worker confirms that all files in its installed revision are still cached. This also works on the first visit, before the current page is controlled. Connection status alone does not establish readiness. Interrupted installation, missing cache entries, denied storage or an older worker without the status protocol show an unconfirmed state and a **Check again** action. Opening the app from disk shows **Local file**.
+
+When an update is waiting, the panel explains how to activate it after class. An unsuccessful update does not remove the readiness of the previous complete version.
+
 After a successful online visit has installed the offline files, the app can reopen without a connection. Each installed version contains a complete, integrity-checked set of HTML, scripts, styles and assets. A failed or inconsistent download leaves the previous version available.
 
 Updates download in the background and wait until **all tabs or installed-app windows for this app are closed**. Open the app again to use the new version; refreshing a tab alone does not force an update. Drafts, examples and student progress are retained. First installation takes control on the next navigation, without replacing resources in a page that is already open.
@@ -64,6 +69,18 @@ pnpm check:offline
 ```
 
 Generation is a development step, not a requirement for running the app or opening `index.html` from `file://`. CI checks the manifest against the actual file contents. Service-worker cache cleanup is scoped to this app and its known legacy caches.
+
+## Printable Versions
+
+After creating an activity, choose **Prepare versions** in the teacher's activity card:
+
+1. Select **2, 3 or 4 versions** (default: 2). Answer keys are included by default.
+2. Prepare and review the grids. Version A is the exact reviewed board; B–D keep its words, size and difficulty with different word placements.
+3. Choose **Print / PDF**. The document contains the worksheets first, then their matching answer keys, labelled A–D. Make as many copies of each model as needed.
+
+Each worksheet and answer key occupies one A4 page. A content-fit check blocks printing if a sheet would overflow at readable type sizes. The dialog explains how to reduce the content; it never silently clips the sheet. Answer cells remain marked when browser background graphics are disabled.
+
+Preparing or cancelling a batch leaves the activity, saved draft and pupil progress intact. Models remain available for repeat printing while the page holds the same activity; generating or loading another activity invalidates the batch. A reload clears the temporary batch. Preparation yields between attempts, supports cancellation, and stops after three attempts per new model or a six-second generation budget. A failed batch cannot be printed partially. The existing single worksheet and answer-key actions remain available.
 
 ## If the Browser Shows Warnings with `file://`
 
@@ -125,7 +142,7 @@ pnpm check:offline
 pnpm test:e2e
 ```
 
-The suite runs Chrome and Playwright WebKit, including keyboard, touch, responsive and accessibility cases. WebKit is engine coverage, not a test on a physical iPad or the branded Safari app. PDF generation and service-worker-specific tests run on Chromium only. Use `--project=chromium` or `--project=webkit` to run one engine.
+The suite runs Chrome and Playwright WebKit, including keyboard, touch, responsive and accessibility cases. A dedicated `ipad-webkit` project tests an iPad device profile in portrait and landscape. WebKit is engine coverage, not a test on a physical iPad or the branded Safari app. PDF generation and service-worker-specific tests run on Chromium only. Use `--project=chromium`, `--project=webkit` or `--project=ipad-webkit` to select a project. Physical Safari verification is **pending**; use the [iPad classroom check](docs/ipad-classroom-check.md) when a device is available.
 
 6. Run the full quality suite:
 
@@ -145,6 +162,8 @@ pnpm test
 - `tests/e2e/recovery-hints.spec.js`: incomplete drafts, pending changes, exact local recovery, pupil handoff, staged hints, storage failures, and accessibility of the new states.
 - `tests/e2e/audit-regressions.spec.js`: numbered examples, alternate word occurrences and inverse words, exact selection recovery, older/invalid progress, malformed links and clearing invalid input.
 - `tests/e2e/offline-updates.spec.js`: two incompatible releases served from an isolated in-memory server, waiting for every tab, offline reopening, interrupted downloads, integrity failures, retries, progress retention and preservation of other applications' caches.
+- `tests/e2e/print-variants.spec.js`: 2–4 versions in all languages, paired answer keys, A4 PDFs, repeat printing, unchanged pupil progress, cancellation/failure, overflow handling, narrow screens, accessibility and local files.
+- `tests/e2e/tablet.spec.js`: iPad WebKit profile with real tap input, viewport orientation changes, hints, exact progress recovery and the versions dialog in all three languages. These checks do not emulate the native virtual keyboard, physical finger dragging or Safari's system print sheet.
 
 ## CI
 

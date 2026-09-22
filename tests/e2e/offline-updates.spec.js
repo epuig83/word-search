@@ -40,6 +40,7 @@ test("a complete offline release waits for every tab and preserves classroom pro
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`${offlineServer.url}es.html?p=${encodeURIComponent(sharedPuzzle)}`);
   await waitForOfflineControl(page);
+  await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
   await expect(page.locator("html")).toHaveAttribute("data-release", "one");
   await startStudentSession(page);
   await solvePlacement(page, { cells: [{ row: 1, col: 0 }, { row: 1, col: 2 }] });
@@ -60,6 +61,8 @@ test("a complete offline release waits for every tab and preserves classroom pro
   await expect(second.locator("#progress-text")).toHaveText("1 / 2");
   offlineServer.publish("two");
   expect(await updateAndWait(page, "installed")).toBe("installed");
+  await expect(page.locator("#offline-update")).toContainText("cierra todas las pestañas");
+  await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-release", "one");
   await expect(page.locator("#progress-text")).toHaveText("1 / 2");
@@ -83,6 +86,7 @@ test("a complete offline release waits for every tab and preserves classroom pro
   await context.setOffline(true);
   await second.goto(`${offlineServer.url}es.html?p=${encodeURIComponent(sharedPuzzle)}`);
   await expect(second.locator("html")).toHaveAttribute("data-release", "two");
+  await expect(second.locator("#offline-status")).toHaveText("Sin conexión · lista para usar");
   await expect(second.locator("#progress-text")).toHaveText("1 / 2");
   const after = await second.evaluate(() => JSON.parse(localStorage.getItem("word-search-progress-v1")));
   expect(after.foundWordPaths).toEqual(before.foundWordPaths);
@@ -118,6 +122,8 @@ for (const failure of ["disconnect", "integrity"]) {
     await page.locator("#words-input").fill("sol\nm");
     offlineServer.publish("two", failure);
     expect(await updateAndWait(page, "redundant")).toBe("redundant");
+    await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
+    await expect(page.locator("#offline-update")).toBeHidden();
     const revisions = await page.evaluate(() => caches.keys());
     expect(revisions.some(key => key.endsWith(offlineServer.releases.two.manifest.revision))).toBe(false);
     await context.setOffline(true);
@@ -134,3 +140,54 @@ for (const failure of ["disconnect", "integrity"]) {
     expect(await response.text()).not.toContain("<!DOCTYPE html>");
   });
 }
+
+test("offline readiness waits for complete installation and detects missing files", async ({ page, context, offlineServer }) => {
+  offlineServer.holdDownloads();
+  await page.goto(`${offlineServer.url}es.html`);
+  await expect(page.locator("#offline-status")).toHaveText("Preparando el uso sin conexión…");
+  offlineServer.releaseDownloads();
+  await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
+  await page.locator("#title-input").fill("Para mañana");
+  await page.locator("#words-input").fill("sol\nmar\nluna");
+  await page.locator("#generate-button").click();
+  await waitForOfflineControl(page);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator("#offline-status")).toHaveText("Sin conexión · lista para usar");
+  await page.locator("#teacher-variants-button").click();
+  await page.locator("#variants-prepare").click();
+  await expect(page.locator("#variants-print")).toBeEnabled();
+  await page.locator("#variants-close").click();
+  await page.evaluate(async () => {
+    const keys = await caches.keys();
+    for (const key of keys.filter(key => key.startsWith("word-search-shell-"))) {
+      await (await caches.open(key)).delete(new URL("en.html", location.href));
+    }
+    dispatchEvent(new Event("pageshow"));
+  });
+  await expect(page.locator("#offline-status")).toContainText("No se ha podido confirmar");
+  await expect(page.locator("#offline-retry")).toBeVisible();
+});
+
+test("an interrupted first installation can be retried without losing the draft", async ({ page, offlineServer }) => {
+  offlineServer.publish("one", "disconnect");
+  await page.goto(`${offlineServer.url}es.html`);
+  await page.locator("#title-input").fill("Borrador de clase");
+  await expect(page.locator("#offline-status")).toContainText("No se ha podido confirmar");
+  offlineServer.publish("one");
+  await page.locator("#offline-retry").click();
+  await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
+  await expect(page.locator("#title-input")).toHaveValue("Borrador de clase");
+});
+
+test("a legacy worker times out safely and still reports a waiting update", async ({ page, offlineServer }) => {
+  offlineServer.publish("legacy");
+  await page.goto(`${offlineServer.url}es.html`);
+  await waitForOfflineControl(page);
+  await expect(page.locator("#offline-status")).toContainText("No se ha podido confirmar", { timeout: 10000 });
+  offlineServer.publish("two");
+  expect(await updateAndWait(page, "installed")).toBe("installed");
+  await expect(page.locator("#offline-update")).toContainText("cierra todas las pestañas", { timeout: 10000 });
+  await expect(page.locator("#offline-status")).toContainText("No se ha podido confirmar");
+  await expect(page.locator("#generate-button")).toBeEnabled();
+});

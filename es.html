@@ -51,6 +51,8 @@
     <script src="app-board.js" defer></script>
     <script src="app-teacher.js" defer></script>
     <script src="app-session.js" defer></script>
+    <script src="app-offline.js" defer></script>
+    <script src="app-print.js" defer></script>
     <script src="vendor/canvas-confetti.browser.js" defer></script>
     <script src="app.js" defer></script>
     <script id="structured-data" type="application/ld+json">
@@ -152,6 +154,14 @@
           </div>
 
           <p id="draft-status" class="draft-status" role="status" hidden></p>
+          <div class="offline-notice">
+            <p class="offline-line" role="status" aria-live="polite" aria-atomic="true">
+              <span id="offline-icon" aria-hidden="true">↻</span>
+              <span id="offline-status" data-t="offline_preparing">Preparant l'ús sense connexió…</span>
+            </p>
+            <p id="offline-update" class="offline-update" role="status" hidden></p>
+            <button id="offline-retry" type="button" class="ghost-button" data-t="offline_check" hidden>Tornar a comprovar</button>
+          </div>
           <form id="generator-form" class="generator-form" novalidate>
             <div class="field sample-field">
               <label for="sample-select" data-t="field_sample">Exemple guiat</label>
@@ -333,6 +343,7 @@
               <button type="button" id="teacher-print-solution-button" class="ghost-button" data-t="btn_print_solution">
                 Imprimir solucionari
               </button>
+              <button type="button" id="teacher-variants-button" class="ghost-button" data-t="variants_title">Preparar variants</button>
             </div>
           </section>
 
@@ -605,6 +616,30 @@
         <button type="button" id="hint-close-button" class="ghost-button" data-t="word_definition_close">Tancar</button>
       </div>
     </div>
+
+    <div id="variants-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="variants-title" aria-describedby="variants-intro">
+      <div class="modal-content variants-dialog" tabindex="-1">
+        <h2 id="variants-title" data-t="variants_title">Preparar variants</h2>
+        <p id="variants-intro" data-t="variants_intro">El model A conserva el tauler actual. Els altres canvien la posició de les mateixes paraules.</p>
+        <form id="variants-form">
+          <div class="variants-options">
+            <div class="field">
+              <label for="variants-count" data-t="variants_count">Quants models?</label>
+              <select id="variants-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+            </div>
+            <label class="variants-checkbox"><input type="checkbox" id="variants-solutions" checked /><span data-t="variants_solutions">Incloure els solucionaris al final</span></label>
+            <button type="submit" id="variants-prepare" class="ghost-button" data-t="variants_prepare">Preparar models</button>
+          </div>
+        </form>
+        <p id="variants-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div id="variants-preview" class="variant-previews"></div>
+        <div class="variants-actions">
+          <button type="button" id="variants-close" class="ghost-button" data-t="word_definition_close">Tancar</button>
+          <button type="button" id="variants-print" class="primary-button" data-t="btn_print" disabled>Imprimir / PDF</button>
+        </div>
+      </div>
+    </div>
+    <div id="variant-print-root" aria-hidden="true" inert></div>
 
     <!-- Modal genèric de confirmació (substitueix window.confirm) -->
     <div

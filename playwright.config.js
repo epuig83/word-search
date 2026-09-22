@@ -1,4 +1,4 @@
-const { defineConfig } = require("@playwright/test");
+const { defineConfig, devices } = require("@playwright/test");
 
 module.exports = defineConfig({
   testDir: "./tests/e2e",
@@ -15,12 +15,17 @@ module.exports = defineConfig({
     video: process.env.CI ? "off" : "retain-on-failure",
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium", channel: "chrome" } },
+    { name: "chromium", use: { browserName: "chromium", channel: "chrome" }, testIgnore: "**/tablet.spec.js" },
     {
       name: "webkit",
       use: { browserName: "webkit" },
       grepInvert: /@chromium/,
-      testIgnore: ["**/classroom-print.spec.js", "**/offline-updates.spec.js"],
+      testIgnore: ["**/classroom-print.spec.js", "**/offline-updates.spec.js", "**/tablet.spec.js"],
+    },
+    {
+      name: "ipad-webkit",
+      use: { ...devices["iPad (gen 7)"], browserName: "webkit" },
+      testMatch: "**/tablet.spec.js",
     },
   ],
   webServer: {

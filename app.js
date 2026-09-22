@@ -565,6 +565,7 @@
     teacherShareButton: document.querySelector("#teacher-share-button"),
     teacherPrintButton: document.querySelector("#teacher-print-button"),
     teacherPrintSolutionButton: document.querySelector("#teacher-print-solution-button"),
+    teacherVariantsButton: document.querySelector("#teacher-variants-button"),
     boardTitle: document.querySelector("#board-title"),
     boardInstructions: document.querySelector("#board-instructions"),
     boardStatus: document.querySelector("#board-status"),
@@ -644,6 +645,22 @@
     pinError: document.querySelector("#pin-error"),
     pinCancel: document.querySelector("#pin-cancel"),
   };
+
+  const offlineController = globalThis.WORD_SEARCH_APP_OFFLINE.createOfflineController({
+    status: document.querySelector("#offline-status"),
+    icon: document.querySelector("#offline-icon"),
+    updateNote: document.querySelector("#offline-update"),
+    retry: document.querySelector("#offline-retry"),
+    getTranslations,
+  });
+  const printController = globalThis.WORD_SEARCH_APP_PRINT.createPrintController({
+    getPuzzle: () => state.puzzle,
+    getTranslations,
+    requireCurrentActivity,
+    openModal,
+    closeModal,
+    trapModalFocus,
+  });
 
   function findPuzzleWordById(wordId) {
     return state.puzzle?.words.find(word => word.id === wordId) || null;
@@ -752,7 +769,7 @@
     dom.teacherPendingChanges.hidden = !pending;
     dom.teacherReadyNote.hidden = pending;
     dom.teacherReadyCard.classList.toggle("has-pending-changes", pending);
-    [dom.teacherOpenStudentButton, dom.teacherShareButton, dom.teacherPrintButton, dom.teacherPrintSolutionButton]
+    [dom.teacherOpenStudentButton, dom.teacherShareButton, dom.teacherPrintButton, dom.teacherPrintSolutionButton, dom.teacherVariantsButton]
       .forEach(button => { if (button) button.disabled = pending; });
   }
 
@@ -1017,6 +1034,8 @@
     teacherController.renderLibrary();
     render();
     renderWordDefinitionModal();
+    offlineController.render();
+    printController.updateLanguage();
     if (!state.activeDefinitionWordId) resetWordDefinitionModalContent();
     onTeacherFormChange();
   }
@@ -1646,11 +1665,4 @@
   if (state.puzzle) saveStudentProgress();
   refreshDefaultPinWarning();
 
-  if ("serviceWorker" in navigator && (location.protocol === "http:" || location.protocol === "https:")) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(err => {
-        console.warn("[word-search] SW registration failed:", err);
-      });
-    });
-  }
 })();

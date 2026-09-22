@@ -6,6 +6,23 @@ const CACHE_PREFIX = `word-search-shell-${encodeURIComponent(scope.pathname)}-`;
 const CACHE_NAME = `${CACHE_PREFIX}${revision}`;
 const ASSETS = new Map(assets.map(asset => [new URL(asset.url, scope).href, asset]));
 
+// Read only: report the installed revision's own files, never another app's cache
+// or network availability. Legacy workers simply won't answer this protocol.
+self.addEventListener("message", event => {
+  if (event.data?.type !== "OFFLINE_STATUS" || !event.ports[0]) return;
+  event.waitUntil((async () => {
+    let complete = false;
+    try {
+      if (await caches.has(CACHE_NAME)) {
+        const cache = await caches.open(CACHE_NAME);
+        const keys = new Set((await cache.keys()).map(request => request.url));
+        complete = [...ASSETS.keys()].every(url => keys.has(url));
+      }
+    } catch { /* A denied or evicted cache is not confirmed ready. */ }
+    event.ports[0].postMessage({ revision, complete });
+  })());
+});
+
 async function fetchVerified(asset) {
   // Fetch verifies the body against the manifest before returning it. A partially
   // deployed release or a stale CDN response cannot enter this revision's cache.
