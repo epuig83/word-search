@@ -3,7 +3,7 @@ const AxeBuilder = require("@axe-core/playwright").default;
 const { generatePuzzle, measureGridVisibility } = require("./helpers");
 
 for (const lang of ["ca", "es", "en"]) {
-  test(`${lang} iPad profile supports taps, orientation changes, recovery and print preparation`, async ({ page }, testInfo) => {
+  test(`${lang} iPad profile supports taps, orientation changes and recovery`, async ({ page }) => {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -36,6 +36,19 @@ for (const lang of ["ca", "es", "en"]) {
     await page.locator("#tab-teacher").tap();
     await page.locator("#pin-input").fill("1234");
     await page.locator("#pin-submit").tap();
+    await expect(page.locator("#teacher-ready-card")).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  // Keep the Axe scan and screenshot in their own classroom workflow so each
+  // touch journey fits the standard timeout on slower Linux WebKit runners.
+  test(`${lang} iPad profile prepares accessible print variants with touch`, async ({ page }, testInfo) => {
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await generatePuzzle(page, { size: "8", timer: "0", openStudent: false });
+    await page.locator(`[data-lang="${lang}"]`).tap();
+    const activity = await page.evaluate(() => localStorage.getItem("word-search-activity-v1"));
     await page.locator("#teacher-variants-button").tap();
     for (const selector of ["#variants-count", ".variants-checkbox", "#variants-prepare", "#variants-close", "#variants-print"]) {
       const bounds = await page.locator(selector).boundingBox();
@@ -51,8 +64,12 @@ for (const lang of ["ca", "es", "en"]) {
     const screenshot = await page.screenshot({ path: testInfo.outputPath(`ipad-${lang}-variants.png`) });
     await testInfo.attach(`iPad ${lang} variants`, { body: screenshot, contentType: "image/png" });
     await page.locator("#variants-close").tap();
+    await expect(page.locator("#variants-modal")).toBeHidden();
+    await expect(page.locator("#teacher-variants-button")).toBeFocused();
+    expect(await page.evaluate(() => localStorage.getItem("word-search-activity-v1"))).toBe(activity);
     await page.locator("#teacher-open-student-button").tap();
-    await expect(page.locator("#progress-text")).toHaveText("1 / 4");
+    await expect(page.locator("#student-start-overlay")).toBeVisible();
+    await expect(page.locator("#progress-text")).toHaveText("0 / 4");
     expect(errors).toEqual([]);
   });
 }

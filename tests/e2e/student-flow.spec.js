@@ -65,8 +65,9 @@ test("Andika is self-hosted and loaded as the classroom typeface", async ({ page
   expect((await regular.body()).byteLength + (await bold.body()).byteLength).toBeLessThan(120_000);
 
   await page.goto("/index.html");
-  // Wait for the rendered style, not a single computed-style snapshot while
-  // WebKit is still applying the stylesheet on a busy runner.
+  // A visible form confirms layout has run. WebKit can otherwise keep returning
+  // its initial font through computed-style reads until the first layout.
+  await expect(page.locator("#title-input")).toBeVisible();
   await expect(page.locator("body")).toHaveCSS("font-family", /Andika/);
   await page.evaluate(() => document.fonts.ready);
   expect(await page.evaluate(() => document.fonts.check('16px "Andika"'))).toBe(true);

@@ -2654,6 +2654,12 @@ body[data-tab="student"] .panel {
     transition-duration: 0.01ms !important;
   }
 
+  /* Reveal the active board immediately with reduced motion. Even a sub-frame
+     transition can leave WebKit displaying the blocked opacity and blur. */
+  .student-play-surface {
+    transition: none !important;
+  }
+
   /* hintGlow's last keyframe restores the normal cell background, so with animations
      collapsed to 0.01ms the hint was invisible for its whole 4s window. Same for the
      wrong-answer shake. Both need a static state instead. */
