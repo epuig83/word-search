@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 const core = require("../../core.js");
-const { generatePuzzle, getGridLetters } = require("./helpers");
+const { generatePuzzle, getGridLetters, installPausedClock } = require("./helpers");
 
 const messages = {
   ca: "Primer crea una activitat per obrir la zona de l'alumnat.",
@@ -57,6 +57,7 @@ for (const [lang, message] of Object.entries(messages)) {
 }
 
 test("edits, failed generation, undo and reload keep access tied to the prepared activity", async ({ page }) => {
+  await installPausedClock(page);
   await generatePuzzle(page, { words: "gat\ngos", size: "8", timer: "0", openStudent: false });
   const tab = page.locator("#tab-student");
   const grid = await getGridLetters(page);
@@ -69,6 +70,11 @@ test("edits, failed generation, undo and reload keep access tied to the prepared
   await expect(tab).toHaveAccessibleDescription("Has fet canvis. Torna a crear l'activitat per obrir-la.");
   await page.locator("#generate-button").click();
   await expect(page.locator("#status-message")).toHaveClass(/is-error/);
+  // Submit before the words helper refreshes, then let its pending debounce run.
+  // Refreshing the helper must not replace the generation error with a warning.
+  await page.clock.runFor(200);
+  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
+  await expect(page.locator("#status-message")).toContainText("extraordinari");
   await expect(tab).toBeDisabled();
   await page.reload();
   await expect(tab).toBeDisabled();

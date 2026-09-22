@@ -428,6 +428,8 @@ test("words helper accepts two-letter words and flags single letters", async ({ 
 });
 
 test("print worksheet shows a localized name/date line and drops the screen background", async ({ page }) => {
+  // Print assertions do not depend on the board's screen reveal transition.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await generatePuzzle(page, { timer: "0" });
   await startStudentSession(page);
 

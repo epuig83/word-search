@@ -138,10 +138,10 @@
       if (dom.clearWordsButton) dom.clearWordsButton.disabled = dom.wordsInput.value.length === 0;
     }
 
-    function syncWordsUi() {
+    function syncWordsUi({ notifyChange = true } = {}) {
       updateWordsHelper();
       renderLibrary();
-      onFormChange?.();
+      if (notifyChange) onFormChange?.();
     }
 
     function isFormDirty() {
@@ -463,7 +463,9 @@
       });
 
       dom.libSearch.addEventListener("input", debounce(() => renderLibrary(), 150));
-      dom.wordsInput.addEventListener("input", debounce(() => syncWordsUi(), 200));
+      // Native input/change events already notify the form synchronously. This
+      // delayed refresh must not overwrite a more recent submission error.
+      dom.wordsInput.addEventListener("input", debounce(() => syncWordsUi({ notifyChange: false }), 200));
     }
 
     return Object.freeze({
