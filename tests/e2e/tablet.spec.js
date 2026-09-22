@@ -2,6 +2,17 @@ const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 const { generatePuzzle, measureGridVisibility } = require("./helpers");
 
+test("iPad cannot open an empty activity with a tap", async ({ page }) => {
+  await page.goto("/index.html");
+  const studentTab = page.locator("#tab-student");
+  await expect(studentTab).toBeDisabled();
+  const bounds = await studentTab.boundingBox();
+  await page.touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await expect(page.locator("#section-teacher")).toBeVisible();
+  await expect(page.locator("#section-student")).toBeHidden();
+  await expect(page.locator("#student-tab-help")).toBeVisible();
+});
+
 for (const lang of ["ca", "es", "en"]) {
   test(`${lang} iPad profile supports taps, orientation changes and recovery`, async ({ page }) => {
     const errors = [];

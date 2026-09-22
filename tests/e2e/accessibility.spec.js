@@ -66,7 +66,7 @@ test("completion state and decorative confetti remain accessible", async ({ page
 });
 
 test("tabs use roving focus and explicit activation", async ({ page }) => {
-  await page.goto("/index.html");
+  await generatePuzzle(page, { openStudent: false, timer: "0" });
   const teacherTab = page.getByRole("tab", { name: /Panell de creació/ });
   const studentTab = page.getByRole("tab", { name: /Zona de l'alumnat/ });
 

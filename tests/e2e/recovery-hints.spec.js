@@ -47,9 +47,12 @@ test("pending edits block stale actions, survive reload, and clear after regener
   for (const id of ["teacher-share-button", "teacher-print-button", "teacher-print-solution-button", "teacher-open-student-button"]) {
     await expect(page.locator(`#${id}`)).toBeDisabled();
   }
-  await page.locator("#tab-student").click();
+  const studentTab = page.locator("#tab-student");
+  await expect(studentTab).toBeDisabled();
+  await studentTab.focus();
+  await page.keyboard.press("Enter");
   await expect(page.locator("#section-teacher")).toBeVisible();
-  await expect(page.locator("#generate-button")).toBeFocused();
+  await expect(studentTab).toBeFocused();
   await page.reload();
   await expect(page.locator("#title-input")).toHaveValue("Fruites");
   await expect(page.locator("#teacher-ready-topic")).toHaveText("Animals del mar");

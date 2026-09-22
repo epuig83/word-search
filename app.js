@@ -601,6 +601,7 @@
     libResults: document.querySelector("#lib-results"),
     tabTeacher: document.querySelector("#tab-teacher"),
     tabStudent: document.querySelector("#tab-student"),
+    studentTabHelp: document.querySelector("#student-tab-help"),
     sectionTeacher: document.querySelector("#section-teacher"),
     sectionStudent: document.querySelector("#section-student"),
     timerInput: document.querySelector("#timer-input"),
@@ -760,6 +761,17 @@
   }
 
   function updateTeacherReadyCard() {
+    const ready = isCurrentActivityReady();
+    dom.tabStudent.setAttribute("aria-disabled", String(!ready));
+    dom.studentTabHelp.hidden = ready;
+    if (ready) {
+      dom.tabStudent.removeAttribute("aria-describedby");
+    } else {
+      const helpKey = state.puzzle ? "student_tab_pending" : "student_tab_unavailable";
+      dom.studentTabHelp.dataset.t = helpKey;
+      dom.studentTabHelp.textContent = TRANSLATIONS[state.lang][helpKey];
+      dom.tabStudent.setAttribute("aria-describedby", "student-tab-help");
+    }
     if (!dom.teacherReadyCard) return;
     dom.teacherReadyCard.hidden = !state.puzzle;
     if (!state.puzzle) return;
@@ -805,10 +817,15 @@
     return Object.keys(current).some(key => key !== "lang" && current[key] !== state.generatedForm[key]);
   }
 
+  function isCurrentActivityReady() {
+    return Boolean(state.puzzle && state.generatedForm) && !hasPendingChanges();
+  }
+
   function requireCurrentActivity() {
-    if (!hasPendingChanges()) return true;
+    if (isCurrentActivityReady()) return true;
     updateTeacherReadyCard();
-    setStatus(TRANSLATIONS[state.lang].activity_pending, "warning");
+    const messageKey = state.puzzle ? "activity_pending" : "student_tab_unavailable";
+    setStatus(TRANSLATIONS[state.lang][messageKey], "warning");
     dom.generateButton.focus();
     return false;
   }
@@ -1266,7 +1283,9 @@
     printCurrentPuzzle,
     shareCurrentPuzzle,
     confirmDialog,
-    canOpenStudent: requireCurrentActivity,
+    // Disabled tabs remain discoverable with arrow keys; activation must leave
+    // focus in place instead of sending the user to the creation button.
+    canOpenStudent: isCurrentActivityReady,
     onSessionChange: saveStudentProgress,
   });
 

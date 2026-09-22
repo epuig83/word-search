@@ -573,8 +573,22 @@ body {
   position: relative;
 }
 
-.tab-btn:hover {
+.tab-btn:not([aria-disabled="true"]):hover {
   background: rgba(0, 0, 0, 0.04);
+}
+
+.tab-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  border: 1px dashed var(--panel-border);
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.student-tab-help {
+  margin: -0.5rem 0 0;
+  padding-inline: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
 }
 
 .tab-btn.is-active {
@@ -2681,6 +2695,7 @@ body[data-tab="student"] .panel {
 
 @media print {
   .main-tabs,
+  .student-tab-help,
   .student-start-overlay,
   .student-gamebar,
   #timer-display,

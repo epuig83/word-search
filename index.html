@@ -141,11 +141,12 @@
             <svg class="ui-icon tab-icon" aria-hidden="true"><use href="#icon-board"></use></svg>
             <span data-t="tab_teacher">Panell de creació</span>
           </button>
-          <button type="button" id="tab-student" class="tab-btn" role="tab" aria-selected="false" aria-controls="section-student" tabindex="-1">
+          <button type="button" id="tab-student" class="tab-btn" role="tab" aria-selected="false" aria-controls="section-student" aria-disabled="true" aria-describedby="student-tab-help" tabindex="-1">
             <svg class="ui-icon tab-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
             <span data-t="tab_student">Zona de l'alumnat</span>
           </button>
         </nav>
+        <p id="student-tab-help" class="student-tab-help" data-t="student_tab_unavailable">Primer crea una activitat per obrir la zona de l'alumnat.</p>
 
         <section id="section-teacher" class="panel controls-panel" role="tabpanel" aria-labelledby="tab-teacher" tabindex="0">
           <div class="panel-heading">

@@ -445,6 +445,7 @@
       document.body.dataset.tab = state.activeTab;
       dom.studentActions.hidden = !state.puzzle;
       if (dom.studentGamebar) dom.studentGamebar.hidden = !state.puzzle;
+      updateTeacherReadyCard();
 
       if (!state.puzzle) {
         if (dom.timerDisplay) dom.timerDisplay.hidden = true;
@@ -485,8 +486,6 @@
       if (dom.wordDefinitionsHelp) {
         dom.wordDefinitionsHelp.hidden = !state.puzzle.words.some(word => getDefinitionTextForWordId(word.id));
       }
-      updateTeacherReadyCard();
-
       if (dom.timerDisplay) {
         const showTimer = state.puzzle.timerDuration > 0 && (state.studentSessionStarted || state.timerExpired);
         dom.timerDisplay.hidden = !showTimer;

@@ -43,6 +43,8 @@ test("the app still opens directly from file protocol", async ({ page }) => {
   await page.goto(fileUrl);
 
   await expect(page.locator("#generator-form")).toBeVisible();
+  await expect(page.locator("#tab-student")).toBeDisabled();
+  await expect(page.locator("#student-tab-help")).toBeVisible();
   await expect(page).toHaveTitle(/Sopes de Lletres/);
   expect(runtimeErrors).toEqual([]);
 });
@@ -65,11 +67,13 @@ test("Andika is self-hosted and loaded as the classroom typeface", async ({ page
   expect((await regular.body()).byteLength + (await bold.body()).byteLength).toBeLessThan(120_000);
 
   await page.goto("/index.html");
-  // A visible form confirms layout has run. WebKit can otherwise keep returning
-  // its initial font through computed-style reads until the first layout.
   await expect(page.locator("#title-input")).toBeVisible();
-  await expect(page.locator("body")).toHaveCSS("font-family", /Andika/);
   await page.evaluate(() => document.fonts.ready);
+  // Check a painted page: under parallel WebKit runs, child geometry can be
+  // available while inherited font styles still report -webkit-standard.
+  const screenshot = await page.screenshot();
+  await test.info().attach("classroom-typeface", { body: screenshot, contentType: "image/png" });
+  await expect(page.locator("body")).toHaveCSS("font-family", /Andika/);
   expect(await page.evaluate(() => document.fonts.check('16px "Andika"'))).toBe(true);
 });
 
