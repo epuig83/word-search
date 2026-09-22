@@ -4,6 +4,7 @@ const { pathToFileURL } = require("node:url");
 const core = require("../../core.js");
 const {
   generatePuzzle,
+  installPausedClock,
   measureGridVisibility,
   readTimerSeconds,
   solvePlacement,
@@ -64,24 +65,29 @@ test("Andika is self-hosted and loaded as the classroom typeface", async ({ page
   expect((await regular.body()).byteLength + (await bold.body()).byteLength).toBeLessThan(120_000);
 
   await page.goto("/index.html");
+  // Wait for the rendered style, not a single computed-style snapshot while
+  // WebKit is still applying the stylesheet on a busy runner.
+  await expect(page.locator("body")).toHaveCSS("font-family", /Andika/);
   await page.evaluate(() => document.fonts.ready);
-  const fontFamily = await page.locator("body").evaluate(element => getComputedStyle(element).fontFamily);
-  expect(fontFamily).toContain("Andika");
   expect(await page.evaluate(() => document.fonts.check('16px "Andika"'))).toBe(true);
 });
 
 test("student overlay gates the start of the timer", async ({ page }) => {
+  await installPausedClock(page);
   await generatePuzzle(page);
 
   await expect(page.getByRole("heading", { name: "Tot a punt per començar" })).toBeVisible();
   await expect(page.locator("#timer-display")).toBeHidden();
   await expect(page.getByText("Prem Començar quan vulguis.")).toBeVisible();
+  await page.clock.runFor(10000);
+  await expect(page.locator("#student-start-timer")).toHaveText("5 min");
 
   await startStudentSession(page);
 
   await expect(page.locator("#timer-display")).toHaveText("05:00");
   await expect(page.getByText("Comença amb qualsevol paraula de la llista.")).toBeVisible();
-  await expect.poll(() => readTimerSeconds(page), { timeout: 4_000 }).toBeLessThan(300);
+  await page.clock.runFor(1000);
+  await expect(page.locator("#timer-display")).toHaveText("04:59");
 });
 
 test("reset returns the student view to the pre-start overlay", async ({ page }) => {
@@ -140,7 +146,7 @@ test("timer expiry reveals the completion card with a play-again CTA", async ({ 
 });
 
 test("pause halts the timer and resume keeps the remaining seconds", async ({ page }) => {
-  await page.clock.install();
+  await installPausedClock(page);
   await page.goto("/index.html");
   await page.locator("#title-input").fill("Pause");
   await page.locator("#words-input").fill("gat\ngos\npeix\npop");
@@ -152,7 +158,7 @@ test("pause halts the timer and resume keeps the remaining seconds", async ({ pa
   await page.clock.runFor("00:10");
 
   const secondsBefore = await readTimerSeconds(page);
-  expect(secondsBefore).toBeLessThan(300);
+  expect(secondsBefore).toBe(290);
 
   await page.locator("#pause-button").click();
   await expect(page.locator("#pause-button")).toContainText("Continuar");
@@ -165,7 +171,7 @@ test("pause halts the timer and resume keeps the remaining seconds", async ({ pa
   await expect(page.locator("#grid-container")).not.toHaveClass(/is-paused/);
   await expect(page.locator("#pause-button")).toContainText("Pausa");
   await page.clock.runFor("00:05");
-  expect(await readTimerSeconds(page)).toBeLessThan(secondsBefore);
+  expect(await readTimerSeconds(page)).toBe(secondsBefore - 5);
 });
 
 test("default PIN warning appears until the teacher changes the PIN", async ({ page }) => {
@@ -544,7 +550,9 @@ test("print worksheet shows a localized name/date line and drops the screen back
   },
 ].forEach(({ label, context, puzzle }) => {
   test(`student board keeps accessible targets on ${label}`, async ({ browser }) => {
-    const pageContext = await browser.newContext(context);
+    // Geometry checks should measure the settled board, independently of the
+    // reveal transition. Normal-motion flows remain covered by the other tests.
+    const pageContext = await browser.newContext({ ...context, reducedMotion: "reduce" });
     const page = await pageContext.newPage();
 
     await generatePuzzle(page, {

@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 const core = require("../../core.js");
-const { generatePuzzle, startStudentSession, solvePlacement, getGridLetters, unlockTeacherView } = require("./helpers");
+const { generatePuzzle, installPausedClock, startStudentSession, solvePlacement, getGridLetters, unlockTeacherView } = require("./helpers");
 
 const wordsText = "gat\ngos\npeix";
 function placements() {
@@ -80,7 +80,7 @@ test("library, presets and form settings also mark a generated activity as pendi
 });
 
 test("a local game resumes the exact grid, time and hints, then starts fresh for another pupil", async ({ page }) => {
-  await page.clock.install();
+  await installPausedClock(page);
   await generatePuzzle(page, { words: wordsText, size: "8", timer: "300", hints: "3" });
   await startStudentSession(page);
   const grid = await getGridLetters(page);
@@ -98,6 +98,8 @@ test("a local game resumes the exact grid, time and hints, then starts fresh for
   expect(await getGridLetters(page)).toEqual(grid);
   await startStudentSession(page);
   await expect(page.locator("#hint-button")).toContainText("2");
+  await page.clock.runFor(2000);
+  await expect(page.locator("#timer-display")).toHaveText("04:48");
   await page.reload();
   await page.locator("#new-student-button").click();
   await expect(page.locator("#student-start-overlay")).toBeHidden();
@@ -192,7 +194,9 @@ test("blocked storage reports the problem without preventing play", async ({ pag
 
 for (const finished of ["complete", "expired"]) {
   test(`a ${finished} game can be reviewed or reset for a new pupil after reload`, async ({ page }) => {
-    await page.clock.install();
+    // Axe needs its own timers to run; pause after the accessibility check,
+    // before starting the new pupil's countdown.
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
     await generatePuzzle(page, { words: wordsText, size: "8", timer: "300", hints: "3" });
     await startStudentSession(page);
     if (finished === "complete") {
@@ -207,6 +211,7 @@ for (const finished of ["complete", "expired"]) {
     await page.locator("#student-start-button").click();
     await expect(page.locator("#completion-message")).toBeVisible();
     await page.reload();
+    await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
     await page.locator("#new-student-button").click();
     await expect(page.locator("#completion-message")).toBeHidden();
     await expect(page.locator("#progress-text")).toHaveText("0 / 3");

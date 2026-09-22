@@ -45,6 +45,15 @@ async function readTimerSeconds(page) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+async function installPausedClock(page) {
+  // install() alone still advances with wall time between browser actions.
+  // Pause before loading the app so only explicit runFor() calls spend time,
+  // including across reloads. Keep these timer tests independent of animation.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+  await page.clock.pauseAt(new Date("2026-01-01T01:00:00Z"));
+}
+
 async function startStudentSession(page) {
   await expect(page.locator("#student-start-overlay")).toBeVisible();
   await page.locator("#student-start-button").click();
@@ -123,6 +132,7 @@ async function measureGridVisibility(page) {
 module.exports = {
   generatePuzzle,
   readTimerSeconds,
+  installPausedClock,
   startStudentSession,
   waitForOfflineControl,
   unlockTeacherView,
