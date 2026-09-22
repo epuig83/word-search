@@ -37,7 +37,7 @@ for (const width of [1440, 768, 390, 320]) {
 
 for (const width of [1440, 390]) {
   for (const source of ["manual", "example"]) {
-    test(`${source} creation reveals the next step at ${width}px`, async ({ page }) => {
+    test(`${source} creation reveals the next step at ${width}px`, async ({ page, browserName }) => {
       await page.setViewportSize({ width, height: 844 });
       // Exercise both instant scrolling and the normal smooth-scroll path.
       if (width === 390) await page.emulateMedia({ reducedMotion: "reduce" });
@@ -52,7 +52,8 @@ for (const width of [1440, 390]) {
       const ready = page.getByRole("region", { name: /^Activitat preparada/ });
       await expect(ready).toBeFocused();
       await expect(ready).toBeInViewport({ ratio: 1 });
-      await page.keyboard.press("Tab");
+      // macOS WebKit uses Option+Tab to include all actionable controls.
+      await page.keyboard.press(browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
       await expect(page.locator("#teacher-open-student-button")).toBeFocused();
       await page.keyboard.press("Enter");
       await expect(page.locator("#student-start-button")).toBeFocused();

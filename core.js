@@ -112,6 +112,7 @@
     }
 
     const cells = rawPath.split(",").map(token => {
+      if (!/^\d+\.\d+$/.test(token)) return null;
       const [row, col] = token.split(".").map(Number);
       if (!Number.isInteger(row) || !Number.isInteger(col) || row < 0 || col < 0 || row >= size || col >= size) {
         return null;
@@ -119,9 +120,15 @@
       return { row, col };
     });
 
-    if (cells.length !== expectedLength || cells.some(cell => cell === null)) {
+    if (cells.length < 2 || cells.length !== expectedLength || cells.some(cell => cell === null)) {
       return null;
     }
+
+    const dr = cells[1].row - cells[0].row;
+    const dc = cells[1].col - cells[0].col;
+    if (Math.max(Math.abs(dr), Math.abs(dc)) !== 1 || cells.some((cell, index) => (
+      cell.row !== cells[0].row + index * dr || cell.col !== cells[0].col + index * dc
+    ))) return null;
 
     return cells;
   }

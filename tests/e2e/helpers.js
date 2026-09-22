@@ -55,6 +55,13 @@ async function startStudentSession(page) {
   await expect(page.locator("#student-play-surface")).toHaveCSS("filter", "none");
 }
 
+async function waitForOfflineControl(page) {
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  // A first installation deliberately leaves the already loaded page alone.
+  await page.reload();
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+}
+
 async function unlockTeacherView(page) {
   await page.locator("#tab-teacher").click();
   await page.locator("#pin-input").fill("1234");
@@ -117,6 +124,7 @@ module.exports = {
   generatePuzzle,
   readTimerSeconds,
   startStudentSession,
+  waitForOfflineControl,
   unlockTeacherView,
   openTeacherTools,
   getGridLetters,

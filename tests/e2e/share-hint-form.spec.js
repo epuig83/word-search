@@ -390,14 +390,10 @@ test("desktop library narrows to a search across every category", async ({ page 
   await expect(page.locator("#lib-results .lib-word-chip")).toHaveText("gos");
 });
 
-test("a shared puzzle opens from the canonical cached shell while offline", async ({ page, context }) => {
+test("a shared puzzle opens from the canonical cached shell while offline @chromium", async ({ page, context }) => {
   const shared = createSharedPuzzlePath({ title: "Enllaç sense xarxa", timer: 0 });
   await page.goto("/index.html");
-  await page.waitForFunction(async () => {
-    if (!("serviceWorker" in navigator)) return false;
-    await navigator.serviceWorker.ready;
-    return Boolean(navigator.serviceWorker.controller);
-  }, null, { timeout: 8_000 });
+  await require("./helpers").waitForOfflineControl(page);
 
   await context.setOffline(true);
   await page.goto(shared.path);

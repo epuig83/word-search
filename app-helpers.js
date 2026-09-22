@@ -12,7 +12,6 @@
   const {
     SAMPLE_DIFFICULTIES,
     SAMPLE_SIZES,
-    normalizeWord,
     parseWords,
   } = core;
 
@@ -83,11 +82,15 @@
     };
   }
 
+  function normalizeSampleTitle(title) {
+    return String(title ?? "").normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
   function mergeSamples(existingSamples, incomingSamples, lang) {
     const byTitle = new Map();
-    existingSamples.forEach(sample => byTitle.set(normalizeWord(sample.title), sample));
+    existingSamples.forEach(sample => byTitle.set(normalizeSampleTitle(sample.title), sample));
     incomingSamples.forEach(sample => {
-      const key = normalizeWord(sample.title);
+      const key = normalizeSampleTitle(sample.title);
       const previous = byTitle.get(key);
       byTitle.set(key, { ...sample, id: previous?.id || sample.id || generateSampleId() });
     });
@@ -130,6 +133,7 @@
     buildSelectionPath,
     generateSampleId,
     sanitizeStoredSample,
+    normalizeSampleTitle,
     mergeSamples,
     shareUrlWithFallback,
   });

@@ -32,6 +32,7 @@ const LARGE_RESPONSIVE_WORDS = [
 
 test("the app still opens directly from file protocol", async ({ page }) => {
   const runtimeErrors = [];
+  page.on("requestfailed", request => runtimeErrors.push(`${request.url()}: ${request.failure()?.errorText}`));
   page.on("pageerror", error => runtimeErrors.push(error.message));
   page.on("console", message => {
     if (message.type() === "error") runtimeErrors.push(message.text());
@@ -241,7 +242,7 @@ test("answer-key print button reveals the solution for printing", async ({ page 
   expect(bg).not.toBe("rgb(255, 255, 255)");
 });
 
-test("PWA manifest loads and the service worker registers", async ({ page }) => {
+test("PWA manifest loads and the service worker registers @chromium", async ({ page }) => {
   const manifestResponse = await page.request.get("/manifest.webmanifest");
   expect(manifestResponse.ok()).toBeTruthy();
   const manifest = await manifestResponse.json();
@@ -260,13 +261,9 @@ test("PWA manifest loads and the service worker registers", async ({ page }) => 
   expect(await registered.jsonValue()).toBe(true);
 });
 
-test("localized PWA shells remain localized offline without query cache entries", async ({ page, context }) => {
+test("localized PWA shells remain localized offline without query cache entries @chromium", async ({ page, context }) => {
   await page.goto("/es.html?source=classroom");
-  await page.waitForFunction(async () => {
-    if (!("serviceWorker" in navigator)) return false;
-    await navigator.serviceWorker.ready;
-    return Boolean(navigator.serviceWorker.controller);
-  }, null, { timeout: 8_000 });
+  await require("./helpers").waitForOfflineControl(page);
 
   const cachePaths = await page.evaluate(async () => {
     const key = (await caches.keys()).find(name => name.startsWith("word-search-"));

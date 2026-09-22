@@ -19,6 +19,8 @@ pnpm lint            # ESLint static analysis
 pnpm test:unit       # node --test tests/unit/*.test.js
 pnpm test:e2e        # playwright test (uses scripts/static-server.js on :4173)
 pnpm test:e2e:headed # E2E headed
+pnpm build:offline  # regenerate content hashes after runtime edits (after build:locales when needed)
+pnpm check:offline  # verify the checked-in offline manifest
 ```
 
 Runtime dependency: only `canvas-confetti` (vendored under `vendor/`). ESLint, Playwright, and Axe are development-only quality tooling.
@@ -53,14 +55,14 @@ All mutable state lives in a single `state` object in `app.js`. It includes `puz
 
 ### Word Selection (`app-board.js`)
 
-Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a straight/diagonal line between two cells; `checkMatch` (in `app-board.js`) looks up the resulting key in `state.puzzle.placements` (both forward and reverse) and owns the feedback for **both** outcomes — a miss sets `state.boardFlash` and `state.wrongCells` rather than returning silently. Pointer events are used for mouse+touch+pen.
+Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a straight/diagonal line between two cells; `checkMatch` (in `app-board.js`) matches the selected letters to an unfound word, preferring forward then reverse. Any occurrence counts once. `state.foundWordPaths` stores the selected cells without changing the original placements used for hints, answer keys and share identity. A miss sets `state.boardFlash` and `state.wrongCells`. Pointer events are used for mouse+touch+pen.
 
 ### Persistence
 
-- `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection.
+- `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection. Title comparison uses `normalizeSampleTitle` (NFC, trimmed/collapsed spaces, lowercase), not puzzle-letter normalization.
 - `word-search-teacher-pin-v1` — teacher PIN. Fallback: `"1234"`.
 - `word-search-theme-v1` — student-picked visual theme (`pergami`/`ocea`/`bosc`/`espai`). Fallback: `"pergami"`. Themes only retint palette vars; high-contrast mode overrides them.
-- `word-search-progress-v1` — single most-recent student progress record `{ key, foundWordIds[], timerSecondsLeft, timerExpired, hintsRemaining, started, hintStages }`. `key` is `puzzleProgressKey()` (the encoded share config, including grid snapshot and placement paths). `tryLoadPuzzle()` restores matching progress; the start overlay offers Continue or New pupil. Completed/expired games remain reviewable. Reset clears progress and result-submission identity.
+- `word-search-progress-v1` — single most-recent student progress record `{ key, foundWordIds[], foundWordPaths?, timerSecondsLeft, timerExpired, hintsRemaining, started, hintStages }`. `foundWordPaths` maps word IDs to serialized cell paths, validated against geometry and letters on restoration; old/invalid entries fall back to original placements. `key` is `puzzleProgressKey()` (the unchanged share config and snapshot). `tryLoadPuzzle()` restores matching progress; the start overlay offers Continue or New pupil. Reset clears progress, selected paths and result-submission identity.
 - `word-search-draft-v1` — incomplete teacher form, settings, and UI language. Saved automatically from both typed and programmatic edits. Does not contain pupil names or the teacher PIN.
 - `word-search-activity-v1` — latest puzzle snapshot, the form used to generate it, and the last active tab. Normal visits restore it without regenerating the board. Explicit shared URLs take precedence; editing or regenerating locally removes the old shared URL parameter so reloads recover the draft.
 - `state.generatedForm` tracks the generated activity separately from the draft. Pending changes block opening/sharing/printing until regenerated or reverted. `state.formTemplate` belongs to the generated activity, not the live input.
@@ -77,7 +79,11 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 ## Tests
 
 - **Unit** (`tests/unit/`): `node --test` on `core`, `core-edge`, `app-storage`, `app-logic`, `app-modal`, `app-session`, `i18n`, `data`.
-- **E2E** (`tests/e2e/`): Playwright (Chromium) on student flow, sharing/forms, responsive target sizes, file-protocol compatibility, and Axe accessibility states. Static server at `scripts/static-server.js` on `:4173`.
+- **E2E** (`tests/e2e/`): Playwright Chrome and WebKit on student flow, sharing/forms, responsive target sizes, file-protocol compatibility, and Axe accessibility states. PDF and service-worker tests are Chromium-only. Static server at `scripts/static-server.js` on `:4173`; update tests use isolated in-memory release servers.
+
+### Offline Releases
+
+`scripts/generate-offline-manifest.js` owns the shell asset list and generates `offline-manifest.js` with SHA-256 integrity per file and a revision that also includes `sw.js`. The worker verifies downloads before installing a revision-specific cache, then serves only that revision. It neither skips waiting nor claims already loaded pages. Updates activate after every controlled tab closes. Register with `updateViaCache: "none"` so imported manifests are checked too. Cleanup preserves caches outside this app's scoped prefix, except its known `word-search-vN` legacy caches. Never return arbitrary network versions for a cached shell file or replace the active cache during revalidation.
 
 ## Key Constraints
 

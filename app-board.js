@@ -67,7 +67,8 @@
         if (state.foundPlacementIds.has(placement.placementId)) {
           const colorClass = state.foundWordColors.get(placement.wordId) || "wc-0";
           const isNew = trackNewCellsInto && !state.prevFoundPlacementIds.has(placement.placementId);
-          placement.cells.forEach(cell => {
+          const cells = state.foundWordPaths.get(placement.wordId) || placement.cells;
+          cells.forEach(cell => {
             const cellKey = `${cell.row}:${cell.col}`;
             foundColorMap.set(cellKey, colorClass);
             if (isNew) trackNewCellsInto.add(cellKey);
@@ -415,18 +416,20 @@
       // buildSelectionPath returns [] when the two cells are not on one straight line.
       if (!path || !path.length) return rejectSelection("msg_not_straight", path);
 
-      const key = path.map(cell => `${cell.row}:${cell.col}`).join("|");
-      const placement = state.puzzle.placements.find(candidate => (
-        candidate.key === key || candidate.reversedKey === key
-      ));
-      if (!placement) return rejectSelection("msg_not_found", path);
-      if (state.foundPlacementIds.has(placement.placementId)) {
+      const letters = path.map(cell => state.puzzle.grid[cell.row]?.[cell.col]).join("");
+      const reversed = [...letters].reverse().join("");
+      const matches = [letters, reversed].map(id => state.puzzle.words.find(word => word.id === id)).filter(Boolean);
+      if (!matches.length) return rejectSelection("msg_not_found", path);
+      const word = matches.find(candidate => !state.foundWordIds.has(candidate.id));
+      if (!word) {
         return rejectSelection("msg_already_found", path);
       }
+      const placement = state.puzzle.placements.find(candidate => candidate.wordId === word.id);
 
       flashWrongCells(null);
       state.foundPlacementIds.add(placement.placementId);
       state.foundWordIds.add(placement.wordId);
+      state.foundWordPaths.set(placement.wordId, path.map(cell => ({ ...cell })));
       if (!state.foundWordColors.has(placement.wordId)) {
         state.foundWordColors.set(placement.wordId, `wc-${state.foundWordColors.size % 5}`);
       }

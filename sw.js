@@ -1,114 +1,70 @@
-// CACHE_NAME bump forces a full cache drop on activation. With the
-// stale-while-revalidate strategy below, individual asset updates converge
-// without a bump; only bump when changing cache semantics or removing files
-// from APP_SHELL that must no longer be served.
-const CACHE_NAME = "word-search-v5";
-const NAVIGATION_TIMEOUT_MS = 2500;
-const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./es.html",
-  "./en.html",
-  "./styles.css",
-  "./font-init.js",
-  "./assets/fonts/andika-regular-latin.woff2",
-  "./assets/fonts/andika-bold-latin.woff2",
-  "./data.js",
-  "./i18n.js",
-  "./core.js",
-  "./app-helpers.js",
-  "./app-storage.js",
-  "./app-modal.js",
-  "./app-board.js",
-  "./app-teacher.js",
-  "./app-session.js",
-  "./app.js",
-  "./vendor/canvas-confetti.browser.js",
-  "./manifest.webmanifest",
-  "./icon.svg",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./icon-maskable.png",
-  "./og-image.png",
-];
+importScripts("./offline-manifest.js");
 
-function navigationShellKey(url) {
-  if (url.pathname.endsWith("/es.html")) return "./es.html";
-  if (url.pathname.endsWith("/en.html")) return "./en.html";
-  return "./index.html";
-}
+const { revision, assets } = self.WORD_SEARCH_OFFLINE;
+const scope = new URL(self.registration.scope);
+const CACHE_PREFIX = `word-search-shell-${encodeURIComponent(scope.pathname)}-`;
+const CACHE_NAME = `${CACHE_PREFIX}${revision}`;
+const ASSETS = new Map(assets.map(asset => [new URL(asset.url, scope).href, asset]));
 
-async function fetchNavigationWithTimeout(request) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), NAVIGATION_TIMEOUT_MS);
-  try {
-    return await fetch(request, { signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function handleNavigation(request, url) {
-  const cache = await caches.open(CACHE_NAME);
-  const shellKey = navigationShellKey(url);
-  const cachedShell = await cache.match(shellKey);
-
-  try {
-    const response = await fetchNavigationWithTimeout(request);
-    if (response?.ok && response.type === "basic") {
-      await cache.put(shellKey, response.clone());
-    }
-    return response;
-  } catch {
-    return cachedShell || cache.match("./index.html");
-  }
+async function fetchVerified(asset) {
+  // Fetch verifies the body against the manifest before returning it. A partially
+  // deployed release or a stale CDN response cannot enter this revision's cache.
+  const response = await fetch(new Request(new URL(asset.url, scope), {
+    cache: "reload",
+    integrity: asset.integrity,
+  }));
+  if (!response.ok || response.type !== "basic") throw new Error(`Offline asset unavailable: ${asset.url}`);
+  return response;
 }
 
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const downloads = await Promise.allSettled(assets.map(async asset => {
+      const response = await fetchVerified(asset);
+      await cache.put(new URL(asset.url, scope), response);
+    }));
+    const failed = downloads.find(result => result.status === "rejected");
+    if (failed) {
+      // Wait for all writes before removing the candidate, so a late download
+      // cannot recreate a partial cache after installation has failed.
+      await caches.delete(CACHE_NAME);
+      throw failed.reason;
+    }
+    // Wait for all old tabs to close. Never replace their worker mid-activity.
+  })());
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-    )).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key !== CACHE_NAME && (
+      key.startsWith(CACHE_PREFIX) || /^word-search-v\d+$/.test(key)
+    )).map(key => caches.delete(key)));
+    // Do not claim an already loaded page: its HTML may belong to another release.
+  })());
 });
 
+async function serveAsset(asset) {
+  const cache = await caches.open(CACHE_NAME);
+  const key = new URL(asset.url, scope);
+  const cached = await cache.match(key);
+  if (cached) return cached;
+  // Recover an evicted entry only if the network still has this exact revision.
+  const response = await fetchVerified(asset);
+  await cache.put(key, response.clone());
+  return response;
+}
+
 self.addEventListener("fetch", event => {
-  const request = event.request;
-  if (request.method !== "GET") return;
-
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-
-  // Crawler files must resolve to the real file, never the SPA shell.
-  const isCrawlerFile = url.pathname.endsWith("/robots.txt") || url.pathname.endsWith("/sitemap.xml");
-
-  const isNavigation = !isCrawlerFile && (request.mode === "navigate" ||
-    (request.destination === "document") ||
-    request.headers.get("accept")?.includes("text/html"));
-
-  if (isNavigation) {
-    // Query strings and hashes (including ?p=<shared puzzle>) resolve to one of
-    // three localized shell keys. This keeps cache growth bounded and preserves
-    // the requested language when the network is offline or stalls.
-    event.respondWith(handleNavigation(request, url));
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then(cached => {
-      const networkPromise = fetch(request).then(response => {
-        if (!response || response.status !== 200 || response.type !== "basic") return response;
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, clone)).catch(() => {});
-        return response;
-      }).catch(() => cached);
-      return cached || networkPromise;
-    })
-  );
+  if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== scope.origin) return;
+  url.search = "";
+  url.hash = "";
+  if (url.pathname === scope.pathname) url.pathname += "index.html";
+  const asset = ASSETS.get(url.href);
+  // Only known application files are handled. Crawler files and other apps on
+  // the same origin use the network and never become cached HTML fallbacks.
+  if (asset) event.respondWith(serveAsset(asset));
 });

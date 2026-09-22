@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install WebKit and browser system dependencies
+        run: pnpm exec playwright install --with-deps webkit
+
       - name: Audit high-severity dependencies
         run: pnpm security:audit
 
@@ -40,6 +43,9 @@ jobs:
 
       - name: Verify localized pages
         run: pnpm check:locales
+
+      - name: Verify offline manifest
+        run: pnpm check:offline
 
       - name: Run unit tests
         run: pnpm test:unit

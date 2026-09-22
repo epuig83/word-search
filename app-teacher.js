@@ -16,6 +16,7 @@
     parseWords,
     countValidWords,
     normalizeWord,
+    normalizeSampleTitle,
     generateSampleId,
     mergeSamples,
     sanitizeCustomSampleCollection,
@@ -134,7 +135,7 @@
       dom.wordsFeedback.textContent = feedbackText;
       dom.wordsFeedback.className = "words-feedback" + (countTone ? ` is-${countTone}` : "");
 
-      if (dom.clearWordsButton) dom.clearWordsButton.disabled = count === 0;
+      if (dom.clearWordsButton) dom.clearWordsButton.disabled = dom.wordsInput.value.length === 0;
     }
 
     function syncWordsUi() {
@@ -404,9 +405,9 @@
           return;
         }
 
-        const titleKey = normalizeWord(sample.title);
+        const titleKey = normalizeSampleTitle(sample.title);
         const currentSamples = getCustomSamplePuzzles(state.lang);
-        const existingSample = currentSamples.find(item => normalizeWord(item.title) === titleKey);
+        const existingSample = currentSamples.find(item => normalizeSampleTitle(item.title) === titleKey);
 
         if (existingSample && !(await confirmDialog({ message: getTranslations().msg_confirm_replace_custom_sample }))) {
           return;
@@ -421,7 +422,7 @@
           return;
         }
 
-        const savedSample = state.customSamples[state.lang].find(item => normalizeWord(item.title) === titleKey);
+        const savedSample = state.customSamples[state.lang].find(item => normalizeSampleTitle(item.title) === titleKey);
         renderSampleOptions(savedSample ? `custom:${savedSample.id}` : "");
         setStatus(getTranslations().msg_sample_saved, "success");
       });

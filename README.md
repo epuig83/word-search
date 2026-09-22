@@ -30,6 +30,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - Custom examples are stored in the laptop browser with `localStorage`.
 - That means they stay available after refreshing the page on the same computer.
 - To move them to another laptop, use `Export JSON` and `Import JSON`.
+- Titles retain numbers, punctuation, accents and word boundaries: `Tema 1` and `Tema 2` are separate examples. Equivalent titles ignore case and extra spaces; replacing one keeps its existing identifier.
 
 ## Classroom Flow
 
@@ -39,12 +40,30 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - Hints let students choose an unsolved word, reveal its first letter, then request its direction. Each new clue consumes one hint when hints are limited; repeating a revealed clue is free. Opening or dismissing the picker does not spend a hint.
 - The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
 - Shared links rebuild the exact same puzzle when opened.
+- Any straight occurrence of a listed word counts, in either direction, even when it is not the generator's original placement. Each word counts once, and the selected cells remain highlighted after reopening. Hints and answer keys use the original placements.
+- Invalid shared paths are rejected without overwriting an existing teacher draft. Older progress records remain readable and use the original positions when no valid selection path was saved.
 - The student start overlay shows the timer and available hints before the activity begins.
 - A first/last-letter example explains how to select a word. Words marked with a book icon open a definition.
 - On phones, the word list appears above the grid and the activity actions below it.
 - Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
 - If you configure Google Forms, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
+
+## Offline Updates
+
+After a successful online visit has installed the offline files, the app can reopen without a connection. Each installed version contains a complete, integrity-checked set of HTML, scripts, styles and assets. A failed or inconsistent download leaves the previous version available.
+
+Updates download in the background and wait until **all tabs or installed-app windows for this app are closed**. Open the app again to use the new version; refreshing a tab alone does not force an update. Drafts, examples and student progress are retained. First installation takes control on the next navigation, without replacing resources in a page that is already open.
+
+The repository includes `offline-manifest.js`, generated from the single asset list in `scripts/generate-offline-manifest.js`. After editing runtime files, regenerate it; after shared HTML changes, regenerate localized pages first:
+
+```bash
+pnpm build:locales
+pnpm build:offline
+pnpm check:offline
+```
+
+Generation is a development step, not a requirement for running the app or opening `index.html` from `file://`. CI checks the manifest against the actual file contents. Service-worker cache cleanup is scoped to this app and its known legacy caches.
 
 ## If the Browser Shows Warnings with `file://`
 
@@ -78,6 +97,7 @@ Then open `http://localhost:8000` in the browser.
 
 ```bash
 pnpm install
+pnpm exec playwright install chrome webkit
 ```
 
 2. Run unit tests:
@@ -96,6 +116,7 @@ pnpm lint
 
 ```bash
 pnpm check:locales
+pnpm check:offline
 ```
 
 5. Run headless E2E tests:
@@ -103,6 +124,8 @@ pnpm check:locales
 ```bash
 pnpm test:e2e
 ```
+
+The suite runs Chrome and Playwright WebKit, including keyboard, touch, responsive and accessibility cases. WebKit is engine coverage, not a test on a physical iPad or the branded Safari app. PDF generation and service-worker-specific tests run on Chromium only. Use `--project=chromium` or `--project=webkit` to run one engine.
 
 6. Run the full quality suite:
 
@@ -120,8 +143,10 @@ pnpm test
 - `tests/e2e/classroom-print.spec.js`: A4 worksheet and answer-key PDFs for 8×8 and 16×16 grids in all three languages, each checked for a single page.
 - `tests/e2e/design-polish.spec.js`: compact progress through completion, responsive board sizing with long titles, and keyboard navigation from successful creation or validation errors.
 - `tests/e2e/recovery-hints.spec.js`: incomplete drafts, pending changes, exact local recovery, pupil handoff, staged hints, storage failures, and accessibility of the new states.
+- `tests/e2e/audit-regressions.spec.js`: numbered examples, alternate word occurrences and inverse words, exact selection recovery, older/invalid progress, malformed links and clearing invalid input.
+- `tests/e2e/offline-updates.spec.js`: two incompatible releases served from an isolated in-memory server, waiting for every tab, offline reopening, interrupted downloads, integrity failures, retries, progress retention and preservation of other applications' caches.
 
 ## CI
 
-- GitHub Actions audits high-severity dependencies, then runs ESLint, unit tests, and E2E/accessibility tests on every `push` to `main` or `master` and on every `pull request`.
+- GitHub Actions audits high-severity dependencies, then runs ESLint, generated-page/manifest checks, unit tests, and Chrome/WebKit E2E/accessibility tests on every `push` to `main` or `master` and on every `pull request`.
 - The workflow lives in `.github/workflows/test.yml`.

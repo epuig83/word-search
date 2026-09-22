@@ -32,6 +32,7 @@
     sameCell,
     serializeGridRows,
     serializePlacementCells,
+    parsePlacementCells,
     buildPuzzleData,
     buildPuzzleFromSnapshotData,
     encodePuzzleConfig,
@@ -347,6 +348,7 @@
     lang: "ca",
     puzzle: null,
     foundWordIds: new Set(),
+    foundWordPaths: new Map(),
     foundPlacementIds: new Set(),
     prevFoundPlacementIds: new Set(),
     foundWordColors: new Map(),
@@ -400,6 +402,7 @@
   function buildInitialPuzzleProgress() {
     return {
       foundWordIds: new Set(),
+      foundWordPaths: new Map(),
       foundPlacementIds: new Set(),
       prevFoundPlacementIds: new Set(),
       foundWordColors: new Map(),
@@ -466,6 +469,7 @@
     const saved = saveProgressToStorage({
       key: puzzleProgressKey(state.puzzle),
       foundWordIds: [...state.foundWordIds],
+      foundWordPaths: Object.fromEntries([...state.foundWordPaths].map(([id, cells]) => [id, serializePlacementCells(cells)])),
       timerSecondsLeft: state.timerSecondsLeft,
       timerExpired: state.timerExpired,
       hintsRemaining: state.hintsRemaining,
@@ -481,8 +485,8 @@
     }
   }
 
-  // Re-apply saved progress by word id (placements are recomputed against the
-  // current grid; replaying in found order keeps the chip colors consistent).
+  // Old records use the original placement. New records preserve the actual
+  // selection, but only after validating its geometry and letters against this board.
   function applyResumeProgress(record) {
     if (!state.puzzle || !record || !Array.isArray(record.foundWordIds)) return;
     record.foundWordIds.forEach(wordId => {
@@ -491,6 +495,10 @@
       state.foundPlacementIds.add(placement.placementId);
       state.foundWordIds.add(wordId);
       state.foundWordColors.set(wordId, `wc-${state.foundWordColors.size % 5}`);
+      const cells = parsePlacementCells(record.foundWordPaths?.[wordId], wordId.length, state.puzzle.actualSize);
+      const letters = cells?.map(cell => state.puzzle.grid[cell.row][cell.col]).join("");
+      const valid = letters === wordId || (letters && [...letters].reverse().join("") === wordId);
+      state.foundWordPaths.set(wordId, valid ? cells : placement.cells);
     });
     if (Number.isFinite(record.timerSecondsLeft) && state.puzzle.timerDuration > 0) {
       state.timerSecondsLeft = Math.max(0, Math.min(state.puzzle.timerDuration, record.timerSecondsLeft));
@@ -1048,6 +1056,7 @@
     parseWords,
     countValidWords: CORE.countValidWords,
     normalizeWord: CORE.normalizeWord,
+    normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
     generateSampleId: APP_HELPERS.generateSampleId,
     mergeSamples: APP_HELPERS.mergeSamples,
     sanitizeCustomSampleCollection: APP_STORAGE.sanitizeCustomSampleCollection,
@@ -1603,6 +1612,10 @@
     teacherController.updateWordsHelper();
     sessionController.setTab("teacher");
     if (new URLSearchParams(window.location.search).has("p")) {
+      // An invalid link must not replace an existing draft with the empty form
+      // when pagehide saves this fallback teacher view.
+      const draft = loadDraft();
+      if (draft) writeTeacherForm(draft);
       const errParam = new URLSearchParams(window.location.search).get("p");
       const errConfig = errParam ? decodePuzzleConfig(errParam) : null;
       const errLang = errConfig?.lang && TRANSLATIONS[errConfig.lang] ? errConfig.lang : "ca";
@@ -1635,7 +1648,7 @@
 
   if ("serviceWorker" in navigator && (location.protocol === "http:" || location.protocol === "https:")) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch(err => {
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(err => {
         console.warn("[word-search] SW registration failed:", err);
       });
     });
