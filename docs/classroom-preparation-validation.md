@@ -15,6 +15,14 @@ The new coverage verifies complete-cache readiness, interrupted first installati
 
 The tablet tests use taps, rotate the viewport, recover progress and hints, and check the new controls have touch targets at least 44 CSS pixels high. Closing the versions dialog returns focus to its launch button in both browser engines.
 
+## Offline CI regression validation
+
+The Linux CI run exposed an assumption in two tests: blocking network requests does not guarantee that `navigator.onLine` reports `false` after navigation. Offline integration checks now verify that an uncached request succeeds before disconnection and fails after reload, while the app remains ready and preserves its activity. Two additional cases control the browser's advisory signal and assert the exact status text after reload and connection events, with real requests still blocked.
+
+Update tests also observe an installation already started by the app's `online` handler. The interrupted-installation test waits for the worker to become redundant before restoring downloads and retrying, avoiding a transient startup status.
+
+Local validation passed: **24/24 offline browser executions**, covering all eight scenarios three times with four workers and no retries (`pnpm test:e2e tests/e2e/offline-updates.spec.js --project=chromium --workers=4 --retries=0 --repeat-each=3 --reporter=line`). ESLint and `git diff --check` also passed. This follow-up changes tests and documentation only.
+
 ## Review artifacts
 
 The tests produce PDFs and screenshots in `test-results/`, with PDFs also attached to the Playwright report. These are generated artifacts and will be replaced by future test runs.

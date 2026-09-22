@@ -21,16 +21,38 @@ async function updateAndWait(page, expectedState) {
   return page.evaluate(async expected => {
     const registration = await navigator.serviceWorker.ready;
     const next = new Promise(resolve => {
-      registration.addEventListener("updatefound", () => {
-        const worker = registration.installing;
+      const watch = worker => {
+        if (!worker) return;
         const changed = () => { if (worker.state === expected) resolve(worker.state); };
         worker.addEventListener("statechange", changed);
         changed();
-      }, { once: true });
+      };
+      registration.addEventListener("updatefound", () => watch(registration.installing), { once: true });
+      // The app can start an update on the online event before the test resumes.
+      watch(registration.installing || registration.waiting);
     });
     await registration.update();
     return next;
   }, expectedState);
+}
+
+async function canReachNetwork(page) {
+  // The fixture serves robots.txt, but the worker never caches or intercepts it.
+  return page.evaluate(async () => {
+    try {
+      await fetch("robots.txt", { cache: "no-store" });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
+
+async function expectReadyWithoutNetwork(page) {
+  expect(await canReachNetwork(page)).toBe(false);
+  // Network emulation can leave navigator.onLine true after navigation. Both
+  // labels confirm a complete cache; the browser's connection hint is separate.
+  await expect(page.locator("#offline-status")).toHaveText(/^(?:Lista para usar sin conexión|Sin conexión · lista para usar)$/);
 }
 
 test("a complete offline release waits for every tab and preserves classroom progress", async ({ page, context, offlineServer }) => {
@@ -41,6 +63,7 @@ test("a complete offline release waits for every tab and preserves classroom pro
   await page.goto(`${offlineServer.url}es.html?p=${encodeURIComponent(sharedPuzzle)}`);
   await waitForOfflineControl(page);
   await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
+  expect(await canReachNetwork(page)).toBe(true);
   await expect(page.locator("html")).toHaveAttribute("data-release", "one");
   await startStudentSession(page);
   await solvePlacement(page, { cells: [{ row: 1, col: 0 }, { row: 1, col: 2 }] });
@@ -86,7 +109,7 @@ test("a complete offline release waits for every tab and preserves classroom pro
   await context.setOffline(true);
   await second.goto(`${offlineServer.url}es.html?p=${encodeURIComponent(sharedPuzzle)}`);
   await expect(second.locator("html")).toHaveAttribute("data-release", "two");
-  await expect(second.locator("#offline-status")).toHaveText("Sin conexión · lista para usar");
+  await expectReadyWithoutNetwork(second);
   await expect(second.locator("#progress-text")).toHaveText("1 / 2");
   const after = await second.evaluate(() => JSON.parse(localStorage.getItem("word-search-progress-v1")));
   expect(after.foundWordPaths).toEqual(before.foundWordPaths);
@@ -147,13 +170,14 @@ test("offline readiness waits for complete installation and detects missing file
   await expect(page.locator("#offline-status")).toHaveText("Preparando el uso sin conexión…");
   offlineServer.releaseDownloads();
   await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
+  expect(await canReachNetwork(page)).toBe(true);
   await page.locator("#title-input").fill("Para mañana");
   await page.locator("#words-input").fill("sol\nmar\nluna");
   await page.locator("#generate-button").click();
   await waitForOfflineControl(page);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.locator("#offline-status")).toHaveText("Sin conexión · lista para usar");
+  await expectReadyWithoutNetwork(page);
   await page.locator("#teacher-variants-button").click();
   await page.locator("#variants-prepare").click();
   await expect(page.locator("#variants-print")).toBeEnabled();
@@ -169,10 +193,48 @@ test("offline readiness waits for complete installation and detects missing file
   await expect(page.locator("#offline-retry")).toBeVisible();
 });
 
+for (const reportedOnline of [true, false]) {
+  test(`offline readiness survives reload when the browser reports onLine=${reportedOnline}`, async ({ page, context, offlineServer }) => {
+    await page.goto(`${offlineServer.url}es.html`);
+    await waitForOfflineControl(page);
+    expect(await canReachNetwork(page)).toBe(true);
+    await context.setOffline(true);
+    // Control only the advisory browser signal; real requests remain blocked.
+    await page.addInitScript(online => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => online });
+    }, reportedOnline);
+    await page.reload();
+    await expectReadyWithoutNetwork(page);
+    const ready = "Lista para usar sin conexión";
+    const readyOffline = "Sin conexión · lista para usar";
+    await expect(page.locator("#offline-status")).toHaveText(reportedOnline ? ready : readyOffline);
+
+    // A changed hint updates the label without changing cache readiness.
+    await page.evaluate(online => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => online });
+      dispatchEvent(new Event(online ? "online" : "offline"));
+    }, !reportedOnline);
+    await expect(page.locator("#offline-status")).toHaveText(reportedOnline ? readyOffline : ready);
+    expect(await canReachNetwork(page)).toBe(false);
+  });
+}
+
 test("an interrupted first installation can be retried without losing the draft", async ({ page, offlineServer }) => {
   offlineServer.publish("one", "disconnect");
+  offlineServer.holdDownloads();
   await page.goto(`${offlineServer.url}es.html`);
   await page.locator("#title-input").fill("Borrador de clase");
+  await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.installing?.state)).toBe("installing");
+  const installing = await page.evaluateHandle(async () => (await navigator.serviceWorker.getRegistration()).installing);
+  offlineServer.releaseDownloads();
+  // Wait for the failed installation, not the transient unknown state before
+  // registration, or restoring the server could let the first install succeed.
+  await installing.evaluate(worker => new Promise(resolve => {
+    const changed = () => { if (worker.state === "redundant") resolve(); };
+    worker.addEventListener("statechange", changed);
+    changed();
+  }));
+  await installing.dispose();
   await expect(page.locator("#offline-status")).toContainText("No se ha podido confirmar");
   offlineServer.publish("one");
   await page.locator("#offline-retry").click();
