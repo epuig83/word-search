@@ -24,6 +24,35 @@ const variants = {
   },
 };
 
+require(path.join(root, "i18n.js"));
+const translations = globalThis.WORD_SEARCH_I18N;
+
+function escapeHtml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/"/g, "&quot;").replace(/\n/g, "&#10;");
+}
+
+// Pre-render the text app.js would set through data-t, so crawlers and slow first
+// loads see the page language instead of Catalan until the scripts run. Only
+// text-only elements are touched, matching what textContent replaces at runtime.
+function translateTextNodes(content, strings) {
+  return content.replace(
+    /(<([a-z][a-z0-9]*)\b[^>]*\sdata-t="([^"]+)"[^>]*>)([^<]*)(<\/\2>)/g,
+    (match, open, tag, key, text, close) => (strings[key] ? `${open}${escapeHtml(strings[key])}${close}` : match)
+  );
+}
+
+function translatePlaceholder(content, id, value) {
+  const pattern = new RegExp(`(<(?:input|textarea)\\b[^>]*\\sid="${id}"[^>]*\\splaceholder=")[^"]*(")`);
+  if (!pattern.test(content)) {
+    throw new Error(`Could not generate localized pages: missing placeholder for #${id}.`);
+  }
+  return content.replace(pattern, `$1${escapeAttribute(value)}$2`);
+}
+
 function replaceRequired(content, from, to, label) {
   if (!content.includes(from)) {
     throw new Error(`Could not generate localized pages: missing ${label}.`);
@@ -37,6 +66,20 @@ for (const [lang, variant] of Object.entries(variants)) {
 
   html = replaceRequired(html, "<!DOCTYPE html>", `<!DOCTYPE html>\n<!-- Generated from index.html by scripts/generate-localized-pages.js. -->`, "doctype");
   html = replaceRequired(html, '<html lang="ca">', `<html lang="${lang}" data-initial-lang="${lang}">`, "document language");
+  // Mark the page language as active in the markup so the selector does not
+  // flash Catalan before app.js runs.
+  html = replaceRequired(
+    html,
+    '<button type="button" class="lang-btn is-active" data-lang="ca" aria-pressed="true">',
+    '<button type="button" class="lang-btn" data-lang="ca" aria-pressed="false">',
+    "Catalan language button"
+  );
+  html = replaceRequired(
+    html,
+    `<button type="button" class="lang-btn" data-lang="${lang}" aria-pressed="false">`,
+    `<button type="button" class="lang-btn is-active" data-lang="${lang}" aria-pressed="true">`,
+    "active language button"
+  );
   html = replaceRequired(html, "Generador de Sopes de Lletres per a Primària", variant.title, "page title");
   html = replaceRequired(
     html,
@@ -84,6 +127,12 @@ for (const [lang, variant] of Object.entries(variants)) {
     "structured data URL"
   );
   html = replaceRequired(html, '"inLanguage": ["ca", "es", "en"],', `"inLanguage": "${lang}",`, "structured data language");
+
+  const strings = translations[lang];
+  html = translateTextNodes(html, strings);
+  html = translatePlaceholder(html, "title-input", strings.field_topic_placeholder);
+  html = translatePlaceholder(html, "words-input", strings.field_words_placeholder);
+  html = translatePlaceholder(html, "lib-search", strings.lib_search_placeholder);
 
   const outputPath = path.join(root, `${lang}.html`);
   if (process.argv.includes("--check")) {

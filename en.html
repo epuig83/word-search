@@ -88,25 +88,22 @@
       <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
       <symbol id="icon-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18A9 9 0 0 0 12 3Z" fill="currentColor" stroke="none"/></symbol>
     </svg>
-    <a href="#main-content" class="skip-link" data-t="skip_to_main">Vés al contingut principal</a>
+    <a href="#main-content" class="skip-link" data-t="skip_to_main">Skip to main content</a>
     <div class="page-shell">
       <header class="hero">
         <div class="hero-copy">
-          <h1 data-t="hero_title">Generador de Sopes de Lletres</h1>
-          <p class="hero-text" data-t="hero_text">
-            Crea exercicis personalitzats en segons. Perfecte per usar a classe amb ratolí o per
-            imprimir en paper.
-          </p>
+          <h1 data-t="hero_title">Word Search Generator</h1>
+          <p class="hero-text" data-t="hero_text">Create custom exercises in seconds. Perfect for classroom use or printing on paper.</p>
         </div>
 
         <div class="lang-selector" role="group" aria-label="Idioma">
-          <button type="button" class="lang-btn is-active" data-lang="ca" aria-pressed="true">
+          <button type="button" class="lang-btn" data-lang="ca" aria-pressed="false">
             CA<span class="visually-hidden"> — Català</span>
           </button>
           <button type="button" class="lang-btn" data-lang="es" aria-pressed="false">
             ES<span class="visually-hidden"> — Castellano</span>
           </button>
-          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">
+          <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">
             EN<span class="visually-hidden"> — English</span>
           </button>
         </div>
@@ -115,22 +112,22 @@
           <div class="hero-stat">
               <svg class="ui-icon stat-icon" aria-hidden="true"><use href="#icon-cap"></use></svg>
               <div>
-                <span data-t="stat_age">Edat</span>
-                <strong data-t="stat_age_value">Primària</strong>
+                <span data-t="stat_age">Age</span>
+                <strong data-t="stat_age_value">Primary school</strong>
               </div>
             </div>
           <div class="hero-stat">
               <svg class="ui-icon stat-icon" aria-hidden="true"><use href="#icon-monitor"></use></svg>
               <div>
-              <span data-t="stat_use">Ús</span>
-              <strong data-t="stat_use_value">PC o Paper</strong>
+              <span data-t="stat_use">Usage</span>
+              <strong data-t="stat_use_value">PC or Paper</strong>
               </div>
             </div>
           <div class="hero-stat">
             <svg class="ui-icon stat-icon" aria-hidden="true"><use href="#icon-zap"></use></svg>
             <div>
-              <span data-t="stat_speed">Rapidesa</span>
-              <strong data-t="stat_speed_value">Generació a l'instant</strong>
+              <span data-t="stat_speed">Speed</span>
+              <strong data-t="stat_speed_value">Instant generation</strong>
             </div>
           </div>
         </div>
@@ -140,79 +137,75 @@
         <nav class="main-tabs" role="tablist" aria-label="Seccions">
           <button type="button" id="tab-teacher" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="section-teacher" tabindex="0">
             <svg class="ui-icon tab-icon" aria-hidden="true"><use href="#icon-board"></use></svg>
-            <span data-t="tab_teacher">Panell de creació</span>
+            <span data-t="tab_teacher">Creation Panel</span>
           </button>
           <button type="button" id="tab-student" class="tab-btn" role="tab" aria-selected="false" aria-controls="section-student" aria-disabled="true" aria-describedby="student-tab-help" tabindex="-1">
             <svg class="ui-icon tab-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
-            <span data-t="tab_student">Zona de l'alumnat</span>
+            <span data-t="tab_student">Student area</span>
           </button>
         </nav>
-        <p id="student-tab-help" class="student-tab-help" data-t="student_tab_unavailable">Primer crea una activitat per obrir la zona de l'alumnat.</p>
+        <p id="student-tab-help" class="student-tab-help" data-t="student_tab_unavailable">First create an activity to open the student area.</p>
 
         <section id="section-teacher" class="panel controls-panel" role="tabpanel" aria-labelledby="tab-teacher" tabindex="0">
           <div class="panel-heading">
-            <h2 id="builder-title" data-t="config_title">Crea la teva sopa</h2>
+            <h2 id="builder-title" data-t="config_title">Create your puzzle</h2>
           </div>
 
           <p id="draft-status" class="draft-status" role="status" hidden></p>
           <div class="offline-notice">
             <p class="offline-line" role="status" aria-live="polite" aria-atomic="true">
               <span id="offline-icon" aria-hidden="true">↻</span>
-              <span id="offline-status" data-t="offline_preparing">Preparant l'ús sense connexió…</span>
+              <span id="offline-status" data-t="offline_preparing">Preparing offline use…</span>
             </p>
             <p id="offline-update" class="offline-update" role="status" hidden></p>
-            <button id="offline-retry" type="button" class="ghost-button" data-t="offline_check" hidden>Tornar a comprovar</button>
+            <button id="offline-retry" type="button" class="ghost-button" data-t="offline_check" hidden>Check again</button>
           </div>
           <form id="generator-form" class="generator-form" novalidate>
             <div class="field sample-field">
-              <label for="sample-select" data-t="field_sample">Exemple guiat</label>
+              <label for="sample-select" data-t="field_sample">Guided example</label>
               <div class="sample-picker">
                 <select id="sample-select" name="sample">
                   <option value="">Selecciona un exemple</option>
                 </select>
-                <button type="button" id="load-sample-button" class="ghost-button" data-t="btn_example">
-                  Carregar exemple
-                </button>
+                <button type="button" id="load-sample-button" class="ghost-button" data-t="btn_example">Load example</button>
               </div>
               <details class="sample-management">
-                <summary class="teacher-tools-summary" data-t="sample_management_summary">Gestionar exemples propis</summary>
+                <summary class="teacher-tools-summary" data-t="sample_management_summary">Manage saved examples</summary>
                 <div class="sample-actions">
                   <button type="button" id="save-sample-button" class="sample-action-btn">
                     <svg class="ui-icon" aria-hidden="true"><use href="#icon-save"></use></svg>
-                    <span data-t="btn_save_sample">Desar</span>
+                    <span data-t="btn_save_sample">Save</span>
                   </button>
                   <button type="button" id="delete-sample-button" class="sample-action-btn" disabled>
                     <svg class="ui-icon" aria-hidden="true"><use href="#icon-trash"></use></svg>
-                    <span data-t="btn_delete_sample">Eliminar</span>
+                    <span data-t="btn_delete_sample">Delete</span>
                   </button>
                   <button type="button" id="export-samples-button" class="sample-action-btn">
                     <svg class="ui-icon" aria-hidden="true"><use href="#icon-export"></use></svg>
-                    <span data-t="btn_export_samples">Exportar</span>
+                    <span data-t="btn_export_samples">Export</span>
                   </button>
                   <button type="button" id="import-samples-button" class="sample-action-btn">
                     <svg class="ui-icon" aria-hidden="true"><use href="#icon-import"></use></svg>
-                    <span data-t="btn_import_samples">Importar</span>
+                    <span data-t="btn_import_samples">Import</span>
                   </button>
                 </div>
-                <p class="sample-note" data-t="sample_note">
-                  Els exemples guardats es desen en aquest portàtil.
-                </p>
+                <p class="sample-note" data-t="sample_note">Saved examples stay on this laptop.</p>
                 <div id="sample-undo-toast" class="sample-undo-toast" role="status" aria-live="polite" hidden>
-                  <span id="sample-undo-text" data-t="msg_sample_deleted_undo">Exemple eliminat. Prem Desfer per recuperar-lo.</span>
-                  <button type="button" id="sample-undo-button" class="ghost-button" data-t="btn_undo">Desfer</button>
+                  <span id="sample-undo-text" data-t="msg_sample_deleted_undo">Example deleted. Press Undo to restore it.</span>
+                  <button type="button" id="sample-undo-button" class="ghost-button" data-t="btn_undo">Undo</button>
                 </div>
                 <input id="import-samples-input" type="file" accept="application/json,.json" hidden />
               </details>
             </div>
 
             <div class="field">
-              <label for="title-input" data-t="field_topic">Tema de l'exercici</label>
+              <label for="title-input" data-t="field_topic">Puzzle Topic</label>
               <input
                 id="title-input"
                 name="title"
                 type="text"
                 maxlength="60"
-                placeholder="Ex: Animals de la selva"
+                placeholder="Ex: Jungle Animals"
                 required
               />
             </div>
@@ -220,11 +213,11 @@
             <!-- Llista de paraules + Biblioteca costat a costat -->
             <div class="words-and-library">
               <div class="field">
-                <label for="words-input" data-t="field_words">Llista de paraules (una per línia)</label>
+                <label for="words-input" data-t="field_words">Word list (one per line)</label>
                 <textarea
                   id="words-input"
                   name="words"
-                  placeholder="lleó&#10;tigre&#10;girafa&#10;mico"
+                  placeholder="lion&#10;tiger"
                   required
                 ></textarea>
                 <div class="words-tools">
@@ -234,17 +227,15 @@
                       Afegeix paraules o toca la biblioteca.
                     </p>
                   </div>
-                  <button type="button" id="clear-words-button" class="ghost-button words-clear-button" data-t="btn_clear_words">
-                    Buidar llista
-                  </button>
+                  <button type="button" id="clear-words-button" class="ghost-button words-clear-button" data-t="btn_clear_words">Clear list</button>
                 </div>
               </div>
 
               <!-- Biblioteca de Vocabulari -->
               <div class="vocabulary-library">
                 <div class="library-header">
-                  <span data-t="lib_title">Biblioteca de paraules</span>
-                  <input type="text" id="lib-search" placeholder="Cercar..." aria-label="Cercar a la biblioteca de paraules" data-t="lib_search_placeholder">
+                  <span data-t="lib_title">Word Library</span>
+                  <input type="text" id="lib-search" placeholder="Search..." aria-label="Cercar a la biblioteca de paraules" data-t="lib_search_placeholder">
                 </div>
                 <div class="library-categories" id="lib-categories">
                   <!-- Categories dinàmiques -->
@@ -256,34 +247,34 @@
             </div>
 
             <div class="difficulty-presets-field">
-              <span id="preset-label" class="preset-label" data-t="preset_label">Nivells ràpids</span>
+              <span id="preset-label" class="preset-label" data-t="preset_label">Quick levels</span>
               <div class="difficulty-presets" role="group" aria-labelledby="preset-label">
-                <button type="button" class="preset-btn is-active" data-preset="inicial" data-t="preset_beginner" aria-pressed="true">Primers passos</button>
-                <button type="button" class="preset-btn" data-preset="facil" data-t="diff_easy">Fàcil</button>
-                <button type="button" class="preset-btn" data-preset="mitja" data-t="diff_medium">Mitjana</button>
-                <button type="button" class="preset-btn" data-preset="dificil" data-t="diff_hard">Difícil</button>
+                <button type="button" class="preset-btn is-active" data-preset="inicial" data-t="preset_beginner" aria-pressed="true">First steps</button>
+                <button type="button" class="preset-btn" data-preset="facil" data-t="diff_easy">Easy</button>
+                <button type="button" class="preset-btn" data-preset="mitja" data-t="diff_medium">Medium</button>
+                <button type="button" class="preset-btn" data-preset="dificil" data-t="diff_hard">Hard</button>
               </div>
             </div>
 
             <details id="advanced-settings-details" class="advanced-settings">
               <summary class="teacher-tools-summary">
-                <span data-t="advanced_settings_title">Ajustos avançats</span>
+                <span data-t="advanced_settings_title">Advanced settings</span>
                 <span id="advanced-settings-summary" class="advanced-settings-summary"></span>
               </summary>
               <div class="field-grid">
               <div class="field">
-                <label for="difficulty-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-target"></use></svg> <span data-t="field_difficulty">Dificultat</span></label>
+                <label for="difficulty-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-target"></use></svg> <span data-t="field_difficulty">Difficulty</span></label>
                 <select id="difficulty-input" name="difficulty">
-                  <option value="easy" data-t="diff_easy">Fàcil</option>
-                  <option value="medium" data-t="diff_medium">Mitjana</option>
-                  <option value="hard" data-t="diff_hard">Difícil</option>
+                  <option value="easy" data-t="diff_easy">Easy</option>
+                  <option value="medium" data-t="diff_medium">Medium</option>
+                  <option value="hard" data-t="diff_hard">Hard</option>
                 </select>
               </div>
 
               <div class="field">
-                <label for="size-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-size"></use></svg> <span data-t="field_size">Mida</span></label>
+                <label for="size-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-size"></use></svg> <span data-t="field_size">Size</span></label>
                 <select id="size-input" name="size">
-                  <option value="auto" data-t="size_auto">Automàtic</option>
+                  <option value="auto" data-t="size_auto">Automatic</option>
                   <option value="8" selected>8 x 8</option>
                   <option value="10">10 x 10</option>
                   <option value="12">12 x 12</option>
@@ -293,9 +284,9 @@
               </div>
 
               <div class="field">
-                <label for="timer-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-clock"></use></svg> <span data-t="timer_label">Temporitzador</span></label>
+                <label for="timer-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-clock"></use></svg> <span data-t="timer_label">Timer</span></label>
                 <select id="timer-input" name="timer">
-                  <option value="0" data-t="timer_none">Sense límit</option>
+                  <option value="0" data-t="timer_none">No limit</option>
                   <option value="300">5 min</option>
                   <option value="600">10 min</option>
                   <option value="900">15 min</option>
@@ -304,13 +295,13 @@
               </div>
 
               <div class="field">
-                <label for="hints-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bulb"></use></svg> <span data-t="hints_label">Pistes</span></label>
+                <label for="hints-input"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bulb"></use></svg> <span data-t="hints_label">Hints</span></label>
                 <select id="hints-input" name="hints">
-                  <option value="0" data-t="hints_none">Sense pistes</option>
+                  <option value="0" data-t="hints_none">No hints</option>
                   <option value="1">1</option>
                   <option value="3">3</option>
                   <option value="5">5</option>
-                  <option value="-1" selected data-t="hints_unlimited">Il·limitades</option>
+                  <option value="-1" selected data-t="hints_unlimited">Unlimited</option>
                 </select>
               </div>
               </div>
@@ -318,79 +309,59 @@
 
             <div class="action-row">
               <button type="submit" id="generate-button" class="primary-button">
-                <span data-t="btn_generate">Crear i revisar l'activitat</span>
+                <span data-t="btn_generate">Create and review activity</span>
               </button>
             </div>
           </form>
 
           <section id="teacher-ready-card" class="teacher-ready-card" hidden tabindex="-1" aria-labelledby="teacher-ready-title teacher-ready-topic">
-            <p id="teacher-ready-title" class="section-kicker" data-t="teacher_ready_title">Activitat preparada</p>
+            <p id="teacher-ready-title" class="section-kicker" data-t="teacher_ready_title">Activity ready</p>
             <h3 id="teacher-ready-topic">Sopa de lletres</h3>
             <p id="teacher-ready-meta" class="teacher-ready-meta"></p>
-            <p id="teacher-pending-changes" class="pending-changes" role="status" data-t="activity_pending" hidden>Has modificat l'activitat. Torna-la a crear abans d'obrir-la, compartir-la o imprimir-la.</p>
-            <p id="teacher-ready-note" class="teacher-ready-note" data-t="teacher_ready_note">
-              Ja la pots obrir per a l'alumnat, compartir-la o imprimir-la.
-            </p>
+            <p id="teacher-pending-changes" class="pending-changes" role="status" data-t="activity_pending" hidden>You have changed the activity. Create it again before opening, sharing or printing it.</p>
+            <p id="teacher-ready-note" class="teacher-ready-note" data-t="teacher_ready_note">You can now open it for students, share it, or print it.</p>
             <div class="teacher-ready-actions">
-              <button type="button" id="teacher-open-student-button" class="primary-button" data-t="btn_open_student">
-                Obrir la zona de l'alumnat
-              </button>
-              <button type="button" id="teacher-share-button" class="ghost-button" data-t="btn_share">
-                Compartir
-              </button>
-              <button type="button" id="teacher-print-button" class="ghost-button" data-t="btn_print">
-                Imprimir / PDF
-              </button>
-              <button type="button" id="teacher-print-solution-button" class="ghost-button" data-t="btn_print_solution">
-                Imprimir solucionari
-              </button>
-              <button type="button" id="teacher-variants-button" class="ghost-button" data-t="variants_title">Preparar variants</button>
+              <button type="button" id="teacher-open-student-button" class="primary-button" data-t="btn_open_student">Open student area</button>
+              <button type="button" id="teacher-share-button" class="ghost-button" data-t="btn_share">Share</button>
+              <button type="button" id="teacher-print-button" class="ghost-button" data-t="btn_print">Print / PDF</button>
+              <button type="button" id="teacher-print-solution-button" class="ghost-button" data-t="btn_print_solution">Print answer key</button>
+              <button type="button" id="teacher-variants-button" class="ghost-button" data-t="variants_title">Prepare versions</button>
             </div>
           </section>
 
-          <p id="status-message" class="status-message visually-hidden" role="status" aria-live="polite" data-t="status_default">
-            Escriu les teves paraules i prem "Generar".
-          </p>
+          <p id="status-message" class="status-message visually-hidden" role="status" aria-live="polite" data-t="status_default">Add words and create the activity when it is ready.</p>
 
           <details id="form-config-details" class="pin-change-section">
-            <summary class="teacher-tools-summary" data-t="form_config_title">Resultats (Google Forms)</summary>
+            <summary class="teacher-tools-summary" data-t="form_config_title">Results (Google Forms)</summary>
             <div class="pin-change-form">
               <div class="field">
-                <label for="form-template-input" data-t="form_url_label">URL plantilla pre-omplerta</label>
+                <label for="form-template-input" data-t="form_url_label">Pre-filled template URL</label>
                 <input type="url" id="form-template-input" placeholder="https://docs.google.com/forms/d/..." style="width:100%;" />
                 <p id="form-url-error" class="status-message is-error" style="display:none; margin-top:0.25rem;"></p>
               </div>
-              <p class="sample-note" data-t="form_config_note">
-                A Google Forms, obtén un enllaç preomplert, omple els camps de nom, cognoms, resultat i tema, copia l'URL i enganxa-la aquí.
-              </p>
-              <p class="sample-note" data-t="form_privacy_note">
-                Informa l'alumnat abans de recollir dades. Els cognoms són opcionals i es pot utilitzar un àlies.
-              </p>
+              <p class="sample-note" data-t="form_config_note">In Google Forms, get a pre-filled link, complete the name, surname, result, and topic fields, then copy the URL and paste it here.</p>
+              <p class="sample-note" data-t="form_privacy_note">Tell students before collecting data. Surnames are optional and they may use an alias.</p>
             </div>
           </details>
 
-          <p id="default-pin-warning" class="default-pin-warning" hidden data-t="msg_default_pin_warning">
-            Canvia el PIN per defecte per protegir el panell docent.
-          </p>
+          <p id="default-pin-warning" class="default-pin-warning" hidden data-t="msg_default_pin_warning">Change the default PIN to protect the teacher panel.</p>
 
           <details id="pin-change-details" class="pin-change-section">
-            <summary class="teacher-tools-summary" data-t="pin_change_title">Bloqueig docent</summary>
+            <summary class="teacher-tools-summary" data-t="pin_change_title">Teacher lock</summary>
             <form id="pin-change-form" class="pin-change-form">
               <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
               <div class="field">
-                <label for="new-pin-input" data-t="pin_label_new">Nou PIN</label>
+                <label for="new-pin-input" data-t="pin_label_new">New PIN</label>
                 <input type="password" id="new-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" pattern="[0-9]*" required />
               </div>
               <div class="field">
-                <label for="confirm-pin-input" data-t="pin_label_confirm">Confirmar PIN</label>
+                <label for="confirm-pin-input" data-t="pin_label_confirm">Confirm PIN</label>
                 <input type="password" id="confirm-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" pattern="[0-9]*" required />
               </div>
-              <button type="submit" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Desar PIN</button>
+              <button type="submit" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Save PIN</button>
               <p id="pin-change-message" class="status-message" style="display:none; margin-top: 0;"></p>
             </form>
-            <p class="sample-note" data-t="pin_local_note">
-              Aquest PIN només bloqueja la vista docent en aquest navegador i aquest portàtil.
-            </p>
+            <p class="sample-note" data-t="pin_local_note">This PIN only locks the teacher view in this browser on this laptop.</p>
           </details>
 
         </section>
@@ -398,37 +369,33 @@
         <section id="section-student" class="panel board-panel" role="tabpanel" aria-labelledby="tab-student" tabindex="0" hidden>
           <div class="board-topbar">
             <div class="board-title-group">
-              <p id="topic-label" class="section-kicker" data-t="board_topic_kicker">Tema</p>
+              <p id="topic-label" class="section-kicker" data-t="board_topic_kicker">Topic</p>
               <h1 id="board-title">Sopa de lletres</h1>
-              <p id="board-instructions" class="board-instructions" data-t="board_instructions">
-                Arrossega una paraula o toca la primera i l'última lletra.
-              </p>
+              <p id="board-instructions" class="board-instructions" data-t="board_instructions">Drag a word, tap the first and last letter, or use arrow keys and Enter.</p>
               <p id="board-status" class="board-status" role="status" aria-live="polite"></p>
               <div id="print-meta" class="print-only print-meta" aria-hidden="true">
-                <span class="print-meta-field"><span data-t="print_name_label">Nom</span>:</span>
-                <span class="print-meta-field"><span data-t="print_date_label">Data</span>:</span>
+                <span class="print-meta-field"><span data-t="print_name_label">Name</span>:</span>
+                <span class="print-meta-field"><span data-t="print_date_label">Date</span>:</span>
               </div>
-              <p id="print-instructions" class="print-only print-instructions" aria-hidden="true" data-t="print_instructions">
-                Troba i envolta totes les paraules de la llista.
-              </p>
+              <p id="print-instructions" class="print-only print-instructions" aria-hidden="true" data-t="print_instructions">Find and circle all the words in the list.</p>
             </div>
 
             <div class="progress-container">
               <div class="progress-summary">
-                <span class="progress-label" data-t="board_progress">Progrés</span>
+                <span class="progress-label" data-t="board_progress">Progress</span>
                 <div id="progress-text" class="progress-pill">0 / 0</div>
                 <progress id="progress-bar" class="progress-bar" value="0" max="1" aria-hidden="true"></progress>
               </div>
               <div class="board-appearance">
                 <div class="theme-selector" role="group" aria-label="Tema visual">
-                  <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Pergamí</span></button>
-                  <button type="button" class="theme-btn" data-theme="ocea" aria-pressed="false"><span class="visually-hidden" data-t="theme_ocea">Oceà</span></button>
-                  <button type="button" class="theme-btn" data-theme="bosc" aria-pressed="false"><span class="visually-hidden" data-t="theme_bosc">Bosc</span></button>
-                  <button type="button" class="theme-btn" data-theme="espai" aria-pressed="false"><span class="visually-hidden" data-t="theme_espai">Espai</span></button>
+                  <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Parchment</span></button>
+                  <button type="button" class="theme-btn" data-theme="ocea" aria-pressed="false"><span class="visually-hidden" data-t="theme_ocea">Ocean</span></button>
+                  <button type="button" class="theme-btn" data-theme="bosc" aria-pressed="false"><span class="visually-hidden" data-t="theme_bosc">Forest</span></button>
+                  <button type="button" class="theme-btn" data-theme="espai" aria-pressed="false"><span class="visually-hidden" data-t="theme_espai">Space</span></button>
                 </div>
                 <button type="button" id="contrast-toggle" class="contrast-toggle" aria-pressed="false">
                   <svg class="ui-icon" aria-hidden="true"><use href="#icon-contrast"></use></svg>
-                  <span class="visually-hidden" data-t="contrast_toggle">Alt contrast</span>
+                  <span class="visually-hidden" data-t="contrast_toggle">High contrast</span>
                 </button>
               </div>
             </div>
@@ -438,7 +405,7 @@
             <div id="timer-display" class="timer-pill" hidden>00:00</div>
             <button type="button" id="pause-button" class="ghost-button student-action-button" hidden>
               <svg class="ui-icon" aria-hidden="true"><use href="#icon-pause"></use></svg>
-              <span class="button-label" data-t="btn_pause">Pausa</span>
+              <span class="button-label" data-t="btn_pause">Pause</span>
             </button>
             <button type="button" id="hint-button" class="ghost-button hint-button-style student-action-button" aria-label="Pista (3)" hidden>
               <svg class="ui-icon" aria-hidden="true"><use href="#icon-bulb"></use></svg>
@@ -451,33 +418,29 @@
           <div class="student-play-shell">
             <div id="student-start-overlay" class="student-start-overlay" hidden>
               <div class="student-start-card">
-                <p class="section-kicker" data-t="student_start_kicker">Preparats?</p>
-                <h2 id="student-start-title" data-t="student_start_title">Tot a punt per començar</h2>
-                <p id="student-start-text" data-t="student_start_text">
-                  Busca les paraules de la llista. Prem Començar per veure el tauler.
-                </p>
+                <p class="section-kicker" data-t="student_start_kicker">Ready?</p>
+                <h2 id="student-start-title" data-t="student_start_title">Everything is set to begin</h2>
+                <p id="student-start-text" data-t="student_start_text">Find the words in the list. Press Start to see the puzzle.</p>
                 <figure id="selection-demo" class="selection-demo">
                   <div class="selection-demo-letters" aria-hidden="true">
-                    <span class="selection-demo-end" data-t="selection_demo_first">G</span>
+                    <span class="selection-demo-end" data-t="selection_demo_first">C</span>
                     <span data-t="selection_demo_middle">A</span>
                     <span class="selection-demo-end" data-t="selection_demo_last">T</span>
                   </div>
-                  <figcaption data-t="selection_demo_caption">Per trobar GAT, toca la G i després la T.</figcaption>
+                  <figcaption data-t="selection_demo_caption">To find CAT, tap C and then T.</figcaption>
                 </figure>
                 <div class="student-start-meta">
                   <div class="student-start-chip">
-                    <span data-t="timer_label">Temporitzador</span>
+                    <span data-t="timer_label">Timer</span>
                     <strong id="student-start-timer">Sense límit</strong>
                   </div>
                   <div class="student-start-chip">
-                    <span data-t="hints_label">Pistes</span>
+                    <span data-t="hints_label">Hints</span>
                     <strong id="student-start-hints">3</strong>
                   </div>
                 </div>
-                <button type="button" id="student-start-button" class="primary-button" data-t="btn_start_game">
-                  Començar
-                </button>
-                <button type="button" id="new-student-button" class="ghost-button" data-t="btn_new_student" hidden>Nou alumne: començar de zero</button>
+                <button type="button" id="student-start-button" class="primary-button" data-t="btn_start_game">Start</button>
+                <button type="button" id="new-student-button" class="ghost-button" data-t="btn_new_student" hidden>New pupil: start fresh</button>
               </div>
             </div>
 
@@ -485,12 +448,12 @@
               <div class="puzzle-layout">
                 <aside class="word-bank">
                   <h2 id="word-bank-title">
-                    <span data-t="word_bank_title">Paraules</span>
+                    <span data-t="word_bank_title">Words</span>
                     <span id="word-bank-count" style="font-size: 0.8rem; color: var(--ink-soft);">0</span>
                   </h2>
                   <ul id="word-list" class="word-list"></ul>
 
-                  <p id="word-definitions-help" class="word-definitions-help" data-t="word_definitions_help" hidden>Prem les paraules amb un llibre per saber què volen dir.</p>
+                  <p id="word-definitions-help" class="word-definitions-help" data-t="word_definitions_help" hidden>Tap the words with a book to find out what they mean.</p>
                 </aside>
                 <div id="grid-container" class="grid-container">
                   <div id="puzzle-grid" class="puzzle-grid" role="grid" aria-describedby="board-instructions"></div>
@@ -499,44 +462,30 @@
 
                   <div id="completion-message" class="completion-message" role="region" hidden tabindex="-1" aria-labelledby="completion-message-title" aria-live="polite">
                     <div class="completion-card">
-                      <p id="completion-message-title" class="completion-message-title" data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</p>
-                      <p id="completion-note" class="completion-note" data-t="completion_note">Pots mirar la sopa una altra vegada o tornar a jugar.</p>
-                      <p class="completion-note" data-t="learning_prompt">Sabries dir què volen dir dues d'aquestes paraules?</p>
+                      <p id="completion-message-title" class="completion-message-title" data-t="completion_msg">🎉 Great job! You have completed the exercise.</p>
+                      <p id="completion-note" class="completion-note" data-t="completion_note">You can look at the puzzle again or play once more.</p>
+                      <p class="completion-note" data-t="learning_prompt">Could you say what two of these words mean?</p>
                       <p id="completion-time" class="completion-note" hidden></p>
-                      <button type="button" id="send-results-button" class="primary-button completion-message-button" data-t="btn_send_results" hidden>
-                        Enviar resultats
-                      </button>
-                      <button type="button" id="play-again-button" class="ghost-button completion-message-button" data-t="btn_play_again" hidden>
-                        Tornar a jugar
-                      </button>
+                      <button type="button" id="send-results-button" class="primary-button completion-message-button" data-t="btn_send_results" hidden>Send results</button>
+                      <button type="button" id="play-again-button" class="ghost-button completion-message-button" data-t="btn_play_again" hidden>Play again</button>
                     </div>
                   </div>
                 </div>
 
                 <div class="student-actions" id="student-actions" hidden>
-                  <button type="button" id="reset-progress-button" class="ghost-button student-action-button" data-t="btn_reset">
-                    Reiniciar joc
-                  </button>
+                  <button type="button" id="reset-progress-button" class="ghost-button student-action-button" data-t="btn_reset">Reset game</button>
                   <details id="teacher-tools" class="teacher-tools">
-                    <summary class="teacher-tools-summary" data-t="teacher_tools_summary">Eines docents</summary>
+                    <summary class="teacher-tools-summary" data-t="teacher_tools_summary">Teacher tools</summary>
                     <div class="teacher-tools-actions">
-                      <button type="button" id="solution-toggle-button" class="ghost-button teacher-tool-button" data-t="btn_show_solution">
-                        Veure solució
-                      </button>
-                      <button type="button" id="share-button" class="ghost-button teacher-tool-button" data-t="btn_share">
-                        Compartir
-                      </button>
-                      <button type="button" id="print-button" class="ghost-button teacher-tool-button" data-t="btn_print">
-                        Imprimir / PDF
-                      </button>
-                      <button type="button" id="print-solution-button" class="ghost-button teacher-tool-button" data-t="btn_print_solution">
-                        Imprimir solucionari
-                      </button>
+                      <button type="button" id="solution-toggle-button" class="ghost-button teacher-tool-button" data-t="btn_show_solution">Show solution</button>
+                      <button type="button" id="share-button" class="ghost-button teacher-tool-button" data-t="btn_share">Share</button>
+                      <button type="button" id="print-button" class="ghost-button teacher-tool-button" data-t="btn_print">Print / PDF</button>
+                      <button type="button" id="print-solution-button" class="ghost-button teacher-tool-button" data-t="btn_print_solution">Print answer key</button>
                     </div>
                   </details>
                 </div>
               </div>
-              <p class="print-only print-learning-prompt" data-t="learning_prompt" aria-hidden="true">Sabries dir què volen dir dues d'aquestes paraules?</p>
+              <p class="print-only print-learning-prompt" data-t="learning_prompt" aria-hidden="true">Could you say what two of these words mean?</p>
             </div>
           </div>
         </section>
@@ -554,22 +503,20 @@
       aria-describedby="student-name-text student-name-privacy"
     >
       <div class="modal-content" tabindex="-1">
-        <h3 id="student-name-title" data-t="name_modal_title">Qui ets?</h3>
-        <p id="student-name-text" data-t="name_modal_text">Escriu el teu nom per començar el joc.</p>
-        <p id="student-name-privacy" class="privacy-note" data-t="name_modal_privacy">
-          La teva mestra veurà el teu nom i quantes paraules has trobat. Pots posar un sobrenom si ho prefereixes.
-        </p>
+        <h3 id="student-name-title" data-t="name_modal_title">Who are you?</h3>
+        <p id="student-name-text" data-t="name_modal_text">Enter your name before starting the game.</p>
+        <p id="student-name-privacy" class="privacy-note" data-t="name_modal_privacy">Your teacher will see your name and how many words you found. You can use a nickname if you prefer.</p>
         <form id="student-name-form">
           <div class="field" style="margin-bottom:0.75rem;">
-            <label for="student-nom-input" data-t="name_nom_placeholder">Nom</label>
+            <label for="student-nom-input" data-t="name_nom_placeholder">First name</label>
             <input type="text" id="student-nom-input" autocomplete="given-name" required style="width:100%;" />
           </div>
           <div class="field" style="margin-bottom:1rem;">
-            <label for="student-cognoms-input" data-t="name_cognoms_optional">Cognoms (opcional)</label>
+            <label for="student-cognoms-input" data-t="name_cognoms_optional">Last name (optional)</label>
             <input type="text" id="student-cognoms-input" autocomplete="family-name" style="width:100%;" />
           </div>
-          <button type="submit" class="primary-button" style="width:100%;" data-t="btn_continue">Continuar</button>
-          <button type="button" id="student-name-cancel" class="ghost-button" style="width:100%; margin-top:0.75rem;" data-t="pin_btn_cancel">Cancel·lar</button>
+          <button type="submit" class="primary-button" style="width:100%;" data-t="btn_continue">Continue</button>
+          <button type="button" id="student-name-cancel" class="ghost-button" style="width:100%; margin-top:0.75rem;" data-t="pin_btn_cancel">Cancel</button>
         </form>
       </div>
     </div>
@@ -584,59 +531,55 @@
       aria-describedby="word-definition-text"
     >
       <div class="modal-content word-definition-modal-content" tabindex="-1">
-        <p class="section-kicker" data-t="word_definition_kicker">Definició</p>
-        <h3 id="word-definition-title" data-t="word_definition_placeholder_title">Paraula</h3>
-        <p id="word-definition-text" data-t="word_definition_placeholder_text">Definició</p>
+        <p class="section-kicker" data-t="word_definition_kicker">Definition</p>
+        <h3 id="word-definition-title" data-t="word_definition_placeholder_title">Word</h3>
+        <p id="word-definition-text" data-t="word_definition_placeholder_text">Tap a word to see its definition.</p>
         <p
           id="word-definition-found"
           class="word-definition-found"
           data-t="word_definition_found"
           hidden
-        >
-          Aquesta paraula ja l'has trobada.
-        </p>
-        <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">
-          Tancar
-        </button>
+        >You have already found this word.</p>
+        <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">Close</button>
       </div>
     </div>
 
     <div id="hint-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="hint-title" aria-describedby="hint-explanation">
       <div class="modal-content hint-modal-content" tabindex="-1">
-        <h3 id="hint-title" data-t="hint_title">Una mica d'ajuda</h3>
+        <h3 id="hint-title" data-t="hint_title">A little help</h3>
         <div class="field">
-          <label for="hint-word-select" data-t="hint_choose_word">Quina paraula busques?</label>
+          <label for="hint-word-select" data-t="hint_choose_word">Which word are you looking for?</label>
           <select id="hint-word-select"></select>
         </div>
         <p id="hint-explanation"></p>
         <div class="hint-steps">
-          <button type="button" id="hint-start-button" class="primary-button" data-t="hint_show_start">1. Veure la primera lletra</button>
-          <button type="button" id="hint-direction-button" class="ghost-button" data-t="hint_show_direction">2. Veure la direcció</button>
+          <button type="button" id="hint-start-button" class="primary-button" data-t="hint_show_start">1. Show the first letter</button>
+          <button type="button" id="hint-direction-button" class="ghost-button" data-t="hint_show_direction">2. Show the direction</button>
         </div>
-        <p class="hint-step-note" data-t="hint_step_note">Comença per la primera lletra. Si et cal, després mira la direcció.</p>
-        <button type="button" id="hint-close-button" class="ghost-button" data-t="word_definition_close">Tancar</button>
+        <p class="hint-step-note" data-t="hint_step_note">Start with the first letter. If you need more help, look at the direction next.</p>
+        <button type="button" id="hint-close-button" class="ghost-button" data-t="word_definition_close">Close</button>
       </div>
     </div>
 
     <div id="variants-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="variants-title" aria-describedby="variants-intro">
       <div class="modal-content variants-dialog" tabindex="-1">
-        <h2 id="variants-title" data-t="variants_title">Preparar variants</h2>
-        <p id="variants-intro" data-t="variants_intro">El model A conserva el tauler actual. Els altres canvien la posició de les mateixes paraules.</p>
+        <h2 id="variants-title" data-t="variants_title">Prepare versions</h2>
+        <p id="variants-intro" data-t="variants_intro">Version A keeps the current grid. The others place the same words in different positions.</p>
         <form id="variants-form">
           <div class="variants-options">
             <div class="field">
-              <label for="variants-count" data-t="variants_count">Quants models?</label>
+              <label for="variants-count" data-t="variants_count">How many versions?</label>
               <select id="variants-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
             </div>
-            <label class="variants-checkbox"><input type="checkbox" id="variants-solutions" checked /><span data-t="variants_solutions">Incloure els solucionaris al final</span></label>
-            <button type="submit" id="variants-prepare" class="ghost-button" data-t="variants_prepare">Preparar models</button>
+            <label class="variants-checkbox"><input type="checkbox" id="variants-solutions" checked /><span data-t="variants_solutions">Include answer keys at the end</span></label>
+            <button type="submit" id="variants-prepare" class="ghost-button" data-t="variants_prepare">Prepare versions</button>
           </div>
         </form>
         <p id="variants-status" role="status" aria-live="polite" aria-atomic="true"></p>
         <div id="variants-preview" class="variant-previews"></div>
         <div class="variants-actions">
-          <button type="button" id="variants-close" class="ghost-button" data-t="word_definition_close">Tancar</button>
-          <button type="button" id="variants-print" class="primary-button" data-t="btn_print" disabled>Imprimir / PDF</button>
+          <button type="button" id="variants-close" class="ghost-button" data-t="word_definition_close">Close</button>
+          <button type="button" id="variants-print" class="primary-button" data-t="btn_print" disabled>Print / PDF</button>
         </div>
       </div>
     </div>
@@ -653,11 +596,11 @@
       aria-describedby="confirm-modal-text"
     >
       <div class="modal-content" tabindex="-1">
-        <h3 id="confirm-modal-title" data-t="confirm_title">Segur?</h3>
+        <h3 id="confirm-modal-title" data-t="confirm_title">Are you sure?</h3>
         <p id="confirm-modal-text"></p>
         <div class="confirm-modal-actions">
-          <button type="button" id="confirm-modal-confirm" class="primary-button" data-t="btn_confirm">Sí, continuar</button>
-          <button type="button" id="confirm-modal-cancel" class="ghost-button" data-t="btn_cancel">Cancel·lar</button>
+          <button type="button" id="confirm-modal-confirm" class="primary-button" data-t="btn_confirm">Yes, go on</button>
+          <button type="button" id="confirm-modal-cancel" class="ghost-button" data-t="btn_cancel">Cancel</button>
         </div>
       </div>
     </div>
@@ -673,16 +616,16 @@
       aria-describedby="pin-modal-text"
     >
       <div class="modal-content" tabindex="-1">
-        <h3 id="pin-modal-title" data-t="pin_title">Bloqueig docent</h3>
-        <p id="pin-modal-text" data-t="pin_text">Introdueix el PIN docent local per continuar.</p>
+        <h3 id="pin-modal-title" data-t="pin_title">Teacher lock</h3>
+        <p id="pin-modal-text" data-t="pin_text">Enter the local teacher PIN to continue.</p>
         <form id="pin-form">
           <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
           <div class="pin-input-group">
             <input type="password" id="pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password" aria-label="PIN docent">
-            <button type="submit" id="pin-submit" class="primary-button" data-t="pin_btn_validate">Validar PIN</button>
+            <button type="submit" id="pin-submit" class="primary-button" data-t="pin_btn_validate">Validate PIN</button>
           </div>
-          <button type="button" id="pin-cancel" class="ghost-button" style="width: 100%; margin-top: 1rem;" data-t="pin_btn_cancel">Cancel·lar</button>
-          <p id="pin-error" class="status-message is-error" style="margin-top: 1rem; display: none;" data-t="pin_error">PIN incorrecte. Torna-ho a intentar.</p>
+          <button type="button" id="pin-cancel" class="ghost-button" style="width: 100%; margin-top: 1rem;" data-t="pin_btn_cancel">Cancel</button>
+          <p id="pin-error" class="status-message is-error" style="margin-top: 1rem; display: none;" data-t="pin_error">Incorrect PIN. Try again.</p>
         </form>
       </div>
     </div>
