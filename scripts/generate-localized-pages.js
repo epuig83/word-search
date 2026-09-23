@@ -53,6 +53,15 @@ function translatePlaceholder(content, id, value) {
   return content.replace(pattern, `$1${escapeAttribute(value)}$2`);
 }
 
+// Default text of elements that app.js fills by id instead of data-t.
+function translateById(content, id, value) {
+  const pattern = new RegExp(`(<([a-z][a-z0-9]*)\\b[^>]*\\sid="${id}"[^>]*>)[^<]*(<\\/\\2>)`);
+  if (!pattern.test(content)) {
+    throw new Error(`Could not generate localized pages: missing text for #${id}.`);
+  }
+  return content.replace(pattern, (match, open, tag, close) => `${open}${escapeHtml(value)}${close}`);
+}
+
 function replaceRequired(content, from, to, label) {
   if (!content.includes(from)) {
     throw new Error(`Could not generate localized pages: missing ${label}.`);
@@ -133,6 +142,33 @@ for (const [lang, variant] of Object.entries(variants)) {
   html = translatePlaceholder(html, "title-input", strings.field_topic_placeholder);
   html = translatePlaceholder(html, "words-input", strings.field_words_placeholder);
   html = translatePlaceholder(html, "lib-search", strings.lib_search_placeholder);
+
+  html = translateById(html, "words-count", strings.words_count.replace("{count}", "0"));
+  html = translateById(html, "words-feedback", strings.words_summary_empty);
+  html = translateById(html, "student-start-timer", strings.timer_none);
+  html = replaceRequired(
+    html,
+    `<option value="">${escapeHtml(translations.ca.sample_placeholder)}</option>`,
+    `<option value="">${escapeHtml(strings.sample_placeholder)}</option>`,
+    "sample placeholder option"
+  );
+
+  // Screen-reader labels that app.js sets outside data-t.
+  const ca = translations.ca;
+  for (const [key, markup] of [
+    ["lang_selector_label", '<div class="lang-selector" role="group" aria-label="{label}">'],
+    ["nav_sections", '<nav class="main-tabs" role="tablist" aria-label="{label}">'],
+    ["lib_search_label", 'aria-label="{label}" data-t="lib_search_placeholder">'],
+    ["theme_label", '<div class="theme-selector" role="group" aria-label="{label}">'],
+    ["pin_input_label", 'autocomplete="current-password" aria-label="{label}">'],
+  ]) {
+    html = replaceRequired(
+      html,
+      markup.replace("{label}", escapeAttribute(ca[key])),
+      markup.replace("{label}", escapeAttribute(strings[key])),
+      `${key} label`
+    );
+  }
 
   const outputPath = path.join(root, `${lang}.html`);
   if (process.argv.includes("--check")) {

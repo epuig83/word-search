@@ -96,7 +96,7 @@
           <p class="hero-text" data-t="hero_text">Create custom exercises in seconds. Perfect for classroom use or printing on paper.</p>
         </div>
 
-        <div class="lang-selector" role="group" aria-label="Idioma">
+        <div class="lang-selector" role="group" aria-label="Language">
           <button type="button" class="lang-btn" data-lang="ca" aria-pressed="false">
             CA<span class="visually-hidden"> — Català</span>
           </button>
@@ -134,7 +134,7 @@
       </header>
 
       <main id="main-content" class="workspace" tabindex="-1">
-        <nav class="main-tabs" role="tablist" aria-label="Seccions">
+        <nav class="main-tabs" role="tablist" aria-label="Sections">
           <button type="button" id="tab-teacher" class="tab-btn is-active" role="tab" aria-selected="true" aria-controls="section-teacher" tabindex="0">
             <svg class="ui-icon tab-icon" aria-hidden="true"><use href="#icon-board"></use></svg>
             <span data-t="tab_teacher">Creation Panel</span>
@@ -165,7 +165,7 @@
               <label for="sample-select" data-t="field_sample">Guided example</label>
               <div class="sample-picker">
                 <select id="sample-select" name="sample">
-                  <option value="">Selecciona un exemple</option>
+                  <option value="">Select an example</option>
                 </select>
                 <button type="button" id="load-sample-button" class="ghost-button" data-t="btn_example">Load example</button>
               </div>
@@ -222,10 +222,8 @@
                 ></textarea>
                 <div class="words-tools">
                   <div class="words-tools-meta">
-                    <span id="words-count" class="words-count-pill">0 paraules vàlides</span>
-                    <p id="words-feedback" class="words-feedback" role="status" aria-live="polite">
-                      Afegeix paraules o toca la biblioteca.
-                    </p>
+                    <span id="words-count" class="words-count-pill">0 valid words</span>
+                    <p id="words-feedback" class="words-feedback" role="status" aria-live="polite">Add words or tap the library.</p>
                   </div>
                   <button type="button" id="clear-words-button" class="ghost-button words-clear-button" data-t="btn_clear_words">Clear list</button>
                 </div>
@@ -235,7 +233,7 @@
               <div class="vocabulary-library">
                 <div class="library-header">
                   <span data-t="lib_title">Word Library</span>
-                  <input type="text" id="lib-search" placeholder="Search..." aria-label="Cercar a la biblioteca de paraules" data-t="lib_search_placeholder">
+                  <input type="text" id="lib-search" placeholder="Search..." aria-label="Search the word library" data-t="lib_search_placeholder">
                 </div>
                 <div class="library-categories" id="lib-categories">
                   <!-- Categories dinàmiques -->
@@ -387,7 +385,7 @@
                 <progress id="progress-bar" class="progress-bar" value="0" max="1" aria-hidden="true"></progress>
               </div>
               <div class="board-appearance">
-                <div class="theme-selector" role="group" aria-label="Tema visual">
+                <div class="theme-selector" role="group" aria-label="Visual theme">
                   <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Parchment</span></button>
                   <button type="button" class="theme-btn" data-theme="ocea" aria-pressed="false"><span class="visually-hidden" data-t="theme_ocea">Ocean</span></button>
                   <button type="button" class="theme-btn" data-theme="bosc" aria-pressed="false"><span class="visually-hidden" data-t="theme_bosc">Forest</span></button>
@@ -432,7 +430,7 @@
                 <div class="student-start-meta">
                   <div class="student-start-chip">
                     <span data-t="timer_label">Timer</span>
-                    <strong id="student-start-timer">Sense límit</strong>
+                    <strong id="student-start-timer">No limit</strong>
                   </div>
                   <div class="student-start-chip">
                     <span data-t="hints_label">Hints</span>
@@ -621,7 +619,7 @@
         <form id="pin-form">
           <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
           <div class="pin-input-group">
-            <input type="password" id="pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password" aria-label="PIN docent">
+            <input type="password" id="pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password" aria-label="Teacher PIN">
             <button type="submit" id="pin-submit" class="primary-button" data-t="pin_btn_validate">Validate PIN</button>
           </div>
           <button type="button" id="pin-cancel" class="ghost-button" style="width: 100%; margin-top: 1rem;" data-t="pin_btn_cancel">Cancel</button>
