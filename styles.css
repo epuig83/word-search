@@ -492,6 +492,7 @@ body {
   font-size: 0.98rem;
   max-width: 52ch;
   margin-inline: 0;
+  text-wrap: balance;
 }
 
 .hero-card {
@@ -597,6 +598,7 @@ body {
   padding-inline: 0.75rem;
   color: var(--ink-soft);
   font-size: 0.9rem;
+  text-wrap: pretty;
 }
 
 .tab-btn.is-active {
@@ -3337,13 +3339,15 @@ body[data-tab="student"] .panel {
 }
 
 /* Classroom preparation: quiet status, roomy controls and paper-like previews. */
-.offline-notice { margin: 0 0 1rem; font-size: 0.85rem; color: var(--ink-soft); }
+/* The retry sits beside the status line so an unconfirmed check doesn't push the
+   form down with a full-size button above the main task. */
+.offline-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; margin: 0 0 1rem; font-size: 0.85rem; color: var(--ink-soft); }
 .offline-line { display: flex; align-items: baseline; gap: 0.45rem; margin: 0; }
 .offline-line[data-state="ready"] { color: var(--found-strong); }
 .offline-line[data-state="unknown"] { color: var(--warning-text); }
 #offline-icon { font-weight: 700; }
-.offline-update { margin: 0.4rem 0 0; max-width: 65ch; }
-#offline-retry { margin-top: 0.5rem; min-height: 44px; }
+.offline-update { order: 1; flex-basis: 100%; margin: 0; }
+#offline-retry { min-height: 44px; padding: 0.4rem 0.9rem; font-size: 0.85rem; }
 .variants-dialog { max-width: 54rem; text-align: left; padding: 1.5rem; }
 .variants-dialog h2 { margin: 0 0 0.5rem; font-family: var(--font-display); }
 .variants-dialog > p { margin: 0 0 1rem; }
