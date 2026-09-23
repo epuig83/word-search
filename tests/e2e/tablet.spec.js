@@ -33,6 +33,9 @@ for (const lang of ["ca", "es", "en"]) {
     await expect(page.locator(".grid-cell.is-hint")).toHaveCount(1);
     for (const viewport of [{ width: 1080, height: 810 }, { width: 810, height: 1080 }]) {
       await page.setViewportSize(viewport);
+      // The board is sized with viewport units, which WebKit re-resolves on the next
+      // frame after a resize, as it does after a real rotation.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const metrics = await measureGridVisibility(page);
       expect(metrics.clippedCells).toBe(0);
       expect(metrics.isHorizontallyScrollable).toBe(false);

@@ -57,7 +57,7 @@
   --radius-sm: 8px;
 
   --cell-gap: 6px;
-  --cell-font: clamp(1rem, 0.8rem + 1vw, 1.4rem);
+  --cell-font: clamp(1rem, 0.8rem + 1vw, 1.9rem);
 
   /* Semantic surfaces & states — extracted from repeated literals so the
      high-contrast block below can lift them too (see note there). */
@@ -3280,8 +3280,11 @@ body[data-tab="student"] .panel {
 
   .board-appearance { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; }
   .student-gamebar { margin: 0 0 0.85rem; }
+  /* Size the board by the viewport height so it grows on projectors and fits
+     short laptops without scrolling; 19rem covers tabs, title, game bar and panel padding. */
   .puzzle-layout {
-    grid-template-columns: minmax(0, 640px) minmax(180px, 1fr);
+    grid-template-columns: minmax(0, max(520px, calc(100vh - 19rem))) minmax(180px, 1fr);
+    grid-template-columns: minmax(0, max(520px, calc(100dvh - 19rem))) minmax(180px, 1fr);
     gap: 1rem 1.5rem;
   }
 
