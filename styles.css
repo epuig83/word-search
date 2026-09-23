@@ -1020,7 +1020,7 @@ body {
 .library-categories {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
@@ -1028,8 +1028,9 @@ body {
   background: var(--panel);
   border: 1.5px solid var(--panel-border);
   border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.75rem;
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1045,7 +1046,7 @@ body {
 .library-results {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex: 1;
   overflow-y: auto;
   overflow-x: visible;
@@ -1056,11 +1057,13 @@ body {
   max-height: 12rem;
 }
 
+/* Chips stay at least 36px tall so pupils and teachers can tap them on tablets. */
 .lib-word-chip {
   border: 1.5px solid;
   border-radius: 999px;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.78rem;
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1269,6 +1272,13 @@ body {
 .action-row .primary-button {
   width: min(100%, 380px);
   justify-self: end;
+}
+
+/* On tablets the form is a long single column: a full-width CTA is easier to reach. */
+@media (max-width: 1024px) {
+  .action-row .primary-button {
+    width: 100%;
+  }
 }
 
 .primary-button,
