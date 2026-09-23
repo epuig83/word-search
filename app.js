@@ -1058,8 +1058,12 @@
   }
 
   function setStatus(msg, tone) {
-    dom.statusMessage.textContent = msg || TRANSLATIONS[state.lang].status_default;
-    dom.statusMessage.className = "status-message" + (tone ? ` is-${tone}` : "");
+    const t = TRANSLATIONS[state.lang];
+    dom.statusMessage.textContent = msg || t.status_default;
+    // The default hint repeats the words helper and the success message repeats the
+    // ready card, so both stay available to screen readers without a visible box.
+    const quiet = !msg || msg === t.msg_success;
+    dom.statusMessage.className = "status-message" + (tone ? ` is-${tone}` : "") + (quiet ? " visually-hidden" : "");
   }
 
   let announceTimeoutId = null;

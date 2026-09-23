@@ -229,6 +229,14 @@ button {
   touch-action: manipulation;
 }
 
+/* Form controls don't inherit the page font by default; keep Andika everywhere. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 .icon-sprite {
   position: absolute;
   width: 0;
@@ -821,6 +829,7 @@ body {
   float: right;
   margin-right: 1.4rem;
   color: var(--ink-soft);
+  font-size: 0.82rem;
   font-weight: 400;
 }
 
@@ -1836,7 +1845,7 @@ body {
 .teacher-tools-summary {
   cursor: pointer;
   color: var(--ink-strong);
-  font-size: 0.78rem;
+  font-size: 0.95rem;
   font-weight: 600;
   list-style: none;
   user-select: none;
