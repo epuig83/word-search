@@ -99,17 +99,18 @@
   --pause-ink: #8b6f2b;
 
   /* Found-word colours are categorical (one per word), so they stay fixed across
-     themes; each also carries its own border style for colour-blind pupils. */
-  --word-1: #5b8fd4;
+     themes; each also carries its own border style for colour-blind pupils.
+     Borders keep >= 3:1 against white and their own soft fill (WCAG 1.4.11). */
+  --word-1: #5585c5;
   --word-1-soft: #dce8f8;
   --word-1-ink: #1e3f7a;
   --word-2: #6347b5;
   --word-2-soft: #e8e0f5;
   --word-2-ink: #3f2580;
-  --word-3: #d47a3b;
+  --word-3: #c57137;
   --word-3-soft: #fce8d8;
   --word-3-ink: #8b3516;
-  --word-4: #2aa8a0;
+  --word-4: #25948d;
   --word-4-soft: #d4f0f0;
   --word-4-ink: #145c50;
 
