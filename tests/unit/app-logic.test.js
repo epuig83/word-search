@@ -130,6 +130,16 @@ test("buildSelectionPath single cell returns that cell", () => {
 
 // ── sanitizeStoredSample ──────────────────────────────────────────────────
 
+test("sanitizeStoredSample keeps only menu values and caps the title", () => {
+  const sample = sanitizeStoredSample({ title: "T".repeat(80), words: "sol\nlluna\nmar", timerDuration: -5, hintsAllowed: 1e9 });
+  assert.equal(sample.title.length, 60);
+  assert.equal(sample.timerDuration, 0);
+  assert.equal(sample.hintsAllowed, 3);
+  const valid = sanitizeStoredSample({ title: "T", words: "sol\nlluna\nmar", timerDuration: 600, hintsAllowed: -1 });
+  assert.equal(valid.timerDuration, 600);
+  assert.equal(valid.hintsAllowed, -1);
+});
+
 test("sanitizeStoredSample returns null for invalid input", () => {
   assert.equal(sanitizeStoredSample(null), null);
   assert.equal(sanitizeStoredSample(undefined), null);

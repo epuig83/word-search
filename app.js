@@ -1100,6 +1100,7 @@
     getTranslations,
     sampleLangs: SAMPLE_LANGS,
     allCategoryId: ALL_CATEGORY_ID,
+    maxGridSize: CORE.MAX_GRID_SIZE,
     parseWords,
     normalizeWord: CORE.normalizeWord,
     normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
@@ -1365,8 +1366,11 @@
       }
     } catch (err) {
       const wordTooLong = err.message?.startsWith("WORD_TOO_LONG:");
+      // "Choose a larger size or Automatic" is impossible advice when Automatic
+      // is already chosen: then the word is longer than the biggest board.
+      const tooLongMsg = dom.sizeInput.value === "auto" ? t.msg_word_over_max : t.msg_puzzle_word_too_long;
       const errMsg = wordTooLong
-        ? (t.msg_puzzle_word_too_long || err.message).replace("{word}", err.message.slice("WORD_TOO_LONG:".length))
+        ? tooLongMsg.replace("{word}", err.message.slice("WORD_TOO_LONG:".length)).replace("{max}", CORE.MAX_GRID_SIZE)
         : (t.msg_puzzle_error || err.message);
       setStatus(errMsg, "error");
     } finally {

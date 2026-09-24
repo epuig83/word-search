@@ -13,6 +13,7 @@
     getTranslations,
     sampleLangs,
     allCategoryId,
+    maxGridSize,
     parseWords,
     normalizeWord,
     normalizeSampleTitle,
@@ -141,12 +142,17 @@
           seen.add(cleaned);
         });
 
-      // Mirror the WORD_TOO_LONG generation error before the teacher submits.
+      // Mirror the WORD_TOO_LONG generation error before the teacher submits. On
+      // Automatic the limit is the biggest board.
       const fixedSize = Number(dom.sizeInput?.value);
-      const tooLong = fixedSize ? words.find(word => word.cleaned.length > fixedSize) : null;
+      const sizeLimit = fixedSize || maxGridSize;
+      const tooLong = sizeLimit ? words.find(word => word.cleaned.length > sizeLimit) : null;
 
       const messages = [];
-      if (tooLong) messages.push(t.msg_puzzle_word_too_long.replace("{word}", tooLong.display));
+      if (tooLong) {
+        const tooLongMsg = fixedSize ? t.msg_puzzle_word_too_long : t.msg_word_over_max;
+        messages.push(tooLongMsg.replace("{word}", tooLong.display).replace("{max}", sizeLimit));
+      }
       if (shortWords.length) messages.push(t.words_too_short.replace("{words}", shortWords.join(", ")));
       if (skippedWords.length) messages.push(t.words_skipped.replace("{words}", skippedWords.join(", ")));
       if (strippedWords.length) messages.push(t.words_symbols_removed.replace("{words}", strippedWords.join(", ")));

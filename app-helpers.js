@@ -53,9 +53,13 @@
     return `sample-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  const SAMPLE_TIMERS = new Set([0, 300, 600, 900, 1200]);
+  const SAMPLE_HINTS = new Set([0, 1, 3, 5, -1]);
+
   function sanitizeStoredSample(rawSample) {
     if (!rawSample || typeof rawSample !== "object") return null;
-    const title = typeof rawSample.title === "string" ? rawSample.title.trim() : "";
+    // Same 60-character cap as the topic field.
+    const title = typeof rawSample.title === "string" ? rawSample.title.trim().slice(0, 60) : "";
     const rawWords = Array.isArray(rawSample.words)
       ? rawSample.words.join("\n")
       : typeof rawSample.words === "string"
@@ -66,8 +70,9 @@
 
     const difficulty = SAMPLE_DIFFICULTIES.has(rawSample.difficulty) ? rawSample.difficulty : "easy";
     const size = SAMPLE_SIZES.has(String(rawSample.size)) ? String(rawSample.size) : "auto";
-    const timerDuration = typeof rawSample.timerDuration === "number" ? rawSample.timerDuration : 0;
-    const hintsAllowed = typeof rawSample.hintsAllowed === "number" ? rawSample.hintsAllowed : 3;
+    // Only values the settings menus offer: anything else left the select blank.
+    const timerDuration = SAMPLE_TIMERS.has(rawSample.timerDuration) ? rawSample.timerDuration : 0;
+    const hintsAllowed = SAMPLE_HINTS.has(rawSample.hintsAllowed) ? rawSample.hintsAllowed : 3;
     const formTemplate = typeof rawSample.formTemplate === "string" ? rawSample.formTemplate : "";
 
     return {

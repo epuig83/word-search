@@ -261,3 +261,15 @@ test("the words helper explains removed symbols and the 60-word limit", async ({
   await expect(feedback).not.toContainText("col·legi");
   await expect(feedback).toContainText("Màxim 60 paraules: s'ometen les 5 últimes.");
 });
+
+test("on Automatic a word longer than the biggest board asks to shorten it", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#title-input").fill("Paraules");
+  await page.locator("#words-input").fill("supercalifragilisticexpialidos\ngat\ngos");
+  await page.locator("#advanced-settings-details summary").click();
+  await page.locator("#size-input").selectOption("auto");
+  await expect(page.locator("#words-feedback")).toContainText("més de 22 lletres");
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#status-message")).toContainText("Escurça-la");
+  await expect(page.locator("#status-message")).not.toContainText("Automàtic");
+});
