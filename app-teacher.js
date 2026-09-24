@@ -353,6 +353,9 @@
         dom.libCategories.appendChild(button);
       });
 
+      setRovingGroup(dom.libCategories, getTranslations().lib_categories_label,
+        dom.libCategories.querySelector('[aria-pressed="true"]'));
+
       dom.libResults.innerHTML = "";
       let wordsToShow = [];
       const shouldShowCategoryPrompt = !state.activeCategory && !search;
@@ -408,6 +411,7 @@
         });
         dom.libResults.appendChild(button);
       });
+      setRovingGroup(dom.libResults, getTranslations().lib_words_label);
     }
 
     // Both helpers run after renderLibrary() replaced every chip, which drops focus to
@@ -423,7 +427,38 @@
       const index = chips.findIndex(chip => chip.textContent === word);
       const next = chips.slice(index + 1).find(chip => !chip.disabled) ||
         chips.slice(0, Math.max(index, 0)).reverse().find(chip => !chip.disabled);
-      (next || dom.wordsInput).focus();
+      if (next) moveRovingFocus(dom.libResults, next);
+      else dom.wordsInput.focus();
+    }
+
+    // Each chip group is one Tab stop (a WAI-ARIA toolbar): Tab reaches the active
+    // category or the first word, arrows/Home/End move inside, so reaching "Create"
+    // no longer means tabbing through every chip in the library.
+    function setRovingGroup(container, label, current) {
+      container.setAttribute("role", "toolbar");
+      container.setAttribute("aria-label", label);
+      const items = [...container.querySelectorAll("button:not(:disabled)")];
+      const stop = items.includes(current) ? current : items[0];
+      items.forEach(item => { item.tabIndex = item === stop ? 0 : -1; });
+    }
+
+    function moveRovingFocus(container, target) {
+      container.querySelectorAll("button").forEach(item => { item.tabIndex = item === target ? 0 : -1; });
+      target.focus();
+    }
+
+    function handleRovingKeys(event) {
+      const steps = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+      const items = [...event.currentTarget.querySelectorAll("button:not(:disabled)")];
+      const index = items.indexOf(document.activeElement);
+      if (index < 0) return;
+      let target;
+      if (event.key in steps) target = items[(index + steps[event.key] + items.length) % items.length];
+      else if (event.key === "Home") target = items[0];
+      else if (event.key === "End") target = items[items.length - 1];
+      else return;
+      event.preventDefault();
+      moveRovingFocus(event.currentTarget, target);
     }
 
     function bindEvents() {
@@ -510,6 +545,8 @@
       });
 
       dom.libSearch.addEventListener("input", debounce(() => renderLibrary(), 150));
+      dom.libCategories.addEventListener("keydown", handleRovingKeys);
+      dom.libResults.addEventListener("keydown", handleRovingKeys);
       // Native input/change events already notify the form synchronously. This
       // delayed refresh must not overwrite a more recent submission error.
       dom.wordsInput.addEventListener("input", debounce(() => syncWordsUi({ notifyChange: false }), 200));

@@ -221,3 +221,33 @@ test("open teacher sections show a minus marker and the form URL error is announ
   await page.locator("#form-template-input").fill("");
   await expect(page.locator("#form-template-input")).toHaveAttribute("aria-invalid", "false");
 });
+
+test("each library chip group is a single Tab stop with arrow-key navigation", async ({ page }) => {
+  await page.goto("/index.html");
+  const categories = page.locator("#lib-categories");
+  const words = page.locator("#lib-results");
+  await expect(categories).toHaveAttribute("role", "toolbar");
+  await expect(categories).toHaveAttribute("aria-label", "Categories de la biblioteca");
+  await expect(words).toHaveAttribute("role", "toolbar");
+
+  await page.locator("#lib-search").focus();
+  await page.keyboard.press("Tab");
+  await expect(categories.locator(".category-chip.is-active")).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(categories.locator(".category-chip").nth(2)).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(categories.locator(".category-chip").first()).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(categories.locator(".category-chip").last()).toBeFocused();
+
+  await page.keyboard.press("Tab");
+  const chips = words.locator(".lib-word-chip");
+  await expect(chips.first()).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(chips.last()).toBeFocused();
+
+  // One more Tab leaves the library entirely instead of walking every chip.
+  await page.keyboard.press("Tab");
+  const focusedInLibrary = await page.evaluate(() => Boolean(document.activeElement.closest("#lib-categories, #lib-results")));
+  expect(focusedInLibrary).toBe(false);
+});
