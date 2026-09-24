@@ -1082,8 +1082,10 @@ body {
 }
 
 /* Already added state */
+/* Dashed and unfilled instead of faded, so the word keeps its text contrast. */
 .lib-word-chip.is-added {
-  opacity: 0.5;
+  background: transparent;
+  border-style: dashed;
   cursor: default;
   /* hover rule above is :not(.is-added), so no override needed */
   transform: none;
@@ -1638,7 +1640,7 @@ body {
 .puzzle-grid {
   display: grid;
   width: 100%;
-  min-width: var(--grid-min-width, 0);
+  min-width: calc(var(--grid-size, 0) * 24px + (var(--grid-size, 1) - 1) * var(--cell-gap));
   gap: var(--cell-gap);
   user-select: none;
   /* pan-x is only needed while the board is wider than its frame. When it fits, the

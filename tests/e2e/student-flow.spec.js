@@ -662,6 +662,59 @@ test("drag selection wins on a board that fits and yields to panning on one that
   await expect(page.locator("#puzzle-grid")).toHaveCSS("touch-action", "pan-x");
 });
 
+test("an 18 × 18 board fits a short laptop frame without hidden columns", async ({ page }) => {
+  // The width floor once assumed a 6px gap on every board, so dense grids that use a
+  // 2px gap overflowed and hid their last columns behind an overlay scrollbar.
+  await page.setViewportSize({ width: 1512, height: 772 });
+  await generatePuzzle(page, { words: "hipopotamoenorme\nbalena\ndofi", size: "auto", timer: "0", hints: "0" });
+  await startStudentSession(page);
+
+  await expect(page.locator("#puzzle-grid")).toHaveAttribute("data-grid-size", "18");
+  await expect(page.locator("#grid-container")).not.toHaveClass(/is-scrollable/);
+  const cell = await page.locator("#puzzle-grid [role=gridcell]").first().boundingBox();
+  expect(cell.width).toBeGreaterThanOrEqual(24);
+});
+
+test("the words helper warns live when a word is longer than the chosen size", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#words-input").fill("balena\ndofi\nhipopotam");
+  await page.locator("#advanced-settings-details summary").click();
+  await page.locator("#size-input").selectOption("8");
+  await expect(page.locator("#words-feedback")).toContainText("hipopotam");
+  await page.locator("#size-input").selectOption("10");
+  await expect(page.locator("#words-feedback")).not.toContainText("hipopotam");
+});
+
+test("the words helper names repeated entries and entries without letters", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#words-input").fill("lleó\nLleo\nLLEÓ\n123\nbalena\ndofi");
+  await expect(page.locator("#words-count")).toContainText("3");
+  await expect(page.locator("#words-feedback")).toContainText("Lleo, LLEÓ, 123");
+});
+
+test("hint and found-word messages stay on the board, not in the teacher panel", async ({ page }) => {
+  await generatePuzzle(page, { size: "8", timer: "0", hints: "3" });
+  await startStudentSession(page);
+  const teacherStatus = await page.locator("#status-message").textContent();
+  await page.locator("#hint-button").click();
+  await page.locator("#hint-start-button").click();
+  await expect(page.locator("#board-status")).toContainText("fila");
+  await expect(page.locator("#status-message")).toHaveText(teacherStatus);
+});
+
+test("a visitor who chose Spanish never sees the Catalan index markup", async ({ page }) => {
+  // Without app.js nothing can translate the page, so this only passes when the
+  // early redirect serves the pre-rendered Spanish page.
+  await page.route("**/app.js", route => route.abort());
+  await page.goto("/index.html");
+  await page.evaluate(() => localStorage.setItem("word-search-lang-v1", "es"));
+  await page.goto("/index.html");
+  await expect(page).toHaveURL(/\/es\.html$/);
+  await expect(page.locator("h1[data-t=hero_title]")).toHaveText("Generador de Sopas de Letras");
+  await page.goto("/index.html?lang=ca");
+  await expect(page).toHaveURL(/index\.html\?lang=ca$/);
+});
+
 test("dragging across a word finds it", async ({ page }) => {
   const wordsText = "balena\ndofi\npeix";
   await page.addInitScript(() => { Math.random = () => 0; });

@@ -26,7 +26,6 @@
     updateTeacherReadyCard,
     stopTimer,
     revealCompletionMessage,
-    setStatus,
     announce,
     updateTimerDisplay,
     prefersReducedMotion,
@@ -121,9 +120,9 @@
       const density = getGridDensity(size);
       dom.puzzleGrid.innerHTML = "";
       dom.puzzleGrid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-      // Use the largest possible gap when calculating the floor so every
-      // interactive cell remains at least 24 × 24 CSS px at every breakpoint.
-      dom.puzzleGrid.style.setProperty("--grid-min-width", `${size * 24 + (size - 1) * 6}px`);
+      // CSS derives the width floor from the live --cell-gap so every interactive
+      // cell stays at least 24 × 24 CSS px without over-reserving on dense boards.
+      dom.puzzleGrid.style.setProperty("--grid-size", String(size));
       dom.puzzleGrid.dataset.gridSize = String(size);
       dom.puzzleGrid.dataset.gridDensity = density;
       if (dom.gridContainer) {
@@ -263,7 +262,6 @@
       const hintMsg = (level === 2 ? t.hint_direction_message : t.hint_start_message)
         .replace("{word}", placement.display).replace("{row}", first.row + 1).replace("{col}", first.col + 1)
         .replace("{direction}", direction);
-      setStatus(hintMsg, "success");
       flashBoard(hintMsg, "success", HINT_HIGHLIGHT_MS);
       onHintUsedFn();
       // useHint is also reachable from the H shortcut, and neither caller renders.
@@ -434,7 +432,6 @@
         state.foundWordColors.set(placement.wordId, `wc-${state.foundWordColors.size % 5}`);
       }
       const foundMsg = getTranslations().msg_found.replace("{word}", placement.display);
-      setStatus(foundMsg, "success");
       flashBoard(foundMsg, "success");
       onWordFoundFn();
       return true;

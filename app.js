@@ -930,6 +930,7 @@
     if (dom.timerInput) dom.timerInput.value = preset.timer;
     if (dom.hintsInput) dom.hintsInput.value = preset.hints;
     syncDifficultyPresetState();
+    teacherController.updateWordsHelper();
     onTeacherFormChange();
   }
 
@@ -1094,7 +1095,6 @@
     sampleLangs: SAMPLE_LANGS,
     allCategoryId: ALL_CATEGORY_ID,
     parseWords,
-    countValidWords: CORE.countValidWords,
     normalizeWord: CORE.normalizeWord,
     normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
     generateSampleId: APP_HELPERS.generateSampleId,
@@ -1131,7 +1131,6 @@
     updateTeacherReadyCard,
     stopTimer,
     revealCompletionMessage,
-    setStatus,
     announce,
     updateTimerDisplay,
     prefersReducedMotion,
@@ -1537,6 +1536,7 @@
   [dom.difficultyInput, dom.sizeInput, dom.timerInput, dom.hintsInput].forEach(input => {
     input?.addEventListener("change", syncDifficultyPresetState);
   });
+  dom.sizeInput?.addEventListener("change", () => teacherController.updateWordsHelper());
   syncDifficultyPresetState();
   dom.printSolutionButton?.addEventListener("click", () => printAnswerKey());
   dom.teacherPrintSolutionButton?.addEventListener("click", () => printAnswerKey());

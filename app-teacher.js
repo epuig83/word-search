@@ -14,7 +14,6 @@
     sampleLangs,
     allCategoryId,
     parseWords,
-    countValidWords,
     normalizeWord,
     normalizeSampleTitle,
     generateSampleId,
@@ -113,27 +112,41 @@
     function updateWordsHelper() {
       if (!dom.wordsCount || !dom.wordsFeedback) return;
       const t = getTranslations();
-      const count = countValidWords(dom.wordsInput.value);
+      const { words } = parseWords(dom.wordsInput.value);
+      const count = words.length;
       const countTone = count >= 3 ? "ready" : count > 0 ? "sparse" : "";
       const feedbackKey = count >= 3 ? "words_summary_ready" : count > 0 ? "words_summary_sparse" : "words_summary_empty";
 
-      // Two-letter words such as "os" are valid; flag single-letter entries.
-      const shortWords = dom.wordsInput.value
+      // Name every line parseWords drops, so nothing disappears silently. Two-letter
+      // words such as "os" are valid; single letters get their own hint.
+      const shortWords = [];
+      const skippedWords = [];
+      const seen = new Set();
+      dom.wordsInput.value
         .split(/[\n,;]+/)
         .map(token => token.trim())
         .filter(Boolean)
-        .filter(token => {
-          const length = normalizeWord(token).length;
-          return length === 1;
+        .forEach(token => {
+          const cleaned = normalizeWord(token);
+          if (cleaned.length === 1) shortWords.push(token);
+          else if (cleaned.length === 0 || seen.has(cleaned)) skippedWords.push(token);
+          seen.add(cleaned);
         });
+
+      // Mirror the WORD_TOO_LONG generation error before the teacher submits.
+      const fixedSize = Number(dom.sizeInput?.value);
+      const tooLong = fixedSize ? words.find(word => word.cleaned.length > fixedSize) : null;
+
+      const messages = [];
+      if (tooLong) messages.push(t.msg_puzzle_word_too_long.replace("{word}", tooLong.display));
+      if (shortWords.length) messages.push(t.words_too_short.replace("{words}", shortWords.join(", ")));
+      if (skippedWords.length) messages.push(t.words_skipped.replace("{words}", skippedWords.join(", ")));
 
       dom.wordsCount.textContent = t.words_count.replace("{count}", count);
       dom.wordsCount.className = "words-count-pill" + (countTone ? ` is-${countTone}` : "");
-      const feedbackText = shortWords.length
-        ? t.words_too_short.replace("{words}", shortWords.join(", "))
-        : t[feedbackKey];
-      dom.wordsFeedback.textContent = feedbackText;
-      dom.wordsFeedback.className = "words-feedback" + (countTone ? ` is-${countTone}` : "");
+      const feedbackTone = messages.length ? "sparse" : countTone;
+      dom.wordsFeedback.textContent = messages.length ? messages.join(" ") : t[feedbackKey];
+      dom.wordsFeedback.className = "words-feedback" + (feedbackTone ? ` is-${feedbackTone}` : "");
 
       if (dom.clearWordsButton) dom.clearWordsButton.disabled = dom.wordsInput.value.length === 0;
     }
