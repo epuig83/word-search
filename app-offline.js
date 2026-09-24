@@ -47,7 +47,8 @@
       const key = phase === "ready" && navigator.onLine === false ? "ready_offline" : phase;
       status.textContent = t[`offline_${key}`];
       status.parentElement.dataset.state = phase;
-      icon.textContent = { ready: "✓", preparing: "↻", unknown: "!", local: "⌂" }[phase];
+      // Same SVG sprite as the rest of the UI, not OS-drawn glyphs.
+      icon.querySelector("use")?.setAttribute("href", `#icon-${{ ready: "check", preparing: "refresh", unknown: "alert", local: "home" }[phase]}`);
       updateNote.hidden = !updateAvailable;
       updateNote.textContent = t.offline_update;
       retry.hidden = !supported || phase !== "unknown";

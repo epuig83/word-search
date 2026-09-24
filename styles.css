@@ -35,10 +35,16 @@
   --found-strong: #217a3a;
   --found-soft: #dff5e5;
 
-  /* Modos */
-  --student-primary: #6347b5;
-  --student-secondary: #7b61c9;
-  --student-bg: #f0edf8;
+  /* Modos. The student area follows the pupil's theme; its grid-paper background
+     (vs the teacher's ruled paper) is what marks the mode, not a fixed hue. */
+  --student-primary: #b5451b;
+  --student-primary-strong: #8b3516;
+  --student-bg: #fbf1e8;
+  --student-border: #e6cdb9;
+  --student-rule: color-mix(in srgb, var(--student-primary) 8%, transparent);
+
+  /* Opaque and theme-derived so it keeps >= 3:1 against every paper. */
+  --focus-ring: var(--accent-strong);
 
   --teacher-bg: #fdf8f0;
 
@@ -74,6 +80,53 @@
   --warning-bg: #fef6e1;
   --warning-border: #f0c468;
   --warning-text: #6b4f12;
+  --warning-border-strong: #b88616;
+  --error-bg: #fff0f0;
+  --error-border: #f0a0a0;
+  --error-border-strong: #f87171;
+  --wrong-from: #fde2e2;
+  --wrong-to: #f9c9c9;
+  --wrong-border: #c2410c;
+  --wrong-ink: #7f1d1d;
+  --hint-bg: #fffaeb;
+  --hint-bg-hover: #fef0c7;
+  --hint-ink: #7a5200;
+  --hint-border-hover: #a87000;
+  --hint-cell-from: #fef3c7;
+  --hint-cell-to: #fde68a;
+  --board-from: #f0e8dc;
+  --board-to: #e8dfd0;
+  --pause-ink: #8b6f2b;
+
+  /* Found-word colours are categorical (one per word), so they stay fixed across
+     themes; each also carries its own border style for colour-blind pupils. */
+  --word-1: #5b8fd4;
+  --word-1-soft: #dce8f8;
+  --word-1-ink: #1e3f7a;
+  --word-2: #6347b5;
+  --word-2-soft: #e8e0f5;
+  --word-2-ink: #3f2580;
+  --word-3: #d47a3b;
+  --word-3-soft: #fce8d8;
+  --word-3-ink: #8b3516;
+  --word-4: #2aa8a0;
+  --word-4-soft: #d4f0f0;
+  --word-4-ink: #145c50;
+
+  /* Library chips: one colour per vocabulary category. */
+  --chip-green-bg: #e8f5ec;
+  --chip-green-border: #7aba8e;
+  --chip-green-ink: #217a3a;
+  --chip-blue-bg: #e8eef8;
+  --chip-blue-border: #7a9ed4;
+  --chip-blue-ink: #1e3f7a;
+  --chip-orange-border: #d48870;
+  --chip-purple-bg: #edeaf7;
+  --chip-purple-border: #9585c8;
+  --chip-purple-ink: #3f2580;
+  --chip-teal-bg: #e0f5f0;
+  --chip-teal-border: #5ab8a8;
+  --chip-teal-ink: #145c50;
 }
 
 :root[data-fonts="andika"] {
@@ -99,6 +152,10 @@
   --paper-soft: #e3eff3;
   --surface-subtle: #e8f2f6;
   --surface-pill: #e0ecf0;
+  --student-primary: #1c6e8c;
+  --student-primary-strong: #134f66;
+  --student-bg: #e9f4f8;
+  --student-border: #bcd9e3;
 }
 
 :root[data-theme="bosc"] {
@@ -113,6 +170,10 @@
   --paper-soft: #e8f0e0;
   --surface-subtle: #edf3e6;
   --surface-pill: #e6ede0;
+  --student-primary: #3f7d3a;
+  --student-primary-strong: #2c5a29;
+  --student-bg: #edf4e6;
+  --student-border: #c8d9b9;
 }
 
 :root[data-theme="espai"] {
@@ -127,6 +188,10 @@
   --paper-soft: #e9e4f5;
   --surface-subtle: #ece7f6;
   --surface-pill: #e6e0f2;
+  --student-primary: #6347b5;
+  --student-primary-strong: #4a3590;
+  --student-bg: #f0edf8;
+  --student-border: #c8bfe0;
 }
 
 /* High-contrast mode: darker ink, stronger borders/accents for low-vision
@@ -154,8 +219,10 @@
   --found: #157a33;
   --found-strong: #0e5a25;
 
-  --student-primary: #4a2fa0;
-  --student-secondary: #5a3fb5;
+  --student-primary: #98370f;
+  --student-primary-strong: #6e2709;
+  --student-bg: #ffffff;
+  --student-border: #6f6557;
 
   --shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.35);
@@ -272,7 +339,7 @@ textarea {
   font-weight: 700;
   font-family: var(--font-display);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   color: var(--ink-soft);
   min-height: 44px;
 }
@@ -497,55 +564,6 @@ body {
   text-wrap: balance;
 }
 
-.hero-card {
-  display: grid;
-  align-content: center;
-  gap: 0.55rem;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding: 0;
-}
-
-.hero-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.42rem 0.85rem;
-  background: var(--panel);
-  border-radius: 999px;
-  border: 2px solid var(--panel-border);
-  box-shadow: 0 2px 0 var(--panel-border);
-  font-size: 0.85rem;
-  transition: transform 0.2s ease;
-}
-
-.hero-stat:hover {
-  transform: translateY(-2px);
-}
-
-.hero-stat .stat-icon {
-  font-size: 1.05rem;
-  color: var(--accent);
-}
-
-.hero-stat div {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: baseline;
-}
-
-/* Hide the text label (Edat / Ús / Rapidesa), keep icon + value */
-.hero-stat div > span {
-  display: none;
-}
-
-.hero-stat strong {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--ink-strong);
-}
-
 /* ========================
    WORKSPACE LAYOUT
    ======================== */
@@ -580,7 +598,7 @@ body {
   font-size: 1rem;
   color: var(--ink-soft);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
 }
 
@@ -737,7 +755,7 @@ body {
   font-size: 1rem;
   background: var(--panel);
   color: var(--ink-strong);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 /* Prevent iOS Safari auto-zoom on focus — inputs must render ≥ 16px */
@@ -853,7 +871,7 @@ body {
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   font-family: var(--font-body);
 }
 
@@ -959,7 +977,7 @@ body {
 
 .words-count-pill.is-ready {
   background: var(--found-soft);
-  border-color: #86cfaa;
+  border-color: var(--success-border);
   color: var(--found-strong);
 }
 
@@ -1035,7 +1053,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   color: var(--ink-soft);
 }
 
@@ -1068,15 +1086,15 @@ body {
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 /* Color variants — tones cálidos, no Tailwind puro */
-.lib-word-chip.chip-green  { background: #e8f5ec; border-color: #7aba8e; color: #217a3a; }
-.lib-word-chip.chip-blue   { background: #e8eef8; border-color: #7a9ed4; color: #1e3f7a; }
-.lib-word-chip.chip-orange { background: var(--accent-soft); border-color: #d48870; color: var(--accent-strong); }
-.lib-word-chip.chip-purple { background: #edeaf7; border-color: #9585c8; color: #3f2580; }
-.lib-word-chip.chip-teal   { background: #e0f5f0; border-color: #5ab8a8; color: #145c50; }
+.lib-word-chip.chip-green  { background: var(--chip-green-bg);  border-color: var(--chip-green-border);  color: var(--chip-green-ink); }
+.lib-word-chip.chip-blue   { background: var(--chip-blue-bg);   border-color: var(--chip-blue-border);   color: var(--chip-blue-ink); }
+.lib-word-chip.chip-orange { background: var(--accent-soft);    border-color: var(--chip-orange-border); color: var(--accent-strong); }
+.lib-word-chip.chip-purple { background: var(--chip-purple-bg); border-color: var(--chip-purple-border); color: var(--chip-purple-ink); }
+.lib-word-chip.chip-teal   { background: var(--chip-teal-bg);   border-color: var(--chip-teal-border);   color: var(--chip-teal-ink); }
 
 .lib-word-chip:hover:not(.is-added) {
   transform: translateY(-2px);
@@ -1166,8 +1184,8 @@ body {
 }
 
 .status-message.is-error {
-  background: #fff0f0;
-  border-color: #f0a0a0;
+  background: var(--error-bg);
+  border-color: var(--error-border);
   color: var(--danger);
 }
 
@@ -1203,11 +1221,17 @@ body {
   font-size: 0.9rem;
 }
 
+/* Five actions: the main one spans two tracks so the rest fill whole rows
+   (3 columns: open+share / print, key, variants; 2 columns: open / pairs). */
 .teacher-ready-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
   margin-top: 0.35rem;
+}
+
+.teacher-ready-actions > .primary-button {
+  grid-column: span 2;
 }
 
 .draft-status {
@@ -1219,14 +1243,14 @@ body {
 .pending-changes,
 .draft-status.is-error {
   padding: 0.8rem 1rem;
-  color: #674500;
-  background: #fff6dc;
-  border: 1px solid #b88616;
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border-strong);
   border-radius: var(--radius-sm);
 }
 
 .teacher-ready-card.has-pending-changes {
-  border-color: #b88616;
+  border-color: var(--warning-border-strong);
 }
 
 #new-student-button {
@@ -1299,7 +1323,7 @@ body {
   font-family: var(--font-display);
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid transparent;
   font-size: 0.95rem;
   touch-action: manipulation;
@@ -1341,7 +1365,7 @@ body {
 }
 
 .action-secondary-button:hover {
-  background: #f0d4c4;
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
   border-color: var(--accent);
 }
 
@@ -1355,7 +1379,7 @@ body {
 .category-chip:focus-visible,
 .lib-word-chip:focus-visible,
 .grid-cell:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.6);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -1449,8 +1473,8 @@ body {
 }
 
 .timer-pill.is-expired {
-  background: #fff0f0;
-  border-color: #f87171;
+  background: var(--error-bg);
+  border-color: var(--error-border-strong);
   color: var(--danger);
   animation: timerPulse 1s ease infinite;
 }
@@ -1533,8 +1557,8 @@ body {
 .student-start-chip {
   padding: 0.95rem 1rem;
   border-radius: var(--radius-md);
-  background: rgba(248, 246, 255, 0.94);
-  border: 1.5px solid #d0c8e4;
+  background: var(--panel);
+  border: 1.5px solid var(--student-border);
 }
 
 .student-start-chip span {
@@ -1576,7 +1600,7 @@ body {
     0 8px 12px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --grid-cell-letter-spacing: 0.02em;
-  background: linear-gradient(145deg, #f0e8dc 0%, #e8dfd0 100%);
+  background: linear-gradient(145deg, var(--board-from) 0%, var(--board-to) 100%);
   padding: var(--grid-frame-padding);
   border-radius: var(--radius-lg);
   border: 3px solid var(--grid-edge);
@@ -1612,7 +1636,6 @@ body {
   --grid-frame-padding: 0.95rem;
   --grid-cell-radius: 4px;
   --grid-cell-border-width: 1.5px;
-  --grid-cell-font-family: 'Bahnschrift SemiCondensed', 'Avenir Next Condensed', 'Trebuchet MS', system-ui, sans-serif;
   --grid-cell-shadow:
     0 2px 0 var(--grid-edge),
     inset 0 1px 0 rgba(255, 255, 255, 0.68);
@@ -1629,7 +1652,6 @@ body {
   --grid-frame-padding: 0.8rem;
   --grid-cell-radius: 4px;
   --grid-cell-border-width: 1px;
-  --grid-cell-font-family: 'Bahnschrift SemiCondensed', 'Avenir Next Condensed', 'Trebuchet MS', system-ui, sans-serif;
   --grid-cell-font-weight: 800;
   --grid-cell-shadow:
     0 2px 0 var(--grid-edge),
@@ -1691,8 +1713,8 @@ body {
   align-items: center;
   justify-content: center;
   font-size: clamp(3rem, 10vw, 5rem);
-  color: #8b6f2b;
-  background: rgba(255, 251, 240, 0.55);
+  color: var(--pause-ink);
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
   border-radius: inherit;
   pointer-events: none;
   z-index: 2;
@@ -1713,7 +1735,7 @@ body {
   line-height: 1;
   color: var(--ink-strong);
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--grid-cell-shadow);
   letter-spacing: var(--grid-cell-letter-spacing);
   min-width: 24px;
@@ -1723,7 +1745,7 @@ body {
 .grid-cell:hover {
   transform: translateY(-3px);
   border-color: var(--accent);
-  background: linear-gradient(175deg, #fff8ee 0%, #f0e5d5 100%);
+  background: linear-gradient(175deg, var(--panel) 0%, var(--paper-soft) 100%);
   box-shadow: var(--grid-cell-hover-shadow);
 }
 
@@ -1757,25 +1779,25 @@ body {
 
 /* Per-word found colors — palette artesanal */
 .grid-cell.is-found.wc-0, .word-item.is-found.wc-0 { background: var(--found-soft);  border-color: var(--found);     color: var(--found-strong); box-shadow: 0 2px 0 var(--found);             border-style: solid; }
-.grid-cell.is-found.wc-1, .word-item.is-found.wc-1 { background: #dce8f8;            border-color: #5b8fd4;          color: #1e3f7a;             box-shadow: 0 2px 0 #5b8fd4;                  border-style: dashed; }
-.grid-cell.is-found.wc-2, .word-item.is-found.wc-2 { background: #e8e0f5;            border-color: var(--student-primary); color: #3f2580;       box-shadow: 0 2px 0 var(--student-primary);   border-style: dotted; }
-.grid-cell.is-found.wc-3, .word-item.is-found.wc-3 { background: var(--accent-soft); border-color: #d47a3b;          color: var(--accent-strong); box-shadow: 0 2px 0 #d47a3b;                  border-style: solid; }
-.grid-cell.is-found.wc-4, .word-item.is-found.wc-4 { background: #d4f0f0;            border-color: #2aa8a0;          color: #145c50;             box-shadow: 0 2px 0 #2aa8a0;                  border-style: dashed; }
+.grid-cell.is-found.wc-1, .word-item.is-found.wc-1 { background: var(--word-1-soft); border-color: var(--word-1);  color: var(--word-1-ink);   box-shadow: 0 2px 0 var(--word-1);   border-style: dashed; }
+.grid-cell.is-found.wc-2, .word-item.is-found.wc-2 { background: var(--word-2-soft); border-color: var(--word-2);  color: var(--word-2-ink);   box-shadow: 0 2px 0 var(--word-2);   border-style: dotted; }
+.grid-cell.is-found.wc-3, .word-item.is-found.wc-3 { background: var(--word-3-soft); border-color: var(--word-3);  color: var(--word-3-ink);   box-shadow: 0 2px 0 var(--word-3);   border-style: solid; }
+.grid-cell.is-found.wc-4, .word-item.is-found.wc-4 { background: var(--word-4-soft); border-color: var(--word-4);  color: var(--word-4-ink);   box-shadow: 0 2px 0 var(--word-4);   border-style: dashed; }
 
 /* Hint animation */
 .grid-cell.is-hint {
-  background: linear-gradient(175deg, #fef3c7 0%, #fde68a 100%);
+  background: linear-gradient(175deg, var(--hint-cell-from) 0%, var(--hint-cell-to) 100%);
   border-color: var(--hint-border);
-  box-shadow: 0 0 0 5px rgba(196, 144, 10, 0.25);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--hint-border) 25%, transparent);
   animation: hintGlow 2s ease forwards;
 }
 
 /* A wrong selection used to produce nothing at all — same as a right one that
    silently failed. The shake is the only cue for a child who can't read the message yet. */
 .grid-cell.is-wrong {
-  background: linear-gradient(175deg, #fde2e2 0%, #f9c9c9 100%);
-  border-color: #c2410c;
-  color: #7f1d1d;
+  background: linear-gradient(175deg, var(--wrong-from) 0%, var(--wrong-to) 100%);
+  border-color: var(--wrong-border);
+  color: var(--wrong-ink);
   animation: wrongShake 0.36s ease;
 }
 
@@ -1788,8 +1810,8 @@ body {
 }
 
 @keyframes hintGlow {
-  0%   { box-shadow: 0 0 0 8px rgba(196, 144, 10, 0.4); }
-  50%  { box-shadow: 0 0 0 4px rgba(196, 144, 10, 0.2); }
+  0%   { box-shadow: 0 0 0 8px color-mix(in srgb, var(--hint-border) 40%, transparent); }
+  50%  { box-shadow: 0 0 0 4px color-mix(in srgb, var(--hint-border) 20%, transparent); }
   100% { box-shadow: 0 3px 0 var(--grid-edge); background: linear-gradient(175deg, var(--panel) 0%, var(--paper-soft) 100%); }
 }
 
@@ -1831,14 +1853,14 @@ body {
 }
 
 .hint-button-style {
-  background: #fffaeb;
+  background: var(--hint-bg);
   border-color: var(--hint-border);
-  color: #7a5200;
+  color: var(--hint-ink);
 }
 
 .hint-button-style:hover {
-  background: #fef0c7;
-  border-color: #a87000;
+  background: var(--hint-bg-hover);
+  border-color: var(--hint-border-hover);
 }
 
 .hint-button-style:disabled {
@@ -1947,7 +1969,7 @@ details[open] > .teacher-tools-summary::after {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   box-shadow: 0 2px 0 var(--panel-border);
   position: relative;
 }
@@ -2078,11 +2100,11 @@ details[open] > .teacher-tools-summary::after {
   overflow: hidden;
   text-align: center;
   box-shadow: 0 18px 44px rgba(28, 74, 42, 0.18);
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: popIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .completion-message:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.45);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
 }
 
@@ -2261,10 +2283,8 @@ body.has-modal {
 }
 
 @keyframes popIn {
-  0%   { transform: scale(0.6); opacity: 0; }
-  60%  { transform: scale(1.15); opacity: 1; }
-  80%  { transform: scale(0.95); }
-  100% { transform: scale(1); opacity: 1; }
+  from { transform: scale(0.94); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 @keyframes stampDown {
@@ -2277,12 +2297,12 @@ body.has-modal {
    MODE DIFFERENTIATION
    ======================== */
 
-/* Student mode: fondo cuadriculado en lavanda */
+/* Student mode: grid paper tinted by the pupil's theme */
 body[data-tab="student"] {
   background-color: var(--student-bg);
   background-image:
-    linear-gradient(90deg, transparent 96%, rgba(99, 71, 181, 0.08) 96%),
-    linear-gradient(0deg, transparent 96%, rgba(99, 71, 181, 0.08) 96%);
+    linear-gradient(90deg, transparent 96%, var(--student-rule) 96%),
+    linear-gradient(0deg, transparent 96%, var(--student-rule) 96%);
   background-size: 32px 32px;
 }
 
@@ -2304,19 +2324,19 @@ body[data-tab="student"] .section-kicker {
 
 body[data-tab="student"] .primary-button {
   background: var(--student-primary);
-  box-shadow: 0 4px 0 #4a3590;
+  box-shadow: 0 4px 0 var(--student-primary-strong);
 }
 
 body[data-tab="student"] .primary-button:hover {
-  background: #5539a0;
+  background: color-mix(in srgb, var(--student-primary) 85%, var(--student-primary-strong));
 }
 
 body[data-tab="student"] .primary-button:active {
-  box-shadow: 0 1px 0 #4a3590;
+  box-shadow: 0 1px 0 var(--student-primary-strong);
 }
 
 body[data-tab="student"] .panel {
-  border-color: #c8bfe0;
+  border-color: var(--student-border);
 }
 
 /* ========================
@@ -2398,10 +2418,6 @@ body[data-tab="student"] .panel {
 
   .hero {
     grid-template-columns: 1fr;
-  }
-
-  .hero-card {
-    display: none;
   }
 
   .hero .lang-selector {
@@ -3127,7 +3143,6 @@ body[data-tab="student"] .panel {
 @media screen {
   :root {
     --notebook-rule: color-mix(in srgb, var(--bg-dots) 45%, transparent);
-    --student-rule: color-mix(in srgb, var(--student-primary) 5%, transparent);
     --classroom-shadow: 0 2px 6px color-mix(in srgb, var(--ink-strong) 7%, transparent);
   }
 
@@ -3142,7 +3157,7 @@ body[data-tab="student"] .panel {
   }
 
   .hero {
-    grid-template-areas: "copy languages" "details details";
+    grid-template-areas: "copy languages";
     align-items: start;
     gap: 0.65rem 1.5rem;
     padding: 0.5rem 0.5rem 0.25rem;
@@ -3176,24 +3191,6 @@ body[data-tab="student"] .panel {
     margin: 0;
     gap: 0.35rem;
   }
-
-  .hero-card {
-    grid-area: details;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.25rem;
-  }
-
-  .hero-stat {
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    color: var(--ink-soft);
-  }
-
-  .hero-stat:hover { transform: none; }
-  .hero-stat strong { font-weight: 400; }
 
   .main-tabs,
   .panel {
@@ -3231,10 +3228,6 @@ body[data-tab="student"] .panel {
   }
 
   .teacher-ready-card .section-kicker { margin: 0; }
-  .teacher-ready-actions {
-    grid-template-columns: minmax(240px, 1.4fr) repeat(3, minmax(0, 1fr));
-  }
-
   .teacher-ready-card:focus-visible,
   .contrast-toggle:focus-visible {
     outline: 3px solid var(--ink-strong);
@@ -3321,11 +3314,11 @@ body[data-tab="student"] .panel {
 
   @media (max-width: 640px) {
     .hero { grid-template-areas: "languages" "copy"; gap: 0.5rem; }
-    .hero-card { display: none; }
     .hero-copy h1 { font-size: 1.45rem; }
     .hero-text { font-size: 0.88rem; }
     .tab-btn { font-size: 0.85rem; gap: 0.4rem; padding: 0.5rem 0.4rem; }
     .teacher-ready-actions { grid-template-columns: minmax(0, 1fr); }
+    .teacher-ready-actions > .primary-button { grid-column: auto; }
     .teacher-ready-card { padding: 1rem; }
     .advanced-settings > summary { grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 0.75rem; }
     .advanced-settings-summary { grid-row: 2; }

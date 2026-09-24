@@ -72,3 +72,19 @@ test("invalid creation keeps focus on the missing field, including after a valid
   await page.getByRole("button", { name: "Crear i revisar l'activitat" }).click();
   await expect(page.getByLabel("Llista de paraules (una per línia)")).toBeFocused();
 });
+
+test("the student area follows the chosen theme and keeps Andika and an opaque focus ring", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("word-search-theme-v1", "bosc"));
+  await generatePuzzle(page, { words: "hipopotam\nbalena\ndofi\npeix", size: "16", timer: "0", hints: "0" });
+  await startStudentSession(page);
+  const styles = await page.evaluate(() => {
+    const tab = getComputedStyle(document.querySelector("#tab-student"));
+    const cell = document.querySelector("#puzzle-grid [role=gridcell]");
+    cell.focus();
+    const cellStyle = getComputedStyle(cell);
+    return { tab: tab.backgroundColor, font: cellStyle.fontFamily, ring: cellStyle.outlineColor };
+  });
+  expect(styles.tab).toBe("rgb(63, 125, 58)"); // Bosc green, not the old fixed purple
+  expect(styles.font).toContain("Andika");
+  expect(styles.ring).not.toContain("rgba");
+});
