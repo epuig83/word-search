@@ -149,3 +149,45 @@ test("clearing invalid text also clears the saved draft and updates pending chan
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem("word-search-draft-v1")).words)).toBe("");
   }
 });
+
+test("library search ignores accents and looks beyond the active category", async ({ page }) => {
+  await page.goto("/index.html");
+  const results = page.locator("#lib-results .lib-word-chip");
+  await page.locator("#lib-search").fill("lleo");
+  await expect(results).toHaveText(["lleó"]);
+  // Animals is the active category; a fruit must still be found.
+  await page.locator("#lib-search").fill("poma");
+  await expect(results).toHaveText(["poma"]);
+});
+
+test("example actions report next to their controls, not far below", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#title-input").fill("Sistema solar");
+  await page.locator("#words-input").fill("sol\nlluna\nmart");
+  await page.locator(".sample-management summary").click();
+  const status = page.locator("#sample-status");
+  await page.locator("#save-sample-button").click();
+  await expect(status).toBeInViewport();
+  await expect(status).toContainText("desat");
+  // A saved example named like a built-in one names its group in the closed select.
+  await expect(page.locator('#sample-select option[value^="custom:"]')).toHaveText(["Sistema solar · Els meus exemples"]);
+  await expect(page.locator("#delete-sample-button")).toBeEnabled();
+  await page.locator("#delete-sample-button").click();
+  await expect(status).toBeHidden();
+  await page.locator("#sample-undo-button").click();
+  await expect(status).toContainText("recuperat");
+  await page.locator("#sample-select").selectOption("builtin:0");
+  await expect(page.locator("#delete-sample-button")).toBeDisabled();
+  await expect(page.locator("#delete-sample-button")).toHaveCSS("cursor", "not-allowed");
+});
+
+test("the variants dialog does not repeat its introduction before preparing", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#title-input").fill("Animals");
+  await page.locator("#words-input").fill("gos\ngat\nlleó");
+  await page.locator("#generate-button").click();
+  await page.locator("#teacher-variants-button").click();
+  await expect(page.locator("#variants-intro")).toBeVisible();
+  await expect(page.locator("#variants-status")).toHaveText("");
+  await expect(page.locator("#variants-print")).toHaveCSS("cursor", "not-allowed");
+});

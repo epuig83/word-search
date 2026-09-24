@@ -146,7 +146,8 @@
           : getTranslations().variants_too_large;
       } else {
         clearPrint();
-        status.textContent = getTranslations().variants_intro;
+        // #variants-intro already explains the models; repeating it here read twice.
+        status.textContent = "";
       }
       print.disabled = !ready || busy;
     }

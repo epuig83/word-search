@@ -48,13 +48,13 @@
     function buildCurrentSampleFromForm() {
       const title = dom.titleInput.value.trim();
       if (!title) {
-        setStatus(getTranslations().msg_sample_requires_title, "error");
+        setSampleStatus(getTranslations().msg_sample_requires_title, "error");
         return null;
       }
 
       const parsed = parseWords(dom.wordsInput.value);
       if (parsed.words.length < 3) {
-        setStatus(getTranslations().msg_sample_requires_words, "error");
+        setSampleStatus(getTranslations().msg_sample_requires_words, "error");
         return null;
       }
 
@@ -79,7 +79,7 @@
         try {
           parsed = JSON.parse(text);
         } catch {
-          setStatus(getTranslations().msg_import_invalid, "error");
+          setSampleStatus(getTranslations().msg_import_invalid, "error");
           return;
         }
 
@@ -88,7 +88,7 @@
         const totalImported = sampleLangs.reduce((sum, lang) => sum + importedSamples[lang].length, 0);
 
         if (!totalImported) {
-          setStatus(getTranslations().msg_import_empty, "error");
+          setSampleStatus(getTranslations().msg_import_empty, "error");
           return;
         }
 
@@ -101,9 +101,9 @@
         }
 
         renderSampleOptions();
-        setStatus(getTranslations().msg_import_success.replace("{count}", totalImported), "success");
+        setSampleStatus(getTranslations().msg_import_success.replace("{count}", totalImported), "success");
       } catch {
-        setStatus(getTranslations().msg_import_read_error, "error");
+        setSampleStatus(getTranslations().msg_import_read_error, "error");
       } finally {
         dom.importSamplesInput.value = "";
       }
@@ -161,7 +161,20 @@
       return Boolean(dom.titleInput.value.trim() || dom.wordsInput.value.trim());
     }
 
+    // Sample actions sit far above #status-message, so they report next to their own
+    // controls. The line is cleared whenever the options are rebuilt (save, delete,
+    // language switch), so it never shows a stale message or language.
+    function setSampleStatus(message, tone) {
+      if (!dom.sampleStatus) return setStatus(message, tone);
+      dom.sampleStatus.textContent = message;
+      dom.sampleStatus.className = `status-message is-${tone}`;
+      dom.sampleStatus.hidden = false;
+      const container = dom.sampleStatus.closest("details");
+      if (container) container.open = true;
+    }
+
     function renderSampleOptions(selectedValue = "") {
+      if (dom.sampleStatus) dom.sampleStatus.hidden = true;
       const builtInSamples = getBuiltInSamplePuzzles(state.lang);
       const customSamples = getCustomSamplePuzzles(state.lang);
       const t = getTranslations();
@@ -187,10 +200,15 @@
       if (customSamples.length) {
         const customGroup = document.createElement("optgroup");
         customGroup.label = t.sample_group_custom;
+        // The closed select hides optgroup labels, so name the group when a saved
+        // example shares its title with a built-in one.
+        const builtInTitles = new Set(builtInSamples.map(sample => normalizeSampleTitle(sample.title)));
         customSamples.forEach(sample => {
           const option = document.createElement("option");
           option.value = `custom:${sample.id}`;
-          option.textContent = sample.title;
+          option.textContent = builtInTitles.has(normalizeSampleTitle(sample.title))
+            ? `${sample.title} · ${t.sample_group_custom}`
+            : sample.title;
           customGroup.appendChild(option);
         });
         dom.sampleSelect.appendChild(customGroup);
@@ -223,7 +241,6 @@
     function deleteCurrentSample() {
       const value = dom.sampleSelect.value;
       if (!value.startsWith("custom:")) return;
-      const t = getTranslations();
       const sampleId = value.slice("custom:".length);
       const lang = state.lang;
       const current = state.customSamples[lang] || [];
@@ -234,7 +251,6 @@
       const removed = current[index];
       state.customSamples[lang] = current.filter((_, i) => i !== index);
       renderSampleOptions();
-      setStatus(t.msg_sample_deleted, "success");
 
       undoSnapshot = { lang, sample: removed, index };
       if (dom.sampleUndoToast) {
@@ -258,13 +274,13 @@
       undoTimeoutId = null;
       if (dom.sampleUndoToast) dom.sampleUndoToast.hidden = true;
       renderSampleOptions(`custom:${sample.id}`);
-      setStatus(getTranslations().msg_sample_saved, "success");
+      setSampleStatus(getTranslations().msg_sample_restored, "success");
     }
 
     async function loadSelectedSample() {
       const sample = resolveSelectedSample();
       if (!sample) {
-        setStatus(getTranslations().msg_choose_sample, "error");
+        setSampleStatus(getTranslations().msg_choose_sample, "error");
         return;
       }
 
@@ -307,7 +323,8 @@
 
     function renderLibrary() {
       const lang = state.lang;
-      const search = dom.libSearch.value.trim().toLowerCase();
+      // Same normalization as the puzzle, so "leon" finds "león".
+      const search = normalizeWord(dom.libSearch.value);
       const categories = getVocabularyCategories(lang);
       const categoryEntries = Object.entries(categories);
       // Starting on null showed "choose a category" on first load on every device, not
@@ -343,14 +360,16 @@
       dom.libResults.innerHTML = "";
       let wordsToShow = [];
       const shouldShowCategoryPrompt = !state.activeCategory && !search;
-      if (state.activeCategory && state.activeCategory !== allCategoryId && categories[state.activeCategory]) {
+      // A search looks through every category: a word from another topic must not
+      // read as "no results" just because a different category chip is active.
+      if (!search && state.activeCategory && state.activeCategory !== allCategoryId && categories[state.activeCategory]) {
         wordsToShow = categories[state.activeCategory].words;
       } else if (!shouldShowCategoryPrompt) {
         categoryEntries.forEach(([, category]) => wordsToShow.push(...category.words));
       }
 
       wordsToShow = [...new Set(wordsToShow)]
-        .filter(word => word.toLowerCase().includes(search))
+        .filter(word => normalizeWord(word).includes(search))
         .sort((left, right) => left.localeCompare(right, lang));
 
       const addedWords = new Set(
@@ -364,7 +383,7 @@
           if (!wordCategoryIndex.has(key)) wordCategoryIndex.set(key, index);
         });
       });
-      const activeCatColorClass = state.activeCategory && state.activeCategory !== allCategoryId
+      const activeCatColorClass = !search && state.activeCategory && state.activeCategory !== allCategoryId
         ? chipColors[categoryEntries.findIndex(([id]) => id === state.activeCategory) % chipColors.length]
         : null;
 
@@ -397,7 +416,7 @@
 
       dom.loadSampleButton.addEventListener("click", () => {
         if (!getBuiltInSamplePuzzles(state.lang).length && !getCustomSamplePuzzles(state.lang).length) {
-          setStatus(getTranslations().msg_no_examples, "error");
+          setSampleStatus(getTranslations().msg_no_examples, "error");
           return;
         }
 
@@ -437,13 +456,13 @@
 
         const savedSample = state.customSamples[state.lang].find(item => normalizeSampleTitle(item.title) === titleKey);
         renderSampleOptions(savedSample ? `custom:${savedSample.id}` : "");
-        setStatus(getTranslations().msg_sample_saved, "success");
+        setSampleStatus(getTranslations().msg_sample_saved, "success");
       });
 
       dom.exportSamplesButton.addEventListener("click", () => {
         const totalSamples = sampleLangs.reduce((sum, lang) => sum + getCustomSamplePuzzles(lang).length, 0);
         if (!totalSamples) {
-          setStatus(getTranslations().msg_export_no_samples, "error");
+          setSampleStatus(getTranslations().msg_export_no_samples, "error");
           return;
         }
 
@@ -462,7 +481,7 @@
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
-        setStatus(getTranslations().msg_export_success, "success");
+        setSampleStatus(getTranslations().msg_export_success, "success");
       });
 
       dom.importSamplesButton.addEventListener("click", () => dom.importSamplesInput.click());

@@ -550,6 +550,7 @@
     importSamplesButton: document.querySelector("#import-samples-button"),
     importSamplesInput: document.querySelector("#import-samples-input"),
     sampleUndoToast: document.querySelector("#sample-undo-toast"),
+    sampleStatus: document.querySelector("#sample-status"),
     sampleUndoButton: document.querySelector("#sample-undo-button"),
     solutionToggleButton: document.querySelector("#solution-toggle-button"),
     resetProgressButton: document.querySelector("#reset-progress-button"),

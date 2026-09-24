@@ -857,7 +857,7 @@ body {
   font-family: var(--font-body);
 }
 
-.sample-action-btn:hover {
+.sample-action-btn:hover:not(:disabled) {
   background: var(--surface-subtle);
   border-color: var(--ink-soft);
 }
@@ -1246,7 +1246,9 @@ body {
 }
 
 .teacher-ready-actions button:disabled,
-.hint-steps button:disabled {
+.hint-steps button:disabled,
+.sample-action-btn:disabled,
+#variants-print:disabled {
   opacity: 0.55;
   box-shadow: none;
   cursor: not-allowed;
