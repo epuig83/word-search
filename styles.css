@@ -408,9 +408,11 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* No global smooth scrolling: focus and pointer scrolls must land instantly, or a
+   tap can start on a button and end elsewhere while the page is still moving. The
+   two deliberate scrollIntoView calls in app.js opt into smooth motion themselves. */
 html {
   font-size: 16px;
-  scroll-behavior: smooth;
 }
 
 body {
@@ -2679,10 +2681,6 @@ body[data-tab="student"] .panel {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
   *,
   *::before,
   *::after {

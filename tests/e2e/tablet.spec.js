@@ -15,6 +15,9 @@ test("iPad cannot open an empty activity with a tap", async ({ page }) => {
 
 for (const lang of ["ca", "es", "en"]) {
   test(`${lang} iPad profile supports taps, orientation changes and recovery`, async ({ page }) => {
+    // A full classroom round trip (play, rotate, reload, unlock) takes 21-25s on CI
+    // runners even when it passes, too close to the default 30s budget.
+    test.slow();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.emulateMedia({ reducedMotion: "reduce" });
