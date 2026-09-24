@@ -234,7 +234,7 @@ test("difficulty preset fills the four config fields in one click", async ({ pag
   await expect(page.locator("#hints-input")).toHaveValue("5");
 });
 
-test("answer-key print button reveals the solution for printing", async ({ page }) => {
+test("answer-key print button stages a ringed answer sheet for printing", async ({ page }) => {
   await page.addInitScript(() => { window.print = () => {}; });
   await generatePuzzle(page);
   await startStudentSession(page);
@@ -242,15 +242,15 @@ test("answer-key print button reveals the solution for printing", async ({ page 
   await page.locator("#teacher-tools summary").click();
   await page.locator("#print-solution-button").click();
 
-  // Reveals solution (mode "teacher" → body[data-mode], which the print CSS
-  // renders as an answer key with shaded solution cells).
-  await expect(page.locator("body")).toHaveAttribute("data-mode", "teacher");
-  await expect(page.locator(".grid-cell.is-solution").first()).toBeVisible();
-
+  // The key prints on its own sheet: the pupil's board and mode stay untouched.
+  await expect(page.locator("body")).toHaveAttribute("data-print-variants", "true");
+  await expect(page.locator("body")).toHaveAttribute("data-mode", "student");
   await page.emulateMedia({ media: "print" });
-  const bg = await page.locator(".grid-cell.is-solution").first()
-    .evaluate(el => getComputedStyle(el).backgroundColor);
-  expect(bg).not.toBe("rgb(255, 255, 255)");
+  const sheet = page.locator("#variant-print-root .variant-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toHaveAttribute("data-solution", "true");
+  await expect(sheet.locator(".variant-mark")).toHaveCount(4);
+  await expect(page.locator("#puzzle-grid")).toBeHidden();
 });
 
 test("PWA manifest loads and the service worker registers @chromium", async ({ page }) => {

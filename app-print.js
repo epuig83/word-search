@@ -84,32 +84,65 @@
       return node;
     }
 
-    function createSheet(puzzle, index, solution = false) {
+    // One ring per word, drawn over the letters in cell units (the grid has no gaps),
+    // so a teacher can see where each word starts and ends even where words cross.
+    // Strokes are foreground ink: they print without "Background graphics".
+    function createAnswerMarks(puzzle) {
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("class", "variant-marks");
+      svg.setAttribute("viewBox", `0 0 ${puzzle.actualSize} ${puzzle.actualSize}`);
+      svg.setAttribute("aria-hidden", "true");
+      puzzle.placements.forEach((placement, index) => {
+        const first = placement.cells[0];
+        const last = placement.cells[placement.cells.length - 1];
+        const length = Math.hypot(last.row - first.row, last.col - first.col);
+        const angle = Math.atan2(last.row - first.row, last.col - first.col) * 180 / Math.PI;
+        const ring = document.createElementNS(ns, "rect");
+        ring.setAttribute("class", `variant-mark wc-${index % 5}`);
+        ring.setAttribute("x", "-0.4");
+        ring.setAttribute("y", "-0.4");
+        ring.setAttribute("width", String(length + 0.8));
+        ring.setAttribute("height", "0.8");
+        ring.setAttribute("rx", "0.4");
+        ring.setAttribute("transform", `translate(${first.col + 0.5} ${first.row + 0.5}) rotate(${angle})`);
+        svg.append(ring);
+      });
+      return svg;
+    }
+
+    // `single` prints the current activity on its own (worksheet or answer key)
+    // with the same sheet as the variants, so every printout shares one style.
+    function createSheet(puzzle, index, solution = false, { single = false } = {}) {
       const t = getTranslations();
       const label = t.variants_model.replace("{model}", String.fromCharCode(65 + index));
       const sheet = element("article", "variant-sheet");
       sheet.dataset.model = String.fromCharCode(65 + index);
       sheet.dataset.solution = String(solution);
       sheet.classList.toggle("is-dense", puzzle.words.length > 24 || puzzle.actualSize > 16);
-      sheet.append(element("p", "variant-label", solution ? `${label} · ${t.print_solution_suffix}` : label));
+      const sheetLabel = single
+        ? (solution ? t.print_solution_suffix : "")
+        : (solution ? `${label} · ${t.print_solution_suffix}` : label);
+      if (sheetLabel) sheet.append(element("p", "variant-label", sheetLabel));
       sheet.append(element("h3", "variant-title", puzzle.title));
       if (!solution) {
         const meta = element("div", "variant-meta");
         meta.append(element("span", "", `${t.print_name_label}:`), element("span", "", `${t.print_date_label}:`));
         sheet.append(meta, element("p", "variant-instructions", t.print_instructions));
       }
-      const highlighted = new Set(solution ? puzzle.placements.flatMap(placement => placement.cells.map(cell => `${cell.row}.${cell.col}`)) : []);
+      const answers = new Set(solution ? puzzle.placements.flatMap(placement => placement.cells.map(cell => `${cell.row}.${cell.col}`)) : []);
       const grid = element("div", "variant-grid");
       grid.style.setProperty("--variant-size", puzzle.actualSize);
       grid.dataset.size = String(puzzle.actualSize);
       grid.setAttribute("role", "img");
-      grid.setAttribute("aria-label", `${label}: ${t.grid_label}`);
+      grid.setAttribute("aria-label", single ? t.grid_label : `${label}: ${t.grid_label}`);
       puzzle.grid.forEach((row, rowIndex) => row.forEach((letter, colIndex) => {
         const cell = element("span", "variant-cell", letter);
         cell.setAttribute("aria-hidden", "true");
-        if (highlighted.has(`${rowIndex}.${colIndex}`)) cell.classList.add("is-answer");
+        if (answers.has(`${rowIndex}.${colIndex}`)) cell.classList.add("is-answer");
         grid.append(cell);
       }));
+      if (solution) grid.append(createAnswerMarks(puzzle));
       const words = element("ul", "variant-words");
       puzzle.words.forEach(word => words.append(element("li", "", word.display)));
       sheet.append(grid, words);
@@ -123,15 +156,36 @@
       root.replaceChildren();
     }
 
+    function sheetsFit() {
+      root.classList.add("is-measuring");
+      const fits = [...root.children].every(sheet => sheet.scrollHeight <= sheet.clientHeight + 1 && sheet.scrollWidth <= sheet.clientWidth + 1);
+      root.classList.remove("is-measuring");
+      return fits;
+    }
+
     function stagePrint() {
       clearPrint();
       const selected = models.slice(0, Number(countInput.value));
       selected.forEach((puzzle, index) => root.append(createSheet(puzzle, index)));
       if (solutionsInput.checked) selected.forEach((puzzle, index) => root.append(createSheet(puzzle, index, true)));
-      root.classList.add("is-measuring");
-      const fits = [...root.children].every(sheet => sheet.scrollHeight <= sheet.clientHeight + 1 && sheet.scrollWidth <= sheet.clientWidth + 1);
-      root.classList.remove("is-measuring");
-      return fits;
+      return sheetsFit();
+    }
+
+    // Returns false when the sheet does not fit one A4 page, so the caller can fall
+    // back to printing the on-screen board.
+    function printSheet({ solution = false } = {}) {
+      const puzzle = getPuzzle();
+      if (!puzzle) return false;
+      clearPrint();
+      root.append(createSheet(puzzle, 0, solution, { single: true }));
+      if (!sheetsFit()) {
+        clearPrint();
+        return false;
+      }
+      document.body.dataset.printVariants = "true";
+      // Synchronous with the user's tap for Safari's print dialog.
+      try { window.print(); } catch { clearPrint(); }
+      return true;
     }
 
     function showPreview() {
@@ -243,6 +297,7 @@
 
     return Object.freeze({
       updateLanguage() { if (!modal.hidden && !busy) showPreview(); },
+      printSheet,
     });
   }
 

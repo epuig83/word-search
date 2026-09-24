@@ -1908,6 +1908,13 @@ body {
   margin-bottom: 0.75rem;
 }
 
+/* These toggles were 23px tall on phones; 10px padding brings them to ~43px.
+   ("Manage saved examples" already has its own padding.) */
+.pin-change-section > .teacher-tools-summary,
+.teacher-tools > .teacher-tools-summary {
+  padding-block: 10px;
+}
+
 /* Every details that reuses this summary style (teacher tools, Google Forms results,
    teacher lock) flips its marker when open. */
 details[open] > .teacher-tools-summary::after {
@@ -2595,23 +2602,40 @@ body[data-tab="student"] .panel {
   }
 
   .word-bank {
-    gap: 0.9rem;
+    gap: 0.6rem;
+  }
+
+  /* Words sit above the board on phones (the list comes first by design), so keep
+     them compact enough that the board starts higher. Still >= 36px to tap. */
+  .word-item {
+    min-height: 36px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.92rem;
+  }
+
+  .word-definitions-help {
+    font-size: 0.8rem;
+    line-height: 1.35;
   }
 
   .student-actions {
     gap: 0.6rem;
   }
 
+  /* A pill that hugs its buttons, not a full-width bar: it covers less of the
+     board while the pupil scrolls, and page padding still lets the last row clear it. */
   .student-gamebar {
     position: fixed;
     right: max(0.35rem, env(safe-area-inset-right));
     bottom: max(0.45rem, env(safe-area-inset-bottom));
     left: max(0.35rem, env(safe-area-inset-left));
     z-index: 80;
+    width: fit-content;
+    max-width: calc(100% - 0.7rem);
+    margin: 0 auto;
     justify-content: center;
-    margin: 0;
-    padding: 0.45rem;
-    border: 2px solid #c8bfe0;
+    padding: 0.35rem;
+    border: 2px solid var(--student-border);
     border-radius: var(--radius-lg);
     background: var(--panel);
     background: color-mix(in srgb, var(--panel) 94%, transparent);
@@ -2652,10 +2676,16 @@ body[data-tab="student"] .panel {
     padding: 0.25rem;
   }
 
+  /* Tab labels stay on one line: drop the icon before the text has to wrap. */
   .tab-btn {
     gap: 0.35rem;
     padding: 0.7rem 0.4rem;
     font-size: 0.86rem;
+    white-space: nowrap;
+  }
+
+  .tab-btn .tab-icon {
+    display: none;
   }
 
   .tab-icon {
@@ -3329,7 +3359,7 @@ body[data-tab="student"] .panel {
     .board-appearance { justify-content: flex-start; }
     .puzzle-layout { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
     .word-bank { gap: 0.5rem; }
-    .student-gamebar { margin: 0; }
+    .student-gamebar { margin: 0 auto; }
     .student-start-card { padding: 1rem; }
     .student-start-card h2 { font-size: 1.45rem; }
   }
@@ -3373,9 +3403,17 @@ body[data-tab="student"] .panel {
 .variant-meta { display: flex; gap: 1rem; margin-bottom: 0.5rem; font-size: 0.7rem; }
 .variant-meta span { flex: 1; border-bottom: 1px solid #888; padding-bottom: 0.4rem; }
 .variant-sheet .variant-instructions, .variant-sheet .variant-learning { color: #303030; margin: 0.5rem 0; font-size: 0.75rem; line-height: 1.3; }
-.variant-grid { display: grid; grid-template-columns: repeat(var(--variant-size), minmax(0, 1fr)); width: 100%; aspect-ratio: 1; border-top: 1px solid #aaa; border-left: 1px solid #aaa; margin: 0.6rem auto; }
+.variant-grid { position: relative; display: grid; grid-template-columns: repeat(var(--variant-size), minmax(0, 1fr)); width: 100%; aspect-ratio: 1; border-top: 1px solid #aaa; border-left: 1px solid #aaa; margin: 0.6rem auto; }
 .variant-cell { display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: clamp(0.65rem, 1.4vw, 1rem); line-height: 1; color: #000; background: #fff; border-right: 1px solid #aaa; border-bottom: 1px solid #aaa; }
-.variant-cell.is-answer { background: #ffeaa0; box-shadow: inset 0 0 0 1px #65531a; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Answer keys ring each word (see createAnswerMarks) instead of filling every
+   answer cell: with crossing words a flat fill covered most of the board. */
+.variant-cell.is-answer { font-weight: 800; }
+.variant-marks { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.variant-mark { fill: none; stroke-width: 0.075; stroke: var(--found); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.variant-mark.wc-1 { stroke: var(--word-1); }
+.variant-mark.wc-2 { stroke: var(--word-2); }
+.variant-mark.wc-3 { stroke: var(--word-3); }
+.variant-mark.wc-4 { stroke: var(--word-4); }
 .variant-words { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.2rem 0.5rem; padding: 0; margin: 0.5rem 0; list-style: none; font-size: 0.8rem; overflow-wrap: anywhere; }
 #variant-print-root { display: none; }
 #variant-print-root.is-measuring { display: block; position: fixed; top: 0; left: -100000px; width: 180mm; pointer-events: none; }

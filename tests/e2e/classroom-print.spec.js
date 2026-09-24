@@ -20,22 +20,24 @@ for (const lang of ["ca", "es", "en"]) {
         await page.emulateMedia({ media: "screen" });
         await page.locator(solution ? "#teacher-print-solution-button" : "#teacher-print-button").click();
         await page.emulateMedia({ media: "print" });
-        await expect(page.locator("#puzzle-grid")).toBeVisible();
-        await expect(page.locator("#word-list")).toBeVisible();
-        await expect(page.locator("#word-definitions-help")).toBeHidden();
+        // The activity prints on the same isolated sheet as the variants.
+        const sheet = page.locator("#variant-print-root .variant-sheet");
+        await expect(sheet).toHaveCount(1);
+        await expect(sheet).toBeVisible();
+        await expect(page.locator("#puzzle-grid")).toBeHidden();
         await expect(page.locator(".skip-link")).toBeHidden();
-        await expect(page.locator("#student-actions")).toBeHidden();
+        const cells = await sheet.locator(".variant-cell").count();
+        expect(cells).toBe(Number(size) ** 2);
         if (solution) {
-          await expect(page.locator(".grid-cell.is-solution").first()).toBeVisible();
-          await expect(page.locator(".print-learning-prompt")).toBeHidden();
-          // Browsers drop backgrounds unless "Background graphics" is ticked, which is
-          // off by default — so the answer key has to ask for its colour explicitly or
-          // the teacher prints a sheet with no highlight at all.
-          await expect(page.locator(".grid-cell.is-solution").first())
-            .toHaveCSS("print-color-adjust", "exact");
+          // One ring per word: crossing words stay readable, and strokes are ink,
+          // so the key survives the default "no background graphics" print setting.
+          const words = await page.evaluate(() => globalThis.WORD_SEARCH_CORE.decodePuzzleConfig(JSON.parse(localStorage.getItem("word-search-activity-v1")).key).words.split("\n").filter(Boolean).length);
+          await expect(sheet.locator(".variant-mark")).toHaveCount(words);
+          await expect(sheet.locator(".variant-learning")).toHaveCount(0);
         } else {
-          await expect(page.locator("#print-meta")).toBeVisible();
-          await expect(page.locator(".print-learning-prompt")).toBeVisible();
+          await expect(sheet.locator(".variant-meta")).toBeVisible();
+          await expect(sheet.locator(".variant-learning")).toBeVisible();
+          await expect(sheet.locator(".variant-mark")).toHaveCount(0);
         }
         const filename = `${solution ? "answer-key" : "worksheet"}-${lang}-${size}.pdf`;
         const pdf = await page.pdf({ path: testInfo.outputPath(filename), format: "A4", preferCSSPageSize: true, printBackground: true });

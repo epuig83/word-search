@@ -1240,17 +1240,21 @@
       return;
     }
 
+    if (printController.printSheet({ solution: false })) return;
     window.print();
   }
 
-  // Reveal the solution (mode "teacher" drives body[data-mode], which the print
-  // CSS already renders as an answer key), print, then restore the prior mode.
+  // Prints the answer key on the isolated print sheet (one ring per word). Only a
+  // board too big for one A4 sheet falls back to revealing the on-screen solution
+  // (mode "teacher" drives body[data-mode]) and restoring the prior mode afterwards.
   function printAnswerKey() {
     if (!requireCurrentActivity()) return;
     if (!state.puzzle) {
       setStatus(TRANSLATIONS[state.lang].msg_print_without_puzzle, "error");
       return;
     }
+    if (printController.printSheet({ solution: true })) return;
+    // Fallback for boards too big for one sheet: print the on-screen answer key.
     const prevMode = state.mode;
     if (prevMode !== "teacher") {
       state.mode = "teacher";
