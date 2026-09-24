@@ -121,7 +121,9 @@
       // words such as "os" are valid; single letters get their own hint.
       const shortWords = [];
       const skippedWords = [];
+      const strippedWords = [];
       const seen = new Set();
+      let distinctValid = 0;
       dom.wordsInput.value
         .split(/[\n,;]+/)
         .map(token => token.trim())
@@ -130,6 +132,12 @@
           const cleaned = normalizeWord(token);
           if (cleaned.length === 1) shortWords.push(token);
           else if (cleaned.length === 0 || seen.has(cleaned)) skippedWords.push(token);
+          else {
+            distinctValid += 1;
+            // Letters (accented too), spaces, apostrophes, hyphens and the Catalan
+            // middle dot are expected; digits or other symbols silently vanish.
+            if (/[^\p{L}\s'’\-·.]/u.test(token)) strippedWords.push(token);
+          }
           seen.add(cleaned);
         });
 
@@ -141,6 +149,11 @@
       if (tooLong) messages.push(t.msg_puzzle_word_too_long.replace("{word}", tooLong.display));
       if (shortWords.length) messages.push(t.words_too_short.replace("{words}", shortWords.join(", ")));
       if (skippedWords.length) messages.push(t.words_skipped.replace("{words}", skippedWords.join(", ")));
+      if (strippedWords.length) messages.push(t.words_symbols_removed.replace("{words}", strippedWords.join(", ")));
+      // parseWords keeps only the first MAX_WORDS distinct words.
+      if (distinctValid > count) {
+        messages.push(t.words_over_limit.replace("{max}", count).replace("{count}", distinctValid - count));
+      }
 
       dom.wordsCount.textContent = t.words_count.replace("{count}", count);
       dom.wordsCount.className = "words-count-pill" + (countTone ? ` is-${countTone}` : "");

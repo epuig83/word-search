@@ -548,7 +548,8 @@
       // revealed solution; "Restart game" stays beside the board.
       const showCompletionCard = (isComplete || isExpiredUnfinished) && !state.completionDismissed;
       const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
-      const hasSendResults = Boolean(isComplete && formParsed);
+      // A pupil who runs out of time can still send a partial result (e.g. 2/3).
+      const hasSendResults = Boolean(showCompletionCard && formParsed);
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-complete", isComplete);
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-expired", isExpiredUnfinished);
       dom.completionMessage.hidden = !showCompletionCard;

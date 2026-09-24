@@ -251,3 +251,13 @@ test("each library chip group is a single Tab stop with arrow-key navigation", a
   const focusedInLibrary = await page.evaluate(() => Boolean(document.activeElement.closest("#lib-categories, #lib-results")));
   expect(focusedInLibrary).toBe(false);
 });
+
+test("the words helper explains removed symbols and the 60-word limit", async ({ page }) => {
+  await page.goto("/index.html");
+  const many = Array.from({ length: 62 }, (_, i) => `mot${String.fromCharCode(97 + (i % 26))}${String.fromCharCode(97 + Math.floor(i / 26))}`);
+  await page.locator("#words-input").fill(["1a2b", "col·legi", "d'aigua", ...many].join("\n"));
+  const feedback = page.locator("#words-feedback");
+  await expect(feedback).toContainText("1a2b");
+  await expect(feedback).not.toContainText("col·legi");
+  await expect(feedback).toContainText("Màxim 60 paraules: s'ometen les 5 últimes.");
+});

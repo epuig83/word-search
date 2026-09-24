@@ -7,6 +7,11 @@ function lettersForPlacement(grid, placement) {
   return placement.cells.map(cell => grid[cell.row][cell.col]).join("");
 }
 
+test("normalizeWord spells out ligatures instead of dropping them", () => {
+  assert.equal(core.normalizeWord("œuf"), "OEUF");
+  assert.equal(core.normalizeWord("Æsir"), "AESIR");
+});
+
 test("normalizeWord removes accents and keeps Ñ", () => {
   assert.equal(core.normalizeWord("cañón-áéíóú ç"), "CAÑONAEIOUC");
 });

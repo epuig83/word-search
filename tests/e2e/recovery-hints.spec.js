@@ -281,3 +281,20 @@ test("pupils can lift the time-up card to study the revealed solution", async ({
   await expect(page.locator("#puzzle-grid [role=gridcell]:focus")).toHaveCount(1);
   await expect(page.locator("#reset-progress-button")).toBeVisible();
 });
+
+test("a pupil who runs out of time can still send a partial result", async ({ page }) => {
+  await installPausedClock(page);
+  await page.addInitScript(() => { window.__opened = []; window.open = url => { window.__opened.push(url); return null; }; });
+  await generatePuzzle(page, {
+    size: "8", timer: "300", hints: "0",
+    formTemplate: "https://docs.google.com/forms/d/e/ABC/viewform?entry.1=n&entry.2=c&entry.3=r&entry.4=t",
+  });
+  await startStudentSession(page);
+  await page.clock.runFor(301000);
+  await expect(page.locator("#send-results-button")).toBeVisible();
+  await page.locator("#send-results-button").click();
+  await page.locator("#student-nom-input").fill("Pupil");
+  await page.locator("#student-name-modal button[type=submit]").click();
+  const opened = await page.evaluate(() => window.__opened);
+  expect(decodeURIComponent(opened[0])).toContain("entry.3=0/4");
+});

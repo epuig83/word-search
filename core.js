@@ -33,6 +33,9 @@
   function normalizeWord(value) {
     return String(value ?? "")
       .toUpperCase()
+      // Ligatures have no NFD decomposition, so spell them out instead of dropping them.
+      .replace(/Œ/g, "OE")
+      .replace(/Æ/g, "AE")
       .replace(/Ñ/g, "\u0000")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
