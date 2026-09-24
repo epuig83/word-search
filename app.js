@@ -364,6 +364,7 @@
     boardFlash: null,
     wrongCells: [],
     hintCell: null,
+    completionDismissed: false,
     progressSaveWarned: false,
     restoring: true,
     generatedForm: null,
@@ -425,6 +426,7 @@
       boardFlash: null,
       wrongCells: [],
       hintCell: null,
+      completionDismissed: false,
     };
   }
 
@@ -594,6 +596,7 @@
     completionTime: document.querySelector("#completion-time"),
     celebrationCanvas: document.querySelector("#celebration-canvas"),
     playAgainButton: document.querySelector("#play-again-button"),
+    viewBoardButton: document.querySelector("#view-board-button"),
     langBtns: document.querySelectorAll(".lang-btn"),
     themeBtns: document.querySelectorAll(".theme-btn"),
     contrastToggle: document.querySelector("#contrast-toggle"),
@@ -758,6 +761,8 @@
       .replace(/\{size\}/g, puzzle.actualSize)
       .replace("{difficulty}", difficultyLabel)];
     if (puzzle.timerDuration > 0) parts.push(formatTimerSummary(puzzle.timerDuration, t));
+    // Unlimited hints are the default; a limit is worth confirming before class.
+    if (puzzle.hintsAllowed !== -1) parts.push(`${t.hints_label}: ${formatHintsSummary(puzzle.hintsAllowed, t)}`);
     return parts.join(" · ");
   }
 
@@ -1563,6 +1568,7 @@
         const invalid = value && !parseFormEntries(value);
         errorEl.style.display = invalid ? "block" : "none";
         errorEl.textContent = invalid ? TRANSLATIONS[state.lang].form_url_invalid : "";
+        dom.formTemplateInput.setAttribute("aria-invalid", String(Boolean(invalid)));
       }
       onTeacherFormChange();
     });

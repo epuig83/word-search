@@ -1886,7 +1886,9 @@ body {
   margin-bottom: 0.75rem;
 }
 
-.teacher-tools[open] .teacher-tools-summary::after {
+/* Every details that reuses this summary style (teacher tools, Google Forms results,
+   teacher lock) flips its marker when open. */
+details[open] > .teacher-tools-summary::after {
   content: "−";
 }
 

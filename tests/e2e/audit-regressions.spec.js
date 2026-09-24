@@ -191,3 +191,33 @@ test("the variants dialog does not repeat its introduction before preparing", as
   await expect(page.locator("#variants-status")).toHaveText("");
   await expect(page.locator("#variants-print")).toHaveCSS("cursor", "not-allowed");
 });
+
+test("keyboard users keep their place in the word library", async ({ page }) => {
+  await page.goto("/index.html");
+  const fruits = page.locator("#lib-categories .category-chip", { hasText: "Fruites" });
+  await fruits.focus();
+  await page.keyboard.press("Enter");
+  await expect(fruits).toBeFocused();
+  await expect(fruits).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#lib-categories .category-chip", { hasText: "Animals" })).toHaveAttribute("aria-pressed", "false");
+
+  const chips = page.locator("#lib-results .lib-word-chip");
+  const first = await chips.nth(0).textContent();
+  const second = await chips.nth(1).textContent();
+  await chips.nth(0).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#words-input")).toHaveValue(first);
+  await expect(page.locator("#lib-results .lib-word-chip:focus")).toHaveText(second);
+});
+
+test("open teacher sections show a minus marker and the form URL error is announced", async ({ page }) => {
+  await page.goto("/index.html");
+  const summary = page.locator("#form-config-details > summary");
+  await summary.click();
+  expect(await summary.evaluate(el => getComputedStyle(el, "::after").content)).toBe('"−"');
+  await page.locator("#form-template-input").fill("hola");
+  await expect(page.locator("#form-url-error")).toHaveAttribute("role", "alert");
+  await expect(page.locator("#form-template-input")).toHaveAttribute("aria-invalid", "true");
+  await page.locator("#form-template-input").fill("");
+  await expect(page.locator("#form-template-input")).toHaveAttribute("aria-invalid", "false");
+});

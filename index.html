@@ -85,6 +85,7 @@
       <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v5l3 2M9 2h6"/></symbol>
       <symbol id="icon-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M8.5 15.5A7 7 0 1 1 15.5 15.5L15 18H9l-.5-2.5Z"/></symbol>
       <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+      <symbol id="icon-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7Z"/></symbol>
       <symbol id="icon-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18A9 9 0 0 0 12 3Z" fill="currentColor" stroke="none"/></symbol>
     </svg>
     <a href="#main-content" class="skip-link" data-t="skip_to_main">Vés al contingut principal</a>
@@ -357,8 +358,8 @@
             <div class="pin-change-form">
               <div class="field">
                 <label for="form-template-input" data-t="form_url_label">URL plantilla pre-omplerta</label>
-                <input type="url" id="form-template-input" placeholder="https://docs.google.com/forms/d/..." style="width:100%;" />
-                <p id="form-url-error" class="status-message is-error" style="display:none; margin-top:0.25rem;"></p>
+                <input type="url" id="form-template-input" placeholder="https://docs.google.com/forms/d/..." style="width:100%;" aria-describedby="form-url-error" />
+                <p id="form-url-error" class="status-message is-error" role="alert" style="display:none; margin-top:0.25rem;"></p>
               </div>
               <p class="sample-note" data-t="form_config_note">
                 A Google Forms, obtén un enllaç preomplert, omple els camps de nom, cognoms, resultat i tema, copia l'URL i enganxa-la aquí.
@@ -509,6 +510,7 @@
                       <button type="button" id="play-again-button" class="ghost-button completion-message-button" data-t="btn_play_again" hidden>
                         Tornar a jugar
                       </button>
+                      <button type="button" id="view-board-button" class="ghost-button completion-message-button" data-t="btn_view_board" hidden>Veure la sopa</button>
                     </div>
                   </div>
                 </div>

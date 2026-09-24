@@ -260,3 +260,24 @@ test("the last hint can be repeated but cannot reveal new information", async ({
   await page.locator("#hint-word-select").selectOption(placements()[1].wordId);
   await expect(page.locator("#hint-start-button")).toBeDisabled();
 });
+
+test("pupils can lift the time-up card to study the revealed solution", async ({ page }) => {
+  await installPausedClock(page);
+  await generatePuzzle(page, { size: "8", timer: "300", hints: "1", openStudent: false });
+  await expect(page.locator("#teacher-ready-meta")).toContainText("Pistes: 1");
+  await page.locator("#teacher-open-student-button").click();
+  await startStudentSession(page);
+
+  await page.locator("#pause-button").click();
+  await expect(page.locator("#pause-button use")).toHaveAttribute("href", "#icon-play");
+  await page.locator("#pause-button").click();
+  await expect(page.locator("#pause-button use")).toHaveAttribute("href", "#icon-pause");
+
+  await page.clock.runFor(301000);
+  await expect(page.locator("#completion-message")).toBeVisible();
+  await page.locator("#view-board-button").click();
+  await expect(page.locator("#completion-message")).toBeHidden();
+  await expect(page.locator(".grid-cell.is-solution").first()).toBeVisible();
+  await expect(page.locator("#puzzle-grid [role=gridcell]:focus")).toHaveCount(1);
+  await expect(page.locator("#reset-progress-button")).toBeVisible();
+});

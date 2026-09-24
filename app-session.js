@@ -169,6 +169,12 @@
         dom.playAgainButton.addEventListener("click", restartPuzzle);
       }
 
+      dom.viewBoardButton?.addEventListener("click", () => {
+        state.completionDismissed = true;
+        render();
+        (dom.puzzleGrid?.querySelector('[tabindex="0"]') || dom.puzzleGrid?.querySelector("[role=gridcell]"))?.focus();
+      });
+
       dom.printButton.addEventListener("click", () => printCurrentPuzzle());
       dom.tabTeacher.addEventListener("click", () => {
         if (state.activeTab === "teacher") return;

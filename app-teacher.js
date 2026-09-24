@@ -338,22 +338,18 @@
       const allButton = document.createElement("button");
       allButton.type = "button";
       allButton.className = "category-chip" + (isAllCategoriesSelected ? " is-active" : "");
+      allButton.setAttribute("aria-pressed", String(isAllCategoriesSelected));
       allButton.textContent = getTranslations().all_categories;
-      allButton.addEventListener("click", () => {
-        state.activeCategory = allCategoryId;
-        renderLibrary();
-      });
+      allButton.addEventListener("click", () => selectCategory(allCategoryId));
       dom.libCategories.appendChild(allButton);
 
       categoryEntries.forEach(([categoryId, category]) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "category-chip" + (state.activeCategory === categoryId ? " is-active" : "");
+        button.setAttribute("aria-pressed", String(state.activeCategory === categoryId));
         button.textContent = category.label;
-        button.addEventListener("click", () => {
-          state.activeCategory = categoryId;
-          renderLibrary();
-        });
+        button.addEventListener("click", () => selectCategory(categoryId));
         dom.libCategories.appendChild(button);
       });
 
@@ -406,9 +402,28 @@
         button.className = `lib-word-chip ${colorClass}${isAdded ? " is-added" : ""}`;
         button.textContent = word;
         button.disabled = isAdded;
-        button.addEventListener("click", () => appendLibraryWord(word));
+        button.addEventListener("click", () => {
+          appendLibraryWord(word);
+          focusLibraryChipAfter(word);
+        });
         dom.libResults.appendChild(button);
       });
+    }
+
+    // Both helpers run after renderLibrary() replaced every chip, which drops focus to
+    // <body>. Put it back where a keyboard or screen reader user left off.
+    function selectCategory(categoryId) {
+      state.activeCategory = categoryId;
+      renderLibrary();
+      dom.libCategories.querySelector('[aria-pressed="true"]')?.focus();
+    }
+
+    function focusLibraryChipAfter(word) {
+      const chips = [...dom.libResults.querySelectorAll(".lib-word-chip")];
+      const index = chips.findIndex(chip => chip.textContent === word);
+      const next = chips.slice(index + 1).find(chip => !chip.disabled) ||
+        chips.slice(0, Math.max(index, 0)).reverse().find(chip => !chip.disabled);
+      (next || dom.wordsInput).focus();
     }
 
     function bindEvents() {

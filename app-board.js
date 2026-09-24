@@ -544,7 +544,9 @@
 
       const isComplete = state.foundWordIds.size === state.puzzle.words.length;
       const isExpiredUnfinished = state.timerExpired && !isComplete;
-      const showCompletionCard = isComplete || isExpiredUnfinished;
+      // "View the puzzle" lifts the card so pupils can study the found words or the
+      // revealed solution; "Restart game" stays beside the board.
+      const showCompletionCard = (isComplete || isExpiredUnfinished) && !state.completionDismissed;
       const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
       const hasSendResults = Boolean(isComplete && formParsed);
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-complete", isComplete);
@@ -573,6 +575,7 @@
         }
       }
       if (dom.playAgainButton) dom.playAgainButton.hidden = !showCompletionCard;
+      if (dom.viewBoardButton) dom.viewBoardButton.hidden = !showCompletionCard;
       if (dom.pauseButton) {
         const showPause = Boolean(
           state.puzzle.timerDuration > 0 &&
@@ -584,6 +587,7 @@
         const pauseLabel = dom.pauseButton.querySelector(".button-label");
         if (pauseLabel) pauseLabel.textContent = state.timerPaused ? t.btn_resume : t.btn_pause;
         else dom.pauseButton.textContent = state.timerPaused ? t.btn_resume : t.btn_pause;
+        dom.pauseButton.querySelector("use")?.setAttribute("href", state.timerPaused ? "#icon-play" : "#icon-pause");
         dom.pauseButton.setAttribute("aria-pressed", String(Boolean(state.timerPaused)));
       }
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-paused", Boolean(state.timerPaused));
