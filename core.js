@@ -32,19 +32,22 @@
 
   function normalizeWord(value) {
     return String(value ?? "")
+      // Pasted text may carry "n" + combining tilde; compose it so Ñ survives.
+      .normalize("NFC")
       .toUpperCase()
       // Ligatures have no NFD decomposition, so spell them out instead of dropping them.
       .replace(/Œ/g, "OE")
       .replace(/Æ/g, "AE")
       .replace(/Ñ/g, "\u0000")
-      .normalize("NFD")
+      // NFKD also splits the single-character Catalan Ŀ into L + middle dot.
+      .normalize("NFKD")
       .replace(/[\u0300-\u036f]/g, "")
       .split("\u0000").join("Ñ")
       .replace(/[^A-ZÑ]/g, "");
   }
 
   function parseWords(rawText) {
-    const tokens = String(rawText ?? "").split(/[\n,;]+/).map(token => token.trim()).filter(Boolean);
+    const tokens = String(rawText ?? "").split(/[\n\t,;]+/).map(token => token.trim()).filter(Boolean);
     const words = [];
     const seen = new Set();
     for (const token of tokens) {

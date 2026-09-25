@@ -167,6 +167,10 @@
         item.dataset.definable = String(isDefinable);
         const textElement = document.createElement(isDefinable ? "button" : "span");
         textElement.textContent = word.display;
+        // The check and the strike are visual only; this names the found state.
+        const foundLabel = document.createElement("span");
+        foundLabel.className = "visually-hidden word-found-label";
+        textElement.appendChild(foundLabel);
         const checkSpan = document.createElement("span");
         checkSpan.className = "check-icon";
         checkSpan.innerHTML = svgCheck;
@@ -509,6 +513,7 @@
           item.className = "word-item" +
             (item.dataset.definable === "true" ? " is-definable" : "") +
             (solved ? ` is-found ${colorClass}` : "");
+          item.querySelector(".word-found-label").textContent = solved ? `, ${t.grid_cell_found}` : "";
         }
       });
       if (state.activeDefinitionWordId) renderWordDefinitionModal();
@@ -577,6 +582,7 @@
       }
       if (dom.playAgainButton) dom.playAgainButton.hidden = !showCompletionCard;
       if (dom.viewBoardButton) dom.viewBoardButton.hidden = !showCompletionCard;
+      if (dom.viewResultButton) dom.viewResultButton.hidden = !((isComplete || isExpiredUnfinished) && state.completionDismissed);
       if (dom.pauseButton) {
         const showPause = Boolean(
           state.puzzle.timerDuration > 0 &&

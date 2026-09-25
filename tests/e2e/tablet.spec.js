@@ -25,6 +25,10 @@ for (const lang of ["ca", "es", "en"]) {
     await page.locator(`[data-lang="${lang}"]`).tap();
     await page.locator("#teacher-open-student-button").tap();
     await page.locator("#student-start-button").tap();
+    for (const swatch of await page.locator(".theme-btn, #contrast-toggle").all()) {
+      const bounds = await swatch.boundingBox();
+      expect(Math.min(bounds.width, bounds.height), "theme and contrast touch targets").toBeGreaterThanOrEqual(44);
+    }
     const cells = await page.evaluate(() => {
       const config = globalThis.WORD_SEARCH_CORE.decodePuzzleConfig(JSON.parse(localStorage.getItem("word-search-activity-v1")).key);
       return config.placementPaths[0].split(",").map(value => value.split(".").map(Number));

@@ -1,7 +1,9 @@
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 const core = require("../../core.js");
-const { startStudentSession, solvePlacement, unlockTeacherView } = require("./helpers");
+const path = require("node:path");
+const { pathToFileURL } = require("node:url");
+const { generatePuzzle, installPausedClock, startStudentSession, solvePlacement, unlockTeacherView } = require("./helpers");
 
 function sharedPath(overrides = {}) {
   return `/es.html?p=${encodeURIComponent(core.encodePuzzleConfig({
@@ -272,4 +274,120 @@ test("on Automatic a word longer than the biggest board asks to shorten it", asy
   await page.locator("#generate-button").click();
   await expect(page.locator("#status-message")).toContainText("Escurça-la");
   await expect(page.locator("#status-message")).not.toContainText("Automàtic");
+});
+
+test("a copy opened from disk switches language and shares the public link", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.addInitScript(() => {
+    window.__copiedText = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText(text) { window.__copiedText = text; return Promise.resolve(); } },
+    });
+  });
+  await page.goto(pathToFileURL(path.resolve(__dirname, "../../index.html")).href);
+  await page.locator('[data-lang="es"]').click();
+  await expect(page.locator("#generate-button")).toHaveText("Crear y revisar la actividad");
+  await page.reload();
+  await expect(page.locator("#generate-button")).toHaveText("Crear y revisar la actividad");
+
+  await page.locator("#title-input").fill("Mar");
+  await page.locator("#words-input").fill("sol\nmar");
+  await page.locator("#generate-button").click();
+  await page.locator("#teacher-share-button").click();
+  // A file:// link would point at the teacher's own disk, and name their account.
+  await expect.poll(() => page.evaluate(() => window.__copiedText))
+    .toMatch(/^https:\/\/epuig83\.github\.io\/word-search\/es\.html\?p=/);
+  expect(errors).toEqual([]);
+});
+
+test("a revealed solution is hidden again for the next pupil", async ({ page }) => {
+  await page.goto(sharedPath());
+  await startStudentSession(page);
+  await page.locator("#teacher-tools summary").click();
+  await page.locator("#solution-toggle-button").click();
+  await page.locator("#pin-input").fill("1234");
+  await page.locator("#pin-submit").click();
+  await expect(page.locator("body")).toHaveAttribute("data-mode", "teacher");
+
+  await page.locator("#reset-progress-button").click();
+  await page.locator("#confirm-modal-confirm").click();
+  await startStudentSession(page);
+  await expect(page.locator("body")).toHaveAttribute("data-mode", "student");
+  await expect(page.locator(".grid-cell.is-solution")).toHaveCount(0);
+});
+
+test("a second finger or a palm does not take over a word being traced", async ({ page }) => {
+  await page.goto(sharedPath());
+  await startStudentSession(page);
+  await page.evaluate(() => {
+    const cell = (row, col) => document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    const fire = (element, type, pointerId) => {
+      const rect = element.getBoundingClientRect();
+      element.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, pointerId, isPrimary: pointerId === 1, pointerType: "touch", button: type === "pointermove" ? -1 : 0,
+        clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2,
+      }));
+    };
+    fire(cell(0, 0), "pointerdown", 1);
+    fire(cell(0, 2), "pointermove", 1);
+    fire(cell(5, 5), "pointerdown", 2);
+    fire(cell(5, 5), "pointerup", 2);
+    fire(cell(0, 2), "pointerup", 1);
+  });
+  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+});
+
+test("time running out leaves focus in an open dialog", async ({ page }) => {
+  await installPausedClock(page);
+  await generatePuzzle(page, { words: "sol\ngat\nmar", size: "8", timer: "300", hints: "0" });
+  await startStudentSession(page);
+  await page.locator(".word-definition-button").first().click();
+  await expect(page.locator("#word-definition-modal")).toBeVisible();
+  await page.clock.runFor(301000);
+  await expect(page.locator("#completion-message")).toBeVisible();
+  // Otherwise Enter lands on "Play again" behind the dialog and wipes the result.
+  await expect(page.locator("#word-definition-modal :focus")).toHaveCount(1);
+});
+
+test("pupils can go back to the result card to send it", async ({ page }) => {
+  await installPausedClock(page);
+  await generatePuzzle(page, {
+    size: "8", timer: "300", hints: "0",
+    formTemplate: "https://docs.google.com/forms/d/e/ABC/viewform?entry.1=n&entry.2=c&entry.3=r&entry.4=t",
+  });
+  await startStudentSession(page);
+  await expect(page.locator("#view-result-button")).toBeHidden();
+  await page.clock.runFor(301000);
+  await page.locator("#view-board-button").click();
+  await expect(page.locator("#send-results-button")).toBeHidden();
+
+  // Keyboard users can still explore the revealed solution.
+  await page.locator('[data-row="0"][data-col="0"]').focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator('[data-row="0"][data-col="1"]')).toBeFocused();
+
+  await page.locator("#view-result-button").click();
+  await expect(page.locator("#send-results-button")).toBeFocused();
+  await expect(page.locator("#view-result-button")).toBeHidden();
+});
+
+test("high contrast hover keeps the first selected letter readable", async ({ page }) => {
+  await page.goto(sharedPath());
+  await startStudentSession(page);
+  await page.locator("#contrast-toggle").click();
+  const anchor = page.locator('[data-row="0"][data-col="0"]');
+  await anchor.click();
+  await expect(anchor).toHaveClass(/is-anchor/);
+  await anchor.hover();
+  await expect(anchor).toHaveCSS("background-image", "none");
+});
+
+test("found words are announced as found in the word list", async ({ page }) => {
+  await page.goto(sharedPath());
+  await startStudentSession(page);
+  await solvePlacement(page, occurrence(2));
+  await expect(page.locator("#word-list .word-item.is-found")).toContainText("palabra encontrada");
+  await expect(page.locator("#word-list .word-item:not(.is-found)")).not.toContainText("palabra encontrada");
 });

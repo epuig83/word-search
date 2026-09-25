@@ -212,3 +212,17 @@ test("buildPuzzleData aborts on an impossible word set instead of hanging", () =
     `generation took ${elapsed}ms, expected the attempt and time budgets to stop it sooner`
   );
 });
+
+// ── Pasted text ────────────────────────────────────────────────────────────
+// Text copied from a PDF or macOS can carry decomposed letters, and a copied
+// spreadsheet row separates its cells with tabs.
+
+test("normalizeWord keeps a decomposed ñ and the one-character Catalan ŀ", () => {
+  assert.equal(core.normalizeWord("año"), "AÑO");
+  assert.equal(core.normalizeWord("coŀlegi"), "COLLEGI");
+  assert.equal(core.normalizeWord("col·legi"), "COLLEGI");
+});
+
+test("parseWords splits a row pasted from a spreadsheet", () => {
+  assert.deepEqual(core.parseWords("gos\tgat\tos").words.map(word => word.cleaned), ["GOS", "GAT", "OS"]);
+});

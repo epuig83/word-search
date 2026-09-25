@@ -204,7 +204,8 @@
       : dom.playAgainButton || dom.completionMessage;
     requestAnimationFrame(() => {
       ensureCompletionMessageVisible();
-      focusTarget?.focus({ preventScroll: true });
+      // An open dialog keeps focus: behind it, Enter would press "Play again".
+      if (!document.body.classList.contains("has-modal")) focusTarget?.focus({ preventScroll: true });
     });
   }
 
@@ -402,6 +403,7 @@
 
   function buildInitialPuzzleProgress() {
     return {
+      mode: "student",
       foundWordIds: new Set(),
       foundWordPaths: new Map(),
       foundPlacementIds: new Set(),
@@ -597,6 +599,7 @@
     celebrationCanvas: document.querySelector("#celebration-canvas"),
     playAgainButton: document.querySelector("#play-again-button"),
     viewBoardButton: document.querySelector("#view-board-button"),
+    viewResultButton: document.querySelector("#view-result-button"),
     langBtns: document.querySelectorAll(".lang-btn"),
     themeBtns: document.querySelectorAll(".theme-btn"),
     contrastToggle: document.querySelector("#contrast-toggle"),
@@ -1021,12 +1024,17 @@
     const currentUrl = new URL(window.location.href);
     if (!currentUrl.searchParams.has("p")) {
       currentUrl.searchParams.delete("lang");
-      const directory = currentUrl.pathname.endsWith("/")
-        ? currentUrl.pathname
-        : currentUrl.pathname.slice(0, currentUrl.pathname.lastIndexOf("/") + 1);
-      const localizedPath = lang === "ca"
-        ? `${directory}${currentUrl.protocol === "file:" ? "index.html" : ""}`
-        : `${directory}${lang}.html`;
+      let localizedPath = currentUrl.pathname;
+      if (currentUrl.protocol === "file:") {
+        // Browsers let file: pages rewrite only their query and hash, so a copy
+        // opened from disk keeps its page and carries the choice in ?lang.
+        currentUrl.searchParams.set("lang", lang);
+      } else {
+        const directory = currentUrl.pathname.endsWith("/")
+          ? currentUrl.pathname
+          : currentUrl.pathname.slice(0, currentUrl.pathname.lastIndexOf("/") + 1);
+        localizedPath = lang === "ca" ? directory : `${directory}${lang}.html`;
+      }
       window.history.replaceState(null, "", `${localizedPath}${currentUrl.search}${currentUrl.hash}`);
     }
     document.querySelectorAll("[data-t]").forEach(el => {
@@ -1163,7 +1171,8 @@
     if (!state.puzzle || !requireCurrentActivity()) return;
     const config = buildShareConfigFromPuzzle(state.puzzle);
     const encoded = encodePuzzleConfig(config);
-    const shareUrl = new URL(window.location.href);
+    // A file: link would only open on this computer and would reveal its folders.
+    const shareUrl = new URL(window.location.protocol === "file:" ? dom.canonicalLink.href : window.location.href);
     shareUrl.search = "";
     shareUrl.hash = "";
     shareUrl.searchParams.set("p", encoded);
@@ -1295,6 +1304,7 @@
     resetPuzzleProgress,
     closeWordDefinitionModal,
     printCurrentPuzzle,
+    printAnswerKey,
     shareCurrentPuzzle,
     confirmDialog,
     // Disabled tabs remain discoverable with arrow keys; activation must leave
@@ -1413,13 +1423,15 @@
     openHintPicker();
   });
   
+  // The grid uses touch-action: none, so a second finger or a resting palm never
+  // cancels the trace: only the pointer that started it may move or finish it.
   dom.puzzleGrid.addEventListener("pointerdown", e => {
     const btn = e.target.closest(".grid-cell");
-    if (!btn || !canInteractWithPuzzle()) return;
+    if (!btn || !e.isPrimary || e.button !== 0 || !canInteractWithPuzzle()) return;
     state.lastBoardInputMode = e.pointerType === "touch" ? "touch" : "pointer";
     const cell = { row: +btn.dataset.row, col: +btn.dataset.col };
     setFocusedCell(cell);
-    state.dragSelection = { start: cell, end: cell, moved: false };
+    state.dragSelection = { start: cell, end: cell, moved: false, pointerId: e.pointerId };
   });
 
   let gridHighlightRafId = null;
@@ -1434,6 +1446,7 @@
   window.addEventListener("pointermove", e => {
     if (!canInteractWithPuzzle()) return;
     if (!state.dragSelection && !state.clickAnchor) return;
+    if (state.dragSelection ? e.pointerId !== state.dragSelection.pointerId : !e.isPrimary) return;
     const hovered = document.elementFromPoint(e.clientX, e.clientY);
     const btn = hovered?.closest(".grid-cell");
     const cell = btn ? { row: +btn.dataset.row, col: +btn.dataset.col } : null;
@@ -1450,8 +1463,8 @@
     }
   });
 
-  window.addEventListener("pointerup", () => {
-    if (!state.dragSelection) return;
+  window.addEventListener("pointerup", e => {
+    if (!state.dragSelection || e.pointerId !== state.dragSelection.pointerId) return;
     if (!canInteractWithPuzzle()) {
       state.dragSelection = null;
       clearSelection();
@@ -1463,11 +1476,11 @@
     render();
   });
 
-  // pointercancel fires when the OS interrupts the gesture (e.g. second touch, scroll,
+  // pointercancel fires when the OS interrupts the gesture (e.g. scroll or the
   // window losing focus). Without this, state.dragSelection would stay active and the
   // next interaction would resume the orphaned drag.
-  window.addEventListener("pointercancel", () => {
-    if (!state.dragSelection) return;
+  window.addEventListener("pointercancel", e => {
+    if (!state.dragSelection || e.pointerId !== state.dragSelection.pointerId) return;
     const wasDragging = state.dragSelection.moved;
     state.dragSelection = null;
     clearSelection();
@@ -1492,7 +1505,9 @@
 
   dom.puzzleGrid.addEventListener("keydown", event => {
     const cell = getGridCellFromElement(event.target);
-    if (!cell || !canInteractWithPuzzle()) return;
+    // Arrows still move over a timed-out or paused board, so the revealed solution
+    // can be explored; only selecting needs a live game.
+    if (!cell || !state.puzzle || !state.studentSessionStarted) return;
     state.lastBoardInputMode = "keyboard";
     setFocusedCell(cell);
 
@@ -1511,6 +1526,8 @@
       focusGridCell(nextCell);
       return;
     }
+
+    if (!canInteractWithPuzzle()) return;
 
     if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
       event.preventDefault();
@@ -1552,7 +1569,6 @@
   });
   dom.sizeInput?.addEventListener("change", () => teacherController.updateWordsHelper());
   syncDifficultyPresetState();
-  dom.printSolutionButton?.addEventListener("click", () => printAnswerKey());
   dom.teacherPrintSolutionButton?.addEventListener("click", () => printAnswerKey());
 
   // Persist progress when the page is backgrounded or closed (covers tab close,

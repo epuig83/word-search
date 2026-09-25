@@ -30,6 +30,7 @@
     resetPuzzleProgress,
     closeWordDefinitionModal,
     printCurrentPuzzle,
+    printAnswerKey,
     shareCurrentPuzzle,
     confirmDialog,
     canOpenStudent = () => true,
@@ -175,7 +176,19 @@
         (dom.puzzleGrid?.querySelector('[tabindex="0"]') || dom.puzzleGrid?.querySelector("[role=gridcell]"))?.focus();
       });
 
+      // "View the puzzle" hides "Send results" with the card, so the way back must stay.
+      dom.viewResultButton?.addEventListener("click", () => {
+        state.completionDismissed = false;
+        render();
+        (dom.sendResultsButton?.hidden === false ? dom.sendResultsButton : dom.playAgainButton)?.focus();
+      });
+
       dom.printButton.addEventListener("click", () => printCurrentPuzzle());
+      // The answer key shows every word, so it is locked like "Show solution".
+      dom.printSolutionButton?.addEventListener("click", () => {
+        if (state.mode === "teacher") printAnswerKey();
+        else openPinModal(() => printAnswerKey());
+      });
       dom.tabTeacher.addEventListener("click", () => {
         if (state.activeTab === "teacher") return;
         openPinModal(() => {

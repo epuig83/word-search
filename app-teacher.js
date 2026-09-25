@@ -126,7 +126,7 @@
       const seen = new Set();
       let distinctValid = 0;
       dom.wordsInput.value
-        .split(/[\n,;]+/)
+        .split(/[\n\t,;]+/)
         .map(token => token.trim())
         .filter(Boolean)
         .forEach(token => {
@@ -135,9 +135,9 @@
           else if (cleaned.length === 0 || seen.has(cleaned)) skippedWords.push(token);
           else {
             distinctValid += 1;
-            // Letters (accented too), spaces, apostrophes, hyphens and the Catalan
-            // middle dot are expected; digits or other symbols silently vanish.
-            if (/[^\p{L}\s'’\-·.]/u.test(token)) strippedWords.push(token);
+            // Letters (accented too, or with a separate accent mark), spaces, apostrophes,
+            // hyphens and the Catalan middle dot are expected; digits or other symbols vanish.
+            if (/[^\p{L}\p{M}\s'’\-·.]/u.test(token)) strippedWords.push(token);
           }
           seen.add(cleaned);
         });
@@ -391,7 +391,7 @@
         .sort((left, right) => left.localeCompare(right, lang));
 
       const addedWords = new Set(
-        dom.wordsInput.value.split(/[\n,;]+/).map(token => token.trim()).filter(Boolean).map(normalizeWord)
+        dom.wordsInput.value.split(/[\n\t,;]+/).map(token => token.trim()).filter(Boolean).map(normalizeWord)
       );
       const chipColors = ["chip-green", "chip-blue", "chip-orange", "chip-purple", "chip-teal"];
       const wordCategoryIndex = new Map();

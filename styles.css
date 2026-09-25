@@ -258,7 +258,9 @@
   background: linear-gradient(145deg, #e4d9c5 0%, #d8cbb3 100%);
 }
 
-:root[data-contrast="high"] .grid-cell:hover {
+/* Plain cells only: this selector outranks the state colors, and over the white
+   letter of a selected cell it left the letter unreadable. */
+:root[data-contrast="high"] .grid-cell:not(.is-anchor, .is-preview, .is-found, .is-solution, .is-hint, .is-wrong):hover {
   background: linear-gradient(175deg, #fff4df 0%, #ecdcc2 100%);
 }
 
@@ -411,6 +413,15 @@ textarea {
   color: var(--bg-cream);
   border-color: var(--ink-strong);
   box-shadow: 0 0 0 2px var(--bg-cream), 0 0 0 4px var(--ink-strong);
+}
+
+/* Pupils pick these with a finger on the iPad. */
+@media (pointer: coarse) {
+  .theme-btn,
+  .contrast-toggle {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* Generic confirm modal actions (replaces native confirm dialogs). */

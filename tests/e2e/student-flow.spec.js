@@ -234,13 +234,18 @@ test("difficulty preset fills the four config fields in one click", async ({ pag
   await expect(page.locator("#hints-input")).toHaveValue("5");
 });
 
-test("answer-key print button stages a ringed answer sheet for printing", async ({ page }) => {
+test("answer-key print button asks for the PIN, then stages a ringed answer sheet", async ({ page }) => {
   await page.addInitScript(() => { window.print = () => {}; });
   await generatePuzzle(page);
   await startStudentSession(page);
 
   await page.locator("#teacher-tools summary").click();
   await page.locator("#print-solution-button").click();
+  // It sits in the pupil's area, like "Show solution", so it is locked the same way.
+  await expect(page.locator("#pin-modal")).toBeVisible();
+  await expect(page.locator("body")).not.toHaveAttribute("data-print-variants", "true");
+  await page.locator("#pin-input").fill("1234");
+  await page.locator("#pin-submit").click();
 
   // The key prints on its own sheet: the pupil's board and mode stay untouched.
   await expect(page.locator("body")).toHaveAttribute("data-print-variants", "true");
