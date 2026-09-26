@@ -131,7 +131,14 @@
     return "unavailable";
   }
 
+  // Catalan, Spanish and English all use the singular for exactly one, so a "_one"
+  // variant of the string is enough.
+  function formatCount(strings, key, count) {
+    return (count === 1 && strings[`${key}_one`] || strings[key]).replace("{count}", count);
+  }
+
   return Object.freeze({
+    formatCount,
     formatSecondsAsClock,
     formatTimerSummary,
     formatHintsSummary,

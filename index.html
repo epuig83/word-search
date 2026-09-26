@@ -192,7 +192,9 @@
                 maxlength="60"
                 placeholder="Ex: Animals de la selva"
                 required
+                aria-describedby="title-error"
               />
+              <p id="title-error" class="status-message is-error field-error" data-t="msg_requires_title" hidden>Escriu un tema per a la sopa de lletres.</p>
             </div>
 
             <!-- Llista de paraules + Biblioteca costat a costat -->
@@ -327,7 +329,7 @@
           </section>
 
           <p id="status-message" class="status-message visually-hidden" role="status" aria-live="polite" data-t="status_default">
-            Escriu les teves paraules i prem "Generar".
+            Afegeix paraules i crea l'activitat quan estigui a punt.
           </p>
 
           <details id="form-config-details" class="pin-change-section">
@@ -356,6 +358,10 @@
             <summary class="teacher-tools-summary" data-t="pin_change_title">Bloqueig docent</summary>
             <form id="pin-change-form" class="pin-change-form">
               <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
+              <div class="field" hidden>
+                <label for="current-pin-input" data-t="pin_label_current">PIN actual</label>
+                <input type="password" id="current-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password" pattern="[0-9]*" required disabled />
+              </div>
               <div class="field">
                 <label for="new-pin-input" data-t="pin_label_new">Nou PIN</label>
                 <input type="password" id="new-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" pattern="[0-9]*" required />

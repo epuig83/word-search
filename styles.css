@@ -849,9 +849,18 @@ body {
   background: var(--panel);
 }
 
+/* The summary fills its box, so a tap anywhere on the closed box opens it; before,
+   only the 23px text line did. */
+.sample-management > summary,
+.advanced-settings > summary {
+  margin: -0.7rem -0.85rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: inherit;
+}
+
 .sample-management[open] > summary,
 .advanced-settings[open] > summary {
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.1rem;
 }
 
 .sample-management[open] > summary::after,
@@ -1199,6 +1208,10 @@ body {
   background: var(--error-bg);
   border-color: var(--error-border);
   color: var(--danger);
+}
+
+.status-message.field-error {
+  margin: 0.35rem 0 0;
 }
 
 /* ========================
@@ -3463,4 +3476,18 @@ body[data-tab="student"] .panel {
   body[data-print-variants] { overflow: visible !important; margin: 0; padding: 0; }
   body[data-print-variants] > * { display: none !important; }
   body[data-print-variants] > #variant-print-root { display: block !important; position: static; width: 180mm; }
+}
+
+/* The teacher panel is used with a finger on the iPad too. Last in the file so it
+   outranks the compact chip and button sizes above. */
+@media (pointer: coarse) {
+  .category-chip,
+  .lib-word-chip,
+  .sample-action-btn,
+  #lib-search,
+  .lang-btn,
+  .hero .lang-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }

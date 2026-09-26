@@ -13,6 +13,24 @@ test("iPad cannot open an empty activity with a tap", async ({ page }) => {
   await expect(page.locator("#student-tab-help")).toBeVisible();
 });
 
+test("teacher controls are finger-sized and whole setting boxes open on tap", async ({ page }) => {
+  await page.goto("/index.html");
+  const box = page.locator("#advanced-settings-details");
+  await box.scrollIntoViewIfNeeded();
+  const bounds = await box.boundingBox();
+  // Bottom-right corner of the box, well away from the summary text.
+  await page.touchscreen.tap(bounds.x + bounds.width - 12, bounds.y + bounds.height - 6);
+  await expect(box).toHaveAttribute("open", "");
+  await page.locator(".sample-management").evaluate(details => { details.open = true; });
+  for (const selector of [".category-chip", ".lib-word-chip", ".sample-action-btn", "#lib-search", ".lang-btn"]) {
+    for (const control of await page.locator(selector).all()) {
+      if (!(await control.isVisible())) continue;
+      const size = await control.boundingBox();
+      expect(Math.min(size.width, size.height), `${selector} touch target`).toBeGreaterThanOrEqual(44);
+    }
+  }
+});
+
 test("a tap on the board sends no click to whatever appears under the finger", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await generatePuzzle(page, { size: "8", timer: "0", openStudent: false });

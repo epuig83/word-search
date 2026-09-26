@@ -364,8 +364,9 @@ test("empty fields report a localized reason instead of a dead button", async ({
 
   await expect(page.locator("#generate-button")).toBeEnabled();
   await page.locator("#generate-button").click();
-  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
-  await expect(page.locator("#status-message")).toContainText("tema");
+  // The missing topic is explained beside the field (the status line is below the fold).
+  await expect(page.locator("#title-error")).toBeVisible();
+  await expect(page.locator("#title-error")).toContainText("tema");
   await expect(page.locator("#title-input")).toBeFocused();
 
   await page.locator("#title-input").fill("Animals");

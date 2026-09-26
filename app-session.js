@@ -309,6 +309,12 @@
           const newPin = dom.newPinInput.value.trim();
           const confirmPin = dom.confirmPinInput.value.trim();
           dom.pinChangeMessage.style.display = "block";
+          // A PIN the teacher chose can only be changed by someone who knows it.
+          if (dom.currentPinInput && !dom.currentPinInput.disabled && dom.currentPinInput.value.trim() !== state.teacherPin) {
+            dom.pinChangeMessage.textContent = t.pin_current_wrong;
+            dom.pinChangeMessage.className = "status-message is-error";
+            return;
+          }
           if (!/^\d{4,8}$/.test(newPin)) {
             dom.pinChangeMessage.textContent = t.pin_too_short;
             dom.pinChangeMessage.className = "status-message is-error";
@@ -324,12 +330,14 @@
             dom.pinChangeMessage.className = "status-message is-error";
             return;
           }
-          state.teacherPin = newPin;
+          // Keep the working PIN until the new one is really stored.
           if (!saveTeacherPin(newPin)) {
             dom.pinChangeMessage.textContent = t.msg_storage_unavailable;
             dom.pinChangeMessage.className = "status-message is-error";
             return;
           }
+          state.teacherPin = newPin;
+          if (dom.currentPinInput) dom.currentPinInput.value = "";
           dom.newPinInput.value = "";
           dom.confirmPinInput.value = "";
           dom.pinChangeMessage.textContent = t.pin_change_success;

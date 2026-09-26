@@ -19,6 +19,7 @@
     normalizeSampleTitle,
     generateSampleId,
     mergeSamples,
+    formatCount,
     sanitizeCustomSampleCollection,
     getBuiltInSamplePuzzles,
     getCustomSamplePuzzles,
@@ -93,6 +94,15 @@
           return;
         }
 
+        // Saving asks before replacing an example with the same title; importing must too.
+        const replaced = sampleLangs.reduce((sum, lang) => {
+          const saved = new Set((state.customSamples[lang] || []).map(sample => normalizeSampleTitle(sample.title)));
+          return sum + importedSamples[lang].filter(sample => saved.has(normalizeSampleTitle(sample.title))).length;
+        }, 0);
+        if (replaced && !(await confirmDialog({ message: getTranslations().msg_confirm_import_replace.replace("{count}", replaced) }))) {
+          return;
+        }
+
         sampleLangs.forEach(lang => {
           state.customSamples[lang] = mergeSamples(state.customSamples[lang], importedSamples[lang], lang);
         });
@@ -102,7 +112,7 @@
         }
 
         renderSampleOptions();
-        setSampleStatus(getTranslations().msg_import_success.replace("{count}", totalImported), "success");
+        setSampleStatus(formatCount(getTranslations(), "msg_import_success", totalImported), "success");
       } catch {
         setSampleStatus(getTranslations().msg_import_read_error, "error");
       } finally {
@@ -158,10 +168,10 @@
       if (strippedWords.length) messages.push(t.words_symbols_removed.replace("{words}", strippedWords.join(", ")));
       // parseWords keeps only the first MAX_WORDS distinct words.
       if (distinctValid > count) {
-        messages.push(t.words_over_limit.replace("{max}", count).replace("{count}", distinctValid - count));
+        messages.push(formatCount(t, "words_over_limit", distinctValid - count).replace("{max}", count));
       }
 
-      dom.wordsCount.textContent = t.words_count.replace("{count}", count);
+      dom.wordsCount.textContent = formatCount(t, "words_count", count);
       dom.wordsCount.className = "words-count-pill" + (countTone ? ` is-${countTone}` : "");
       const feedbackTone = messages.length ? "sparse" : countTone;
       dom.wordsFeedback.textContent = messages.length ? messages.join(" ") : t[feedbackKey];
@@ -292,6 +302,8 @@
       clearTimeout(undoTimeoutId);
       undoTimeoutId = null;
       if (dom.sampleUndoToast) dom.sampleUndoToast.hidden = true;
+      // A save or import during the undo window already stored the deletion.
+      persistCustomSamples();
       renderSampleOptions(`custom:${sample.id}`);
       setSampleStatus(getTranslations().msg_sample_restored, "success");
     }
@@ -498,6 +510,8 @@
 
       if (dom.sampleUndoButton) {
         dom.sampleUndoButton.addEventListener("click", () => undoLastDelete());
+        // Closing the page inside the undo window must still store the deletion.
+        globalThis.addEventListener?.("pagehide", () => commitPendingUndo());
       }
 
       dom.saveSampleButton.addEventListener("click", async () => {

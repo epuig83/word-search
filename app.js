@@ -44,6 +44,7 @@
     formatSecondsAsClock,
     formatTimerSummary,
     formatHintsSummary,
+    formatCount,
     buildSelectionPath,
     shareUrlWithFallback,
   } = APP_HELPERS;
@@ -368,6 +369,7 @@
     completionDismissed: false,
     progressSaveWarned: false,
     restoring: true,
+    keepDraftFromLink: false,
     generatedForm: null,
     resumeAvailable: false,
     hintStages: {},
@@ -538,6 +540,7 @@
     teacherPendingChanges: document.querySelector("#teacher-pending-changes"),
     teacherReadyNote: document.querySelector("#teacher-ready-note"),
     titleInput: document.querySelector("#title-input"),
+    titleError: document.querySelector("#title-error"),
     wordsInput: document.querySelector("#words-input"),
     clearWordsButton: document.querySelector("#clear-words-button"),
     wordsCount: document.querySelector("#words-count"),
@@ -621,6 +624,7 @@
     hintStartButton: document.querySelector("#hint-start-button"),
     hintDirectionButton: document.querySelector("#hint-direction-button"),
     hintCloseButton: document.querySelector("#hint-close-button"),
+    currentPinInput: document.querySelector("#current-pin-input"),
     newPinInput: document.querySelector("#new-pin-input"),
     confirmPinInput: document.querySelector("#confirm-pin-input"),
     pinChangeForm: document.querySelector("#pin-change-form"),
@@ -760,8 +764,7 @@
   function buildTeacherReadyMeta(puzzle) {
     const t = TRANSLATIONS[state.lang];
     const difficultyLabel = t[`diff_${puzzle.difficulty}`] || puzzle.difficultyLabel;
-    const parts = [t.teacher_ready_meta
-      .replace("{count}", puzzle.words.length)
+    const parts = [formatCount(t, "teacher_ready_meta", puzzle.words.length)
       .replace(/\{size\}/g, puzzle.actualSize)
       .replace("{difficulty}", difficultyLabel)];
     if (puzzle.timerDuration > 0) parts.push(formatTimerSummary(puzzle.timerDuration, t));
@@ -871,7 +874,7 @@
   function saveWorkspace() {
     if (state.restoring) return;
     let saved = true;
-    if (state.activeTab === "teacher") saved = saveDraft(readTeacherForm());
+    if (state.activeTab === "teacher" && !state.keepDraftFromLink) saved = saveDraft(readTeacherForm());
     if (state.puzzle && state.generatedForm) {
       saved = saveActivity({ key: puzzleProgressKey(state.puzzle), form: state.generatedForm, activeTab: state.activeTab }) && saved;
     }
@@ -883,13 +886,12 @@
   function onTeacherFormChange() {
     if (state.restoring) return;
     updateTeacherReadyCard();
+    // The ready card already says the activity changed; the status line stays free.
     if (hasPendingChanges()) {
       // Once a shared activity is edited locally, reloading must recover that
       // draft instead of treating the original link as a fresh navigation.
       if (state.activeTab === "teacher") clearSharedPuzzleUrl();
-      setStatus(TRANSLATIONS[state.lang].activity_pending, "warning");
-    } else if (dom.statusMessage.textContent === TRANSLATIONS[state.lang].activity_pending) {
-      setStatus(TRANSLATIONS[state.lang].msg_success, "success");
+      state.keepDraftFromLink = false;
     }
     saveWorkspace();
   }
@@ -910,7 +912,7 @@
     dom.hintDirectionButton.disabled = stage < 1 || (!canSpend && stage < 2);
     dom.hintExplanation.textContent = state.puzzle.hintsAllowed === -1
       ? t.hint_unlimited_note
-      : t.hint_cost_note.replace("{count}", state.hintsRemaining);
+      : formatCount(t, "hint_cost_note", state.hintsRemaining);
   }
 
   function openHintPicker() {
@@ -1066,10 +1068,17 @@
       }
       window.history.replaceState(null, "", `${localizedPath}${currentUrl.search}${currentUrl.hash}`);
     }
+    // #status-message carries data-t for its default text, so the loop below would
+    // replace an error with it. Translate the message on screen instead, when it is
+    // a fixed string; a message with filled-in values keeps its text.
+    const statusText = dom.statusMessage.textContent.trim();
+    const statusKey = statusText && Object.keys(TRANSLATIONS[lang])
+      .find(key => Object.values(TRANSLATIONS).some(strings => strings[key] === statusText));
     document.querySelectorAll("[data-t]").forEach(el => {
       const key = el.getAttribute("data-t");
       if (TRANSLATIONS[lang][key]) el.textContent = TRANSLATIONS[lang][key];
     });
+    dom.statusMessage.textContent = statusKey ? TRANSLATIONS[lang][statusKey] : statusText;
     dom.titleInput.placeholder = TRANSLATIONS[lang].field_topic_placeholder;
     dom.wordsInput.placeholder = TRANSLATIONS[lang].field_words_placeholder;
     dom.libSearch.placeholder = TRANSLATIONS[lang].lib_search_placeholder;
@@ -1128,8 +1137,13 @@
   }
 
   function refreshDefaultPinWarning() {
-    if (!dom.defaultPinWarning) return;
-    dom.defaultPinWarning.hidden = state.teacherPin !== DEFAULT_TEACHER_PIN;
+    const isDefault = state.teacherPin === DEFAULT_TEACHER_PIN;
+    if (dom.defaultPinWarning) dom.defaultPinWarning.hidden = !isDefault;
+    // Only a PIN the teacher chose needs the old one; the default is not shown anywhere.
+    if (dom.currentPinInput) {
+      dom.currentPinInput.disabled = isDefault;
+      dom.currentPinInput.closest(".field").hidden = isDefault;
+    }
   }
 
   const teacherController = APP_TEACHER.createTeacherController({
@@ -1144,6 +1158,7 @@
     normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
     generateSampleId: APP_HELPERS.generateSampleId,
     mergeSamples: APP_HELPERS.mergeSamples,
+    formatCount,
     sanitizeCustomSampleCollection: APP_STORAGE.sanitizeCustomSampleCollection,
     getBuiltInSamplePuzzles,
     getCustomSamplePuzzles,
@@ -1350,10 +1365,15 @@
     const originalTriggerText = triggerLabel?.textContent || "";
 
     if (!dom.titleInput.value.trim()) {
-      setStatus(t.msg_requires_title, "error");
+      // Said next to the field: the status line sits below the button, off-screen
+      // once focus scrolls up to the topic.
+      dom.titleError.hidden = false;
+      dom.titleInput.setAttribute("aria-invalid", "true");
       dom.titleInput.focus();
       return;
     }
+    dom.titleError.hidden = true;
+    dom.titleInput.removeAttribute("aria-invalid");
 
     if (parsed.words.length < 1) {
       setStatus(t.words_summary_empty, "error");
@@ -1384,6 +1404,7 @@
       state.studentName = { nom: "", cognoms: "" };
       state.formTemplate = formTemplate;
       state.generatedForm = readTeacherForm();
+      state.keepDraftFromLink = false;
       // A new puzzle is a new party; the damping is only meant to stop confetti
       // spamming within one puzzle.
       state.celebrationsInSession = 0;
@@ -1623,6 +1644,10 @@
     }
   });
   window.addEventListener("pagehide", () => { saveWorkspace(); saveStudentProgress(); });
+  dom.titleInput.addEventListener("input", () => {
+    dom.titleError.hidden = true;
+    dom.titleInput.removeAttribute("aria-invalid");
+  });
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
       syncFormTemplateFeedback();
@@ -1716,8 +1741,17 @@
   const sharedParam = new URLSearchParams(window.location.search).get("p");
   const requestedPageLang = new URLSearchParams(window.location.search).get("lang") ||
     window.location.pathname.match(/\/(es|en)\.html$/)?.[1];
-  const lastActivity = sharedParam === null ? loadActivity() : null;
-  const restoredPuzzle = tryLoadPuzzle(sharedParam ?? lastActivity?.key, lastActivity?.form);
+  let lastActivity = sharedParam === null ? loadActivity() : null;
+  let restoredPuzzle = tryLoadPuzzle(sharedParam ?? lastActivity?.key, lastActivity?.form);
+  // A broken or empty link reopens this device's own activity, as a normal visit would.
+  // Falling back to the teacher panel unlocked it without the PIN.
+  const linkFailed = sharedParam !== null && !restoredPuzzle;
+  if (linkFailed) {
+    lastActivity = loadActivity();
+    restoredPuzzle = tryLoadPuzzle(lastActivity?.key, lastActivity?.form);
+  }
+  // Until the teacher edits it, a shared activity must not overwrite her own draft.
+  state.keepDraftFromLink = sharedParam !== null && !linkFailed;
   if (!restoredPuzzle) {
     const queryLang = new URLSearchParams(window.location.search).get("lang");
     const pathLang = window.location.pathname.match(/\/(es|en)\.html$/)?.[1];
@@ -1725,20 +1759,10 @@
     updateLanguage(TRANSLATIONS[requestedLang] ? requestedLang : loadLangFromStorage());
     teacherController.updateWordsHelper();
     sessionController.setTab("teacher");
-    if (new URLSearchParams(window.location.search).has("p")) {
-      // An invalid link must not replace an existing draft with the empty form
-      // when pagehide saves this fallback teacher view.
-      const draft = loadDraft();
-      if (draft) writeTeacherForm(draft);
-      const errParam = new URLSearchParams(window.location.search).get("p");
-      const errConfig = errParam ? decodePuzzleConfig(errParam) : null;
-      const errLang = errConfig?.lang && TRANSLATIONS[errConfig.lang] ? errConfig.lang : "ca";
-      setStatus(TRANSLATIONS[errLang].msg_link_error, "error");
-    }
   }
   // Explicit shared links take precedence. On normal visits, recover the last
   // board without regenerating it, and restore an unfinished teacher draft too.
-  if (sharedParam === null) {
+  if (sharedParam === null || linkFailed) {
     const draft = loadDraft();
     if (restoredPuzzle && lastActivity) {
       state.generatedForm = lastActivity.form;
@@ -1755,6 +1779,11 @@
     }
     if (TRANSLATIONS[requestedPageLang]) updateLanguage(requestedPageLang);
     render();
+  }
+  if (linkFailed) {
+    const errConfig = sharedParam ? decodePuzzleConfig(sharedParam) : null;
+    const errLang = errConfig?.lang && TRANSLATIONS[errConfig.lang] ? errConfig.lang : state.lang;
+    setStatus(TRANSLATIONS[errLang].msg_link_error, "error");
   }
   state.restoring = false;
   if (state.puzzle) saveStudentProgress();

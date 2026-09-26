@@ -186,7 +186,9 @@
                 maxlength="60"
                 placeholder="Ej: Animales de la selva"
                 required
+                aria-describedby="title-error"
               />
+              <p id="title-error" class="status-message is-error field-error" data-t="msg_requires_title" hidden>Escribe un tema para la sopa de letras.</p>
             </div>
 
             <!-- Llista de paraules + Biblioteca costat a costat -->
@@ -328,6 +330,10 @@
             <summary class="teacher-tools-summary" data-t="pin_change_title">Bloqueo docente</summary>
             <form id="pin-change-form" class="pin-change-form">
               <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">
+              <div class="field" hidden>
+                <label for="current-pin-input" data-t="pin_label_current">PIN actual</label>
+                <input type="password" id="current-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="current-password" pattern="[0-9]*" required disabled />
+              </div>
               <div class="field">
                 <label for="new-pin-input" data-t="pin_label_new">Nuevo PIN</label>
                 <input type="password" id="new-pin-input" maxlength="8" placeholder="••••" inputmode="numeric" autocomplete="new-password" pattern="[0-9]*" required />

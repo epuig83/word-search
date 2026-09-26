@@ -485,3 +485,150 @@ test("a 22 × 22 board fits a 1366 × 768 projector without hidden columns", asy
   await expect(page.locator("#puzzle-grid")).toHaveAttribute("data-grid-size", "22");
   await expect(page.locator("#grid-container")).not.toHaveClass(/is-scrollable/);
 });
+
+const I18N = (require("../../i18n.js"), globalThis.WORD_SEARCH_I18N);
+const stored = (page, key) => page.evaluate(storageKey => JSON.parse(localStorage.getItem(storageKey) || "null"), key);
+const examplesFile = samples => ({ name: "examples.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ es: samples })) });
+
+test("a broken link reopens this device's activity instead of an unlocked teacher panel", async ({ page }) => {
+  await generatePuzzle(page, { timer: "0" });
+  await expect(page.locator("#section-student")).toBeVisible();
+  for (const query of ["?p=", "?p=roto"]) {
+    await page.goto(`/index.html${query}`);
+    await expect(page.locator("#section-student")).toBeVisible();
+    await expect(page.locator("#section-teacher")).toBeHidden();
+  }
+});
+
+test("changing a custom PIN asks for the current one", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#pin-change-details summary").click();
+  const current = page.locator("#current-pin-input");
+  await expect(current).toBeHidden();
+  const change = async (pin, currentPin) => {
+    if (currentPin !== undefined) await current.fill(currentPin);
+    await page.locator("#new-pin-input").fill(pin);
+    await page.locator("#confirm-pin-input").fill(pin);
+    await page.locator("#save-pin-button").click();
+  };
+  await change("2580");
+  // Saving closes the section; reopen it to change the PIN again.
+  await page.locator("#pin-change-details summary").click();
+  await expect(current).toBeVisible();
+  await change("3691", "0000");
+  await expect(page.locator("#pin-change-message")).toHaveText(I18N.ca.pin_current_wrong);
+  expect(await page.evaluate(() => localStorage.getItem("word-search-teacher-pin-v1"))).toBe("2580");
+  await change("3691", "2580");
+  await expect(page.locator("#pin-change-message")).toHaveClass(/is-success/);
+  expect(await page.evaluate(() => localStorage.getItem("word-search-teacher-pin-v1"))).toBe("3691");
+});
+
+test("a PIN that could not be saved does not replace the working one", async ({ page }) => {
+  await generatePuzzle(page, { timer: "0" });
+  await unlockTeacherView(page);
+  await page.evaluate(() => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "word-search-teacher-pin-v1") throw new Error("quota");
+      return setItem.call(this, key, value);
+    };
+  });
+  await page.locator("#pin-change-details summary").click();
+  await page.locator("#new-pin-input").fill("2580");
+  await page.locator("#confirm-pin-input").fill("2580");
+  await page.locator("#save-pin-button").click();
+  await expect(page.locator("#pin-change-message")).toHaveClass(/is-error/);
+  await page.locator("#teacher-open-student-button").click();
+  await unlockTeacherView(page);
+  await expect(page.locator("#section-teacher")).toBeVisible();
+});
+
+test("opening a shared link keeps the teacher's unfinished draft", async ({ page }) => {
+  await page.goto("/es.html");
+  await page.locator("#title-input").fill("Borrador de clase");
+  await expect.poll(async () => (await stored(page, "word-search-draft-v1"))?.title).toBe("Borrador de clase");
+  await page.goto(sharedPath());
+  await expect(page.locator("#section-student")).toBeVisible();
+  await unlockTeacherView(page);
+  await expect(page.locator("#section-teacher")).toBeVisible();
+  expect((await stored(page, "word-search-draft-v1")).title).toBe("Borrador de clase");
+  // A real edit of the shared activity becomes the new draft.
+  await page.locator("#title-input").fill("Palabras repetidas 2");
+  await expect.poll(async () => (await stored(page, "word-search-draft-v1"))?.title).toBe("Palabras repetidas 2");
+});
+
+test("a missing topic is explained next to the field", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#words-input").fill("gat\ngos");
+  await page.locator("#generate-button").click();
+  const title = page.locator("#title-input");
+  await expect(title).toBeFocused();
+  await expect(title).toHaveAttribute("aria-invalid", "true");
+  await expect(title).toHaveAccessibleDescription(I18N.ca.msg_requires_title);
+  await expect(page.locator("#title-error")).toBeInViewport();
+  await title.fill("Animals");
+  await expect(page.locator("#title-error")).toBeHidden();
+  await expect(title).not.toHaveAttribute("aria-invalid", "true");
+});
+
+test("the pending-changes notice appears once, in the ready card", async ({ page }) => {
+  await generatePuzzle(page, { openStudent: false });
+  await page.locator("#title-input").fill("Un altre tema");
+  await expect(page.locator("#teacher-pending-changes")).toBeVisible();
+  await expect(page.locator("#status-message")).not.toContainText(I18N.ca.activity_pending);
+});
+
+test("switching language keeps the current error message", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#title-input").fill("Animals");
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#status-message")).toHaveText(I18N.ca.words_summary_empty);
+  await page.locator('[data-lang="en"]').click();
+  await expect(page.locator("#status-message")).toHaveText(I18N.en.words_summary_empty);
+  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
+});
+
+test("importing examples asks before replacing ones with the same title", async ({ page }) => {
+  await page.goto("/es.html");
+  const input = page.locator("#import-samples-input");
+  await input.setInputFiles(examplesFile([{ id: "a", title: "Tema 1", words: "sol\nluna\nmar", size: "8" }]));
+  await expect(page.locator('#sample-select option[value^="custom:"]')).toHaveText(["Tema 1"]);
+  await input.setInputFiles(examplesFile([{ id: "b", title: "Tema 1", words: "pez\nrio\nsal", size: "8" }]));
+  await expect(page.locator("#confirm-modal")).toBeVisible();
+  await page.locator("#confirm-modal-cancel").click();
+  expect((await stored(page, "word-search-custom-samples-v1")).samples.es[0].words).toBe("sol\nluna\nmar");
+  await input.setInputFiles(examplesFile([{ id: "b", title: "Tema 1", words: "pez\nrio\nsal", size: "8" }]));
+  await page.locator("#confirm-modal-confirm").click();
+  await expect.poll(async () => (await stored(page, "word-search-custom-samples-v1")).samples.es[0].words).toBe("pez\nrio\nsal");
+});
+
+test("deleting an example survives other saves, undo and a quick reload", async ({ page }) => {
+  await page.goto("/es.html");
+  const options = page.locator('#sample-select option[value^="custom:"]');
+  await page.locator("#import-samples-input").setInputFiles(examplesFile([
+    { id: "a", title: "Tema 1", words: "sol\nluna\nmar", size: "8" },
+    { id: "b", title: "Tema 2", words: "pez\nrio\nsal", size: "8" },
+  ]));
+  await page.locator(".sample-management").evaluate(details => { details.open = true; });
+  // Undo after another save in the 5-second window must still be stored.
+  await page.locator("#sample-select").selectOption("custom:a");
+  await page.locator("#delete-sample-button").click();
+  await page.locator("#import-samples-input").setInputFiles(examplesFile([{ id: "c", title: "Tema 3", words: "luz\nmes\nave", size: "8" }]));
+  await page.locator("#sample-undo-button").click();
+  await page.reload();
+  await expect(options).toHaveText(["Tema 1", "Tema 2", "Tema 3"]);
+  // A delete followed at once by closing the page stays deleted.
+  await page.locator(".sample-management").evaluate(details => { details.open = true; });
+  await page.locator("#sample-select").selectOption("custom:b");
+  await page.locator("#delete-sample-button").click();
+  await page.reload();
+  await expect(options).toHaveText(["Tema 1", "Tema 3"]);
+});
+
+test("counts of one use the singular", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#words-input").fill("gat");
+  await expect(page.locator("#words-count")).toHaveText("1 paraula vàlida");
+  await page.locator("#words-input").fill("gat\ngos");
+  await expect(page.locator("#words-count")).toHaveText("2 paraules vàlides");
+});
