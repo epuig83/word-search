@@ -123,6 +123,8 @@
       // CSS derives the width floor from the live --cell-gap so every interactive
       // cell stays at least 24 × 24 CSS px without over-reserving on dense boards.
       dom.puzzleGrid.style.setProperty("--grid-size", String(size));
+      // The layout reads it too, so the board column can widen to fit the biggest boards.
+      dom.puzzleGrid.closest(".puzzle-layout")?.style.setProperty("--grid-size", String(size));
       dom.puzzleGrid.dataset.gridSize = String(size);
       dom.puzzleGrid.dataset.gridDensity = density;
       if (dom.gridContainer) {

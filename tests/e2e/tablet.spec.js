@@ -13,6 +13,22 @@ test("iPad cannot open an empty activity with a tap", async ({ page }) => {
   await expect(page.locator("#student-tab-help")).toBeVisible();
 });
 
+test("a tap on the board sends no click to whatever appears under the finger", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await generatePuzzle(page, { size: "8", timer: "0", openStudent: false });
+  await page.locator("#teacher-open-student-button").tap();
+  await page.locator("#student-start-button").tap();
+  // The last tap of a game renders the end card under the finger; the tap's click
+  // then pressed "Play again" and wiped the finished board.
+  await page.evaluate(() => {
+    window.__clicks = [];
+    document.addEventListener("click", event => window.__clicks.push(event.target.id || event.target.className), true);
+  });
+  await page.locator('[data-row="3"][data-col="3"]').tap();
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.__clicks)).toEqual([]);
+});
+
 for (const lang of ["ca", "es", "en"]) {
   test(`${lang} iPad profile supports taps, orientation changes and recovery`, async ({ page }) => {
     // A full classroom round trip (play, rotate, reload, unlock) takes 21-25s on CI

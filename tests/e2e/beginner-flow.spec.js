@@ -4,7 +4,7 @@ const core = require("../../core");
 const { generatePuzzle, solvePlacement, measureGridVisibility } = require("./helpers");
 
 const examples = [
-  { lang: "ca", path: "/index.html", title: "Primers passos: animals", words: "gos\ngat\nos\nvaca\nllop\nlleó", start: "Començar", hints: "Pistes" },
+  { lang: "ca", path: "/index.html", title: "Primers passos: animals", words: "gos\ngat\nconill\nvaca\nllop\nlleó", start: "Començar", hints: "Pistes" },
   { lang: "es", path: "/es.html", title: "Primeros pasos: animales", words: "perro\ngato\noso\nvaca\nlobo\nleón", start: "Empezar", hints: "Pistas" },
   { lang: "en", path: "/en.html", title: "First steps: animals", words: "dog\ncat\nbear\ncow\nwolf\nlion", start: "Start", hints: "Hints" },
 ];

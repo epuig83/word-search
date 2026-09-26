@@ -1518,14 +1518,16 @@ body {
   user-select: none;
 }
 
+/* Top, not centre: beside a tall word list (big boards on a portrait tablet) a centred
+   card sat half a page down, and focusing its button scrolled the board's top away. */
 .student-start-overlay {
   position: absolute;
   inset: 0;
   z-index: 5;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1.5rem;
+  padding: clamp(1.5rem, 6vh, 3.5rem) 1.5rem 1.5rem;
   animation: fadeIn 0.3s ease;
 }
 
@@ -2523,13 +2525,16 @@ body[data-tab="student"] .panel {
     --grid-cell-letter-spacing: 0;
   }
 
+  /* Relative, not static: the board's finishing veil (z-index 1) otherwise paints
+     over the card. The scroll margin keeps its buttons above the fixed game bar. */
   .completion-message {
-    position: static;
+    position: relative;
     inset: auto;
     padding: 0;
     margin-top: 1rem;
     background: none;
     backdrop-filter: none;
+    scroll-margin-bottom: 6rem;
   }
 
   .completion-card {
@@ -3332,10 +3337,11 @@ body[data-tab="student"] .panel {
   .board-appearance { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; }
   .student-gamebar { margin: 0 0 0.85rem; }
   /* Size the board by the viewport height so it grows on projectors and fits
-     short laptops without scrolling; 19rem covers tabs, title, game bar and panel padding. */
+     short laptops without scrolling; 19rem covers tabs, title, game bar and panel padding.
+     The last term fits 24px cells with 2px gaps and frame padding on 20 × 20 boards and up. */
   .puzzle-layout {
-    grid-template-columns: minmax(0, max(520px, calc(100vh - 19rem))) minmax(180px, 1fr);
-    grid-template-columns: minmax(0, max(520px, calc(100dvh - 19rem))) minmax(180px, 1fr);
+    grid-template-columns: minmax(0, max(520px, calc(100vh - 19rem), calc(var(--grid-size, 0) * 26px + 2.5rem))) minmax(180px, 1fr);
+    grid-template-columns: minmax(0, max(520px, calc(100dvh - 19rem), calc(var(--grid-size, 0) * 26px + 2.5rem))) minmax(180px, 1fr);
     gap: 1rem 1.5rem;
   }
 

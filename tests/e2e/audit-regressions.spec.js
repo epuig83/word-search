@@ -391,3 +391,97 @@ test("found words are announced as found in the word list", async ({ page }) => 
   await expect(page.locator("#word-list .word-item.is-found")).toContainText("palabra encontrada");
   await expect(page.locator("#word-list .word-item:not(.is-found)")).not.toContainText("palabra encontrada");
 });
+
+const savedPlacements = page => page.evaluate(() => {
+  const config = globalThis.WORD_SEARCH_CORE.decodePuzzleConfig(JSON.parse(localStorage.getItem("word-search-activity-v1")).key);
+  return config.placementPaths.map(path => ({ cells: path.split(",").map(value => {
+    const [row, col] = value.split(".").map(Number);
+    return { row, col };
+  }) }));
+});
+
+test("a resting thumb or a palm that landed first does not block tracing", async ({ page }) => {
+  await page.goto(sharedPath());
+  await startStudentSession(page);
+  const trace = steps => page.evaluate(list => {
+    for (const [target, type, pointerId, isPrimary] of list) {
+      const element = typeof target === "string" ? document.querySelector(target) : document.querySelector(`[data-row="${target[0]}"][data-col="${target[1]}"]`);
+      const rect = element.getBoundingClientRect();
+      element.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, pointerId, isPrimary, pointerType: "touch", button: type === "pointermove" ? -1 : 0,
+        clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2,
+      }));
+    }
+  }, steps);
+  // A thumb holding the tablet touches the screen first, so the tracing finger is not primary.
+  await trace([
+    ["#board-title", "pointerdown", 1, true],
+    [[0, 0], "pointerdown", 2, false], [[0, 2], "pointermove", 2, false], [[0, 2], "pointerup", 2, false],
+    ["#board-title", "pointerup", 1, true],
+  ]);
+  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+  // A wrist resting on the board first must not own the trace either.
+  await trace([
+    [[5, 5], "pointerdown", 3, true],
+    [[2, 0], "pointerdown", 4, false], [[2, 2], "pointermove", 4, false], [[2, 2], "pointerup", 4, false],
+    [[5, 5], "pointerup", 3, true],
+  ]);
+  await expect(page.locator("#progress-text")).toHaveText("2 / 2");
+});
+
+test("a board shared before the accent fix still opens with its original letters", async ({ page }) => {
+  // Before 2026-09-26 a decomposed ñ (n + combining tilde) was saved as N.
+  await page.goto(sharedPath({
+    words: "sol\naño",
+    gridRows: ["SOLXXXXX", "XXXXXXXX", "ANOXXXXX", ...Array(5).fill("XXXXXXXX")],
+  }));
+  await startStudentSession(page);
+  await solvePlacement(page, occurrence(2));
+  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+});
+
+test("the Google Forms link shows which question receives each value", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#form-config-details summary").click();
+  const input = page.locator("#form-template-input");
+  const mapping = page.locator("#form-url-mapping");
+  await input.fill("https://docs.google.com/forms/d/e/ABC/viewform?usp=pp_url&entry.1=Tema&entry.2=Maria&entry.3=7/8");
+  await expect(mapping).toContainText("3 de 4");
+  await input.fill("https://docs.google.com/forms/d/e/ABC/viewform?usp=pp_url&entry.1=Maria&entry.2=Puig&entry.3=7/8&entry.4=Animals");
+  await expect(mapping).toHaveText(/«Maria».*nom.*«Puig».*cognoms.*«7\/8».*resultat.*«Animals».*tema/);
+  await input.fill("");
+  await expect(mapping).toBeHidden();
+});
+
+test("on a phone the finished card is readable and clear of the game bar", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await generatePuzzle(page, { words: "gos\ngat\nvaca", size: "8", timer: "600", hints: "0" });
+  await startStudentSession(page);
+  for (const placement of await savedPlacements(page)) await solvePlacement(page, placement);
+  await expect(page.locator("#completion-message")).toBeVisible();
+  // Static positioning let the board's finishing veil paint over the card.
+  await expect(page.locator("#completion-message")).not.toHaveCSS("position", "static");
+  const button = await page.locator("#view-board-button").boundingBox();
+  const bar = await page.locator("#student-gamebar").boundingBox();
+  expect(button.y + button.height).toBeLessThanOrEqual(bar.y);
+});
+
+test("on a portrait tablet a big board starts at the top of the pupil area", async ({ page }) => {
+  await page.setViewportSize({ width: 810, height: 1080 });
+  const words = ["elefant", "girafa", "rinoceront", "cocodril", "orangutan", "hipopotam", "serpentina", "papallona",
+    "llangardaix", "tortuga", "camaleo", "formiguer", "esquirol", "salamandra", "dromedari", "ornitorrinc",
+    "cavall", "conill", "guineu", "teixo"].join("\n");
+  await generatePuzzle(page, { words, size: "16", timer: "600", hints: "3" });
+  await expect(page.locator("#student-start-button")).toBeFocused();
+  await page.locator("#student-start-button").click();
+  const title = await page.locator("#board-title").boundingBox();
+  expect(title.y).toBeGreaterThanOrEqual(0);
+});
+
+test("a 22 × 22 board fits a 1366 × 768 projector without hidden columns", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await generatePuzzle(page, { words: "hipopotamoenormeblau\nbalena\ndofi", size: "auto", timer: "0", hints: "0" });
+  await startStudentSession(page);
+  await expect(page.locator("#puzzle-grid")).toHaveAttribute("data-grid-size", "22");
+  await expect(page.locator("#grid-container")).not.toHaveClass(/is-scrollable/);
+});

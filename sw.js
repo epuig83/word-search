@@ -36,6 +36,9 @@ async function fetchVerified(asset) {
 
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
+    // A new worker served beside a stale offline-manifest.js reuses the active
+    // revision, so its cache may be the one the open tabs are using.
+    const existed = await caches.has(CACHE_NAME);
     const cache = await caches.open(CACHE_NAME);
     const downloads = await Promise.allSettled(assets.map(async asset => {
       const response = await fetchVerified(asset);
@@ -44,8 +47,9 @@ self.addEventListener("install", event => {
     const failed = downloads.find(result => result.status === "rejected");
     if (failed) {
       // Wait for all writes before removing the candidate, so a late download
-      // cannot recreate a partial cache after installation has failed.
-      await caches.delete(CACHE_NAME);
+      // cannot recreate a partial cache after installation has failed. Only
+      // verified bodies were written, so an existing cache is kept.
+      if (!existed) await caches.delete(CACHE_NAME);
       throw failed.reason;
     }
     // Wait for all old tabs to close. Never replace their worker mid-activity.

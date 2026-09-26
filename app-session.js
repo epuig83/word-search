@@ -61,6 +61,9 @@
     function setTab(tab) {
       if (tab === "student" && !canOpenStudent()) return;
       closeWordDefinitionModal({ restoreFocus: false });
+      // The teacher opens the pupil area from low in a long panel; keeping that scroll
+      // started pupils half a page down, with the title and timer out of view.
+      if (tab === "student" && state.activeTab !== "student") globalThis.scrollTo?.(0, 0);
       state.activeTab = tab;
       document.body.dataset.tab = tab;
       dom.tabTeacher.classList.toggle("is-active", tab === "teacher");

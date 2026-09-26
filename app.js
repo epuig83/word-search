@@ -631,6 +631,7 @@
     srAnnounce: document.querySelector("#sr-announce"),
     shareButton: document.querySelector("#share-button"),
     formTemplateInput: document.querySelector("#form-template-input"),
+    formUrlMapping: document.querySelector("#form-url-mapping"),
     sendResultsButton: document.querySelector("#send-results-button"),
     studentNameModal: document.querySelector("#student-name-modal"),
     studentNameForm: document.querySelector("#student-name-form"),
@@ -807,6 +808,33 @@
     };
   }
 
+  // Results fill the pre-filled link's questions by position (name, surname, result,
+  // topic), so show the teacher's own example values in that order to catch a mismatch.
+  function syncFormTemplateFeedback() {
+    const value = dom.formTemplateInput.value.trim();
+    const t = TRANSLATIONS[state.lang];
+    const parsed = value ? parseFormEntries(value) : null;
+    const invalid = Boolean(value && !parsed);
+    const errorEl = document.querySelector("#form-url-error");
+    if (errorEl) {
+      errorEl.style.display = invalid ? "block" : "none";
+      errorEl.textContent = invalid ? t.form_url_invalid : "";
+    }
+    dom.formTemplateInput.setAttribute("aria-invalid", String(invalid));
+    if (!dom.formUrlMapping) return;
+    dom.formUrlMapping.hidden = !parsed;
+    if (!parsed) return;
+    const example = new URL(value).searchParams;
+    const tooFew = parsed.entries.length < 4;
+    dom.formUrlMapping.className = tooFew ? "status-message is-warning" : "sample-note";
+    dom.formUrlMapping.textContent = tooFew
+      ? t.form_mapping_short.replace("{count}", parsed.entries.length)
+      : parsed.entries.slice(0, 4).reduce(
+        (text, entry, index) => text.replace(`{${index + 1}}`, (example.get(entry) || "…").slice(0, 24)),
+        t.form_mapping
+      );
+  }
+
   function writeTeacherForm(form) {
     dom.titleInput.value = form.title;
     dom.wordsInput.value = form.words;
@@ -815,6 +843,7 @@
     dom.timerInput.value = form.timer;
     dom.hintsInput.value = form.hints;
     dom.formTemplateInput.value = form.formTemplate;
+    syncFormTemplateFeedback();
     syncDifficultyPresetState();
     teacherController.syncWordsUi();
   }
@@ -1069,6 +1098,7 @@
     offlineController.render();
     printController.updateLanguage();
     if (!state.activeDefinitionWordId) resetWordDefinitionModalContent();
+    syncFormTemplateFeedback();
     onTeacherFormChange();
   }
 
@@ -1424,14 +1454,23 @@
   });
   
   // The grid uses touch-action: none, so a second finger or a resting palm never
-  // cancels the trace: only the pointer that started it may move or finish it.
+  // cancels the trace: only the pointer that started it may move or finish it. A touch
+  // is not "primary" while a thumb holds the tablet, so that flag is not required; a
+  // new pointer only takes over a press that has not started moving (a resting wrist).
   dom.puzzleGrid.addEventListener("pointerdown", e => {
     const btn = e.target.closest(".grid-cell");
-    if (!btn || !e.isPrimary || e.button !== 0 || !canInteractWithPuzzle()) return;
+    if (!btn || e.button !== 0 || !canInteractWithPuzzle()) return;
+    if (state.dragSelection?.moved && e.pointerId !== state.dragSelection.pointerId) return;
     state.lastBoardInputMode = e.pointerType === "touch" ? "touch" : "pointer";
     const cell = { row: +btn.dataset.row, col: +btn.dataset.col };
     setFocusedCell(cell);
     state.dragSelection = { start: cell, end: cell, moved: false, pointerId: e.pointerId };
+  });
+
+  // A finished word can render the end card under the finger, and the tap's own click
+  // then lands on "Play again". Selection runs on pointer events, so board taps need no click.
+  dom.puzzleGrid.addEventListener("touchend", e => {
+    if (e.cancelable) e.preventDefault();
   });
 
   let gridHighlightRafId = null;
@@ -1446,7 +1485,7 @@
   window.addEventListener("pointermove", e => {
     if (!canInteractWithPuzzle()) return;
     if (!state.dragSelection && !state.clickAnchor) return;
-    if (state.dragSelection ? e.pointerId !== state.dragSelection.pointerId : !e.isPrimary) return;
+    if (state.dragSelection && e.pointerId !== state.dragSelection.pointerId) return;
     const hovered = document.elementFromPoint(e.clientX, e.clientY);
     const btn = hovered?.closest(".grid-cell");
     const cell = btn ? { row: +btn.dataset.row, col: +btn.dataset.col } : null;
@@ -1586,14 +1625,7 @@
   window.addEventListener("pagehide", () => { saveWorkspace(); saveStudentProgress(); });
   if (dom.formTemplateInput) {
     dom.formTemplateInput.addEventListener("input", () => {
-      const value = dom.formTemplateInput.value.trim();
-      const errorEl = document.querySelector("#form-url-error");
-      if (errorEl) {
-        const invalid = value && !parseFormEntries(value);
-        errorEl.style.display = invalid ? "block" : "none";
-        errorEl.textContent = invalid ? TRANSLATIONS[state.lang].form_url_invalid : "";
-        dom.formTemplateInput.setAttribute("aria-invalid", String(Boolean(invalid)));
-      }
+      syncFormTemplateFeedback();
       onTeacherFormChange();
     });
   }
@@ -1632,6 +1664,7 @@
       state.formTemplate = config.formTemplate || "";
       state.studentName = { nom: "", cognoms: "" };
       if (dom.formTemplateInput) dom.formTemplateInput.value = state.formTemplate;
+      syncFormTemplateFeedback();
       teacherController.syncWordsUi();
       const metadata = {
         title: config.title,
@@ -1640,9 +1673,16 @@
         hintsAllowed: config.hints,
         sourceLang: config.lang,
       };
-      state.puzzle = config.version >= SHARED_PUZZLE_VERSION && config.gridRows && config.placementPaths
-        ? buildPuzzleFromSnapshot(parsed.words, config, metadata)
-        : buildPuzzle(parsed.words, config.size, config.difficulty, metadata);
+      if (config.version >= SHARED_PUZZLE_VERSION && config.gridRows && config.placementPaths) {
+        try {
+          state.puzzle = buildPuzzleFromSnapshot(parsed.words, config, metadata);
+        } catch {
+          // Boards from before the 2026-09 accent fix keep the letters they were built with.
+          state.puzzle = buildPuzzleFromSnapshot(parseWords(config.words, { legacy: true }).words, config, metadata);
+        }
+      } else {
+        state.puzzle = buildPuzzle(parsed.words, config.size, config.difficulty, metadata);
+      }
       state.generatedForm = readTeacherForm();
       resetPuzzleProgress();
       if (savedProgress && savedProgress.key === puzzleProgressKey(state.puzzle)) {
@@ -1666,6 +1706,7 @@
       state.formTemplate = prevFormTemplate;
       state.puzzle = prevPuzzle;
       if (dom.formTemplateInput) dom.formTemplateInput.value = state.formTemplate;
+      syncFormTemplateFeedback();
       teacherController.syncWordsUi();
       console.warn("[word-search] Failed to load puzzle from shared URL.");
       return false;

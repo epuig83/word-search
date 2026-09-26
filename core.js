@@ -30,28 +30,32 @@
     return { ca: [], es: [], en: [] };
   }
 
-  function normalizeWord(value) {
-    return String(value ?? "")
-      // Pasted text may carry "n" + combining tilde; compose it so Ñ survives.
-      .normalize("NFC")
-      .toUpperCase()
+  // `legacy` reproduces the rules before 2026-09-26, when a decomposed ñ, the Catalan Ŀ
+  // and tabs were not handled: older links and saved boards hold grids built that way.
+  function normalizeWord(value, { legacy = false } = {}) {
+    let text = String(value ?? "");
+    // Pasted text may carry "n" + combining tilde; compose it so Ñ survives.
+    if (!legacy) text = text.normalize("NFC");
+    text = text.toUpperCase();
+    // The one-character Catalan Ŀ has no decomposition; keep its L.
+    if (!legacy) text = text.replace(/Ŀ/g, "L");
+    return text
       // Ligatures have no NFD decomposition, so spell them out instead of dropping them.
       .replace(/Œ/g, "OE")
       .replace(/Æ/g, "AE")
       .replace(/Ñ/g, "\u0000")
-      // NFKD also splits the single-character Catalan Ŀ into L + middle dot.
-      .normalize("NFKD")
+      .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .split("\u0000").join("Ñ")
       .replace(/[^A-ZÑ]/g, "");
   }
 
-  function parseWords(rawText) {
-    const tokens = String(rawText ?? "").split(/[\n\t,;]+/).map(token => token.trim()).filter(Boolean);
+  function parseWords(rawText, { legacy = false } = {}) {
+    const tokens = String(rawText ?? "").split(legacy ? /[\n,;]+/ : /[\n\t,;]+/).map(token => token.trim()).filter(Boolean);
     const words = [];
     const seen = new Set();
     for (const token of tokens) {
-      const cleaned = normalizeWord(token);
+      const cleaned = normalizeWord(token, { legacy });
       if (cleaned.length >= 2 && !seen.has(cleaned)) {
         seen.add(cleaned);
         words.push({ id: cleaned, cleaned, display: token });

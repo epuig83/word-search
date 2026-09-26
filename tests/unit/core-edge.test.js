@@ -226,3 +226,11 @@ test("normalizeWord keeps a decomposed ñ and the one-character Catalan ŀ", () 
 test("parseWords splits a row pasted from a spreadsheet", () => {
   assert.deepEqual(core.parseWords("gos\tgat\tos").words.map(word => word.cleaned), ["GOS", "GAT", "OS"]);
 });
+
+test("normalizeWord drops trademark-style symbols instead of spelling them out", () => {
+  assert.equal(core.normalizeWord("Lego™"), "LEGO");
+});
+
+test("the legacy parser reproduces boards saved before decomposed accents and tabs were handled", () => {
+  assert.deepEqual(core.parseWords("año\ngat\tgos", { legacy: true }).words.map(word => word.cleaned), ["ANO", "GATGOS"]);
+});

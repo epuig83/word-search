@@ -22,6 +22,11 @@ function createRelease(label, { ignoreStatus = false } = {}) {
 
 async function startOfflineServer() {
   const releases = { one: createRelease("one"), two: createRelease("two"), legacy: createRelease("legacy", { ignoreStatus: true }) };
+  // A new worker next to a stale offline-manifest.js from the CDN: it reuses the
+  // active release's revision, and therefore its cache name.
+  const staleManifestFiles = new Map(releases.one.files);
+  staleManifestFiles.set("sw.js", Buffer.concat([releases.one.files.get("sw.js"), Buffer.from("\n// newer worker\n")]));
+  releases.staleManifest = { files: staleManifestFiles, manifest: releases.one.manifest };
   let current = releases.one;
   let failure = null;
   let held = false;

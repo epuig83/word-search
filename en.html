@@ -167,7 +167,7 @@
                     <span data-t="btn_import_samples">Import</span>
                   </button>
                 </div>
-                <p class="sample-note" data-t="sample_note">Saved examples stay on this laptop.</p>
+                <p class="sample-note" data-t="sample_note">Saved examples stay in this browser.</p>
                 <p id="sample-status" class="status-message" role="status" aria-live="polite" hidden></p>
                 <div id="sample-undo-toast" class="sample-undo-toast" role="status" aria-live="polite" hidden>
                   <span id="sample-undo-text" data-t="msg_sample_deleted_undo">Example deleted. Press Undo to restore it.</span>
@@ -315,8 +315,9 @@
                 <label for="form-template-input" data-t="form_url_label">Pre-filled template URL</label>
                 <input type="url" id="form-template-input" placeholder="https://docs.google.com/forms/d/…" style="width:100%;" aria-describedby="form-url-error" />
                 <p id="form-url-error" class="status-message is-error" role="alert" style="display:none; margin-top:0.25rem;"></p>
+                <p id="form-url-mapping" class="sample-note" hidden></p>
               </div>
-              <p class="sample-note" data-t="form_config_note">In Google Forms, get a pre-filled link, complete the name, surname, result, and topic fields, then copy the URL and paste it here.</p>
+              <p class="sample-note" data-t="form_config_note">In Google Forms, make a form with 4 questions in this order: first name, surname, result and topic. Get a pre-filled link with all four filled in, then copy the URL and paste it here.</p>
               <p class="sample-note" data-t="form_privacy_note">Tell students before collecting data. Surnames are optional and they may use an alias.</p>
             </div>
           </details>
@@ -338,7 +339,7 @@
               <button type="submit" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Save PIN</button>
               <p id="pin-change-message" class="status-message" style="display:none; margin-top: 0;"></p>
             </form>
-            <p class="sample-note" data-t="pin_local_note">This PIN only locks the teacher view in this browser on this laptop.</p>
+            <p class="sample-note" data-t="pin_local_note">This PIN only locks the teacher view in this browser.</p>
           </details>
 
         </section>
@@ -491,7 +492,7 @@
             <input type="text" id="student-nom-input" autocomplete="given-name" required style="width:100%;" />
           </div>
           <div class="field" style="margin-bottom:1rem;">
-            <label for="student-cognoms-input" data-t="name_cognoms_optional">Last name (optional)</label>
+            <label for="student-cognoms-input" data-t="name_cognoms_optional">Surname (optional)</label>
             <input type="text" id="student-cognoms-input" autocomplete="family-name" style="width:100%;" />
           </div>
           <button type="submit" class="primary-button" style="width:100%;" data-t="btn_continue">Continue</button>

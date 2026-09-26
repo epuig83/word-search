@@ -167,7 +167,7 @@
                     <span data-t="btn_import_samples">Importar</span>
                   </button>
                 </div>
-                <p class="sample-note" data-t="sample_note">Los ejemplos guardados se almacenan en este portátil.</p>
+                <p class="sample-note" data-t="sample_note">Los ejemplos guardados se quedan en este navegador.</p>
                 <p id="sample-status" class="status-message" role="status" aria-live="polite" hidden></p>
                 <div id="sample-undo-toast" class="sample-undo-toast" role="status" aria-live="polite" hidden>
                   <span id="sample-undo-text" data-t="msg_sample_deleted_undo">Ejemplo eliminado. Pulsa Deshacer para recuperarlo.</span>
@@ -315,8 +315,9 @@
                 <label for="form-template-input" data-t="form_url_label">URL plantilla pre-rellenada</label>
                 <input type="url" id="form-template-input" placeholder="https://docs.google.com/forms/d/…" style="width:100%;" aria-describedby="form-url-error" />
                 <p id="form-url-error" class="status-message is-error" role="alert" style="display:none; margin-top:0.25rem;"></p>
+                <p id="form-url-mapping" class="sample-note" hidden></p>
               </div>
-              <p class="sample-note" data-t="form_config_note">En Google Forms, obtén un enlace pre-rellenado, completa los campos de nombre, apellidos, resultado y tema, copia la URL y pégala aquí.</p>
+              <p class="sample-note" data-t="form_config_note">En Google Forms, crea un formulario con 4 preguntas en este orden: nombre, apellidos, resultado y tema. Obtén un enlace prerrellenado con las cuatro completadas, copia la URL y pégala aquí.</p>
               <p class="sample-note" data-t="form_privacy_note">Informa al alumnado antes de recoger datos. Los apellidos son opcionales y se puede usar un alias.</p>
             </div>
           </details>
@@ -338,7 +339,7 @@
               <button type="submit" id="save-pin-button" class="ghost-button" data-t="btn_save_pin">Guardar PIN</button>
               <p id="pin-change-message" class="status-message" style="display:none; margin-top: 0;"></p>
             </form>
-            <p class="sample-note" data-t="pin_local_note">Este PIN solo bloquea la vista docente en este navegador y este portátil.</p>
+            <p class="sample-note" data-t="pin_local_note">Este PIN solo bloquea la vista docente en este navegador.</p>
           </details>
 
         </section>

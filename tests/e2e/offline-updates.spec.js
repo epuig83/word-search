@@ -219,6 +219,16 @@ for (const reportedOnline of [true, false]) {
   });
 }
 
+test("a failed update that reuses the active revision keeps the offline copy", async ({ page, context, offlineServer }) => {
+  await page.goto(`${offlineServer.url}es.html`);
+  await waitForOfflineControl(page);
+  offlineServer.publish("staleManifest", "disconnect");
+  expect(await updateAndWait(page, "redundant")).toBe("redundant");
+  await context.setOffline(true);
+  await page.reload();
+  await expectReadyWithoutNetwork(page);
+});
+
 test("an interrupted first installation can be retried without losing the draft", async ({ page, offlineServer }) => {
   offlineServer.publish("one", "disconnect");
   offlineServer.holdDownloads();
