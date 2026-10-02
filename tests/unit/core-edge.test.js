@@ -231,10 +231,6 @@ test("normalizeWord drops trademark-style symbols instead of spelling them out",
   assert.equal(core.normalizeWord("Lego™"), "LEGO");
 });
 
-test("the legacy parser reproduces boards saved before decomposed accents and tabs were handled", () => {
-  assert.deepEqual(core.parseWords("año\ngat\tgos", { legacy: true }).words.map(word => word.cleaned), ["ANO", "GATGOS"]);
-});
-
 test("a 'word: definition' line is one entry whose definition may hold commas", () => {
   const { words } = core.parseWords("sol: estrella grande, caliente y brillante\nmar, río\nluna:\n: sin palabra");
   assert.deepEqual(words.map(word => [word.cleaned, word.display, word.definition]), [

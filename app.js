@@ -509,8 +509,8 @@
     }
   }
 
-  // Old records use the original placement. New records preserve the actual
-  // selection, but only after validating its geometry and letters against this board.
+  // Restores the pupil's actual selections after validating their geometry and letters
+  // against this board; an invalid stored path falls back to the original placement.
   function applyResumeProgress(record) {
     if (!state.puzzle || !record || !Array.isArray(record.foundWordIds)) return;
     record.foundWordIds.forEach(wordId => {
@@ -1772,16 +1772,8 @@
         hintsAllowed: config.hints,
         sourceLang: config.lang,
       };
-      if (config.version >= SHARED_PUZZLE_VERSION && config.gridRows && config.placementPaths) {
-        try {
-          state.puzzle = buildPuzzleFromSnapshot(parsed.words, config, metadata);
-        } catch {
-          // Boards from before the 2026-09 accent fix keep the letters they were built with.
-          state.puzzle = buildPuzzleFromSnapshot(parseWords(config.words, { legacy: true }).words, config, metadata);
-        }
-      } else {
-        state.puzzle = buildPuzzle(parsed.words, config.size, config.difficulty, metadata);
-      }
+      // Every link carries its board, so pupils get exactly the grid the teacher reviewed.
+      state.puzzle = buildPuzzleFromSnapshot(parsed.words, config, metadata);
       state.generatedForm = readTeacherForm();
       resetPuzzleProgress();
       if (savedProgress && savedProgress.key === puzzleProgressKey(state.puzzle)) {

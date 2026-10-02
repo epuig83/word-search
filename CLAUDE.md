@@ -64,7 +64,7 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 - `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection. Title comparison uses `normalizeSampleTitle` (NFC, trimmed/collapsed spaces, lowercase), not puzzle-letter normalization.
 - `word-search-teacher-pin-v1` — teacher PIN. Fallback: `"1234"`.
 - `word-search-theme-v1` — student-picked visual theme (`pergami`/`ocea`/`bosc`/`espai`). Fallback: `"pergami"`. Themes only retint palette vars; high-contrast mode overrides them.
-- `word-search-progress-v1` — single most-recent student progress record `{ key, foundWordIds[], foundWordPaths?, timerSecondsLeft, timerExpired, hintsRemaining, started, hintStages }`. `foundWordPaths` maps word IDs to serialized cell paths, validated against geometry and letters on restoration; old/invalid entries fall back to original placements. `key` is `puzzleProgressKey()` (the unchanged share config and snapshot). `tryLoadPuzzle()` restores matching progress; the start overlay offers Continue or New pupil. Reset clears progress, selected paths and result-submission identity.
+- `word-search-progress-v1` — single most-recent student progress record `{ key, foundWordIds[], foundWordPaths, timerSecondsLeft, elapsedSeconds, timerExpired, hintsRemaining, started, hintStages }`. `foundWordPaths` maps word IDs to serialized cell paths, validated against geometry and letters on restoration; invalid entries fall back to original placements. `elapsedSeconds` is play time on every board, timed or not: `startTimer`/`stopTimer` open and close a wall-clock stretch, and `playElapsedSeconds()` reads it. `key` is `puzzleProgressKey()` (the unchanged share config and snapshot). `tryLoadPuzzle()` restores matching progress; the start overlay offers Continue or New pupil. Reset clears progress, selected paths and result-submission identity.
 - `word-search-draft-v1` — incomplete teacher form, settings, and UI language. Saved automatically from both typed and programmatic edits. Does not contain pupil names or the teacher PIN.
 - `word-search-activity-v1` — latest puzzle snapshot, the form used to generate it, and the last active tab. Normal visits restore it without regenerating the board. Explicit shared URLs take precedence; editing or regenerating locally removes the old shared URL parameter so reloads recover the draft.
 - `state.generatedForm` tracks the generated activity separately from the draft. Pending changes block opening/sharing/printing until regenerated or reverted. `state.formTemplate` belongs to the generated activity, not the live input.
@@ -73,7 +73,7 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 
 ### URL Sharing
 
-Full puzzle config is base64-encoded into a `?p=` query parameter (`encodePuzzleConfig`/`decodePuzzleConfig` in `core.js`, version `SHARED_PUZZLE_VERSION = 2`). Loaded at startup by `tryLoadPuzzle()`; on decode failure, rolls back to previous state and shows `msg_link_error`. Public language variants use generated `es.html` and `en.html` pages with localized server-rendered metadata; shared puzzle URLs keep their embedded language.
+Full puzzle config is base64-encoded into a `?p=` query parameter (`encodePuzzleConfig`/`decodePuzzleConfig` in `core.js`, version `SHARED_PUZZLE_VERSION = 2`). Every link carries its grid snapshot (`gridRows` + `placementPaths`); links without one are rejected. Loaded at startup by `tryLoadPuzzle()`; on decode failure, rolls back to previous state and shows `msg_link_error`. Teacher definitions travel inside the words text as `word: definition` lines (`splitWordEntries` in `core.js` is the only word splitter), so links, drafts, samples and progress keys need no extra field. Public language variants use generated `es.html` and `en.html` pages with localized server-rendered metadata; shared puzzle URLs keep their embedded language.
 
 ### i18n
 
@@ -82,7 +82,7 @@ HTML elements use `data-t="key"` attributes. `updateLanguage()` walks all such e
 ## Tests
 
 - **Unit** (`tests/unit/`): `node --test` on `core`, `core-edge`, `app-storage`, `app-logic`, `app-modal`, `app-session`, `i18n`, `data`.
-- **E2E** (`tests/e2e/`): Playwright Chrome and WebKit on student flow, sharing/forms, responsive target sizes, file-protocol compatibility, and Axe accessibility states. PDF and service-worker tests are Chromium-only. Static server at `scripts/static-server.js` on `:4173`; update tests use isolated in-memory release servers.
+- **E2E** (`tests/e2e/`): Playwright Chrome and WebKit on student flow, sharing/forms, responsive target sizes, file-protocol compatibility, and Axe accessibility states. `classroom-tools.spec.js` covers teacher definitions, play time in results, Listen (stubbed `speechSynthesis`) and full screen. PDF and service-worker tests are Chromium-only. Static server at `scripts/static-server.js` on `:4173`; update tests use isolated in-memory release servers.
 - **Tablet**: `ipad-webkit` runs `tablet.spec.js` with an iPad profile, tap input and portrait/landscape viewports. This is emulation; native Safari keyboard, physical dragging and system printing still require the [physical iPad check](docs/ipad-classroom-check.md).
 
 ### Offline Releases

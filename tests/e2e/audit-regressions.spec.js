@@ -429,15 +429,10 @@ test("a resting thumb or a palm that landed first does not block tracing", async
   await expect(page.locator("#progress-text")).toHaveText("2 / 2");
 });
 
-test("a board shared before the accent fix still opens with its original letters", async ({ page }) => {
-  // Before 2026-09-26 a decomposed ñ (n + combining tilde) was saved as N.
-  await page.goto(sharedPath({
-    words: "sol\naño",
-    gridRows: ["SOLXXXXX", "XXXXXXXX", "ANOXXXXX", ...Array(5).fill("XXXXXXXX")],
-  }));
-  await startStudentSession(page);
-  await solvePlacement(page, occurrence(2));
-  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+test("a link without its board snapshot is rejected instead of generating a different grid", async ({ page }) => {
+  await page.goto(sharedPath({ gridRows: undefined, placementPaths: undefined }));
+  await expect(page.locator("#section-teacher")).toBeVisible();
+  await expect(page.locator("#status-message")).toHaveClass(/is-error/);
 });
 
 test("the Google Forms link shows which question receives each value", async ({ page }) => {

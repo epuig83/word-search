@@ -42,12 +42,14 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
 - Shared links rebuild the exact same puzzle when opened.
 - Any straight occurrence of a listed word counts, in either direction, even when it is not the generator's original placement. Each word counts once, and the selected cells remain highlighted after reopening. Hints and answer keys use the original placements.
-- Invalid shared paths are rejected without overwriting an existing teacher draft. Older progress records remain readable and use the original positions when no valid selection path was saved.
+- Invalid shared paths are rejected without overwriting an existing teacher draft. Saved selections that fail validation fall back to the original positions.
 - The student start overlay shows the timer and available hints before the activity begins.
-- A first/last-letter example explains how to select a word. Words marked with a book icon open a definition.
+- A first/last-letter example explains how to select a word. Words marked with a book icon open a definition. Teachers can write their own as `word: definition` in the list; it replaces the library's and travels with shared links.
+- The definition dialog has a **Listen** button that reads the word and its definition with a voice installed on the device for the puzzle's language. It is hidden when no such voice exists.
+- **Full screen** in the pupil area hides the tabs so the board fills the projector.
 - On phones, the word list appears above the grid and the activity actions below it.
 - Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
-- If you configure Google Forms, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed.
+- If you configure Google Forms, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed. The result field reads `found/total · play time · clues used` (for example `8/8 · 04:12 · 2 hints`), and pupils are reminded to press Submit in the form that opens. Play time is also shown on untimed boards.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
 
 ## Offline Updates

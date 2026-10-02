@@ -31,16 +31,13 @@
     return { ca: [], es: [], en: [] };
   }
 
-  // `legacy` reproduces the rules before 2026-09-26, when a decomposed ñ, the Catalan Ŀ
-  // and tabs were not handled: older links and saved boards hold grids built that way.
-  function normalizeWord(value, { legacy = false } = {}) {
-    let text = String(value ?? "");
+  function normalizeWord(value) {
     // Pasted text may carry "n" + combining tilde; compose it so Ñ survives.
-    if (!legacy) text = text.normalize("NFC");
-    text = text.toUpperCase();
     // The one-character Catalan Ŀ has no decomposition; keep its L.
-    if (!legacy) text = text.replace(/Ŀ/g, "L");
-    return text
+    return String(value ?? "")
+      .normalize("NFC")
+      .toUpperCase()
+      .replace(/Ŀ/g, "L")
       // Ligatures have no NFD decomposition, so spell them out instead of dropping them.
       .replace(/Œ/g, "OE")
       .replace(/Æ/g, "AE")
@@ -53,12 +50,8 @@
 
   // A "word: definition" line is one entry, so its definition may contain commas.
   // Other lines split on tabs, commas and semicolons. `token` is the raw entry.
-  function splitWordEntries(rawText, { legacy = false } = {}) {
-    const text = String(rawText ?? "");
-    if (legacy) {
-      return text.split(/[\n,;]+/).map(token => token.trim()).filter(Boolean).map(token => ({ token, word: token, definition: "" }));
-    }
-    return text.split("\n").flatMap(line => {
+  function splitWordEntries(rawText) {
+    return String(rawText ?? "").split("\n").flatMap(line => {
       const colon = line.indexOf(":");
       if (colon === -1) return line.split(/[\t,;]+/).map(token => ({ token: token.trim(), word: token.trim(), definition: "" }));
       return [{
@@ -69,11 +62,11 @@
     }).filter(entry => entry.token);
   }
 
-  function parseWords(rawText, { legacy = false } = {}) {
+  function parseWords(rawText) {
     const words = [];
     const seen = new Set();
-    for (const { word, definition } of splitWordEntries(rawText, { legacy })) {
-      const cleaned = normalizeWord(word, { legacy });
+    for (const { word, definition } of splitWordEntries(rawText)) {
+      const cleaned = normalizeWord(word);
       if (cleaned.length >= 2 && !seen.has(cleaned)) {
         seen.add(cleaned);
         words.push({ id: cleaned, cleaned, display: word, definition });
