@@ -15,11 +15,11 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.12.1",
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.62.1",
-    "eslint": "^10.8.0",
-    "globals": "^17.9.0"
+    "@playwright/test": "^1.63.0",
+    "eslint": "^10.11.0",
+    "globals": "^17.13.0"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4"
