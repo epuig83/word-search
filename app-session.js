@@ -33,6 +33,9 @@
     printAnswerKey,
     shareCurrentPuzzle,
     confirmDialog,
+    formatSecondsAsClock,
+    formatCount,
+    playElapsedSeconds,
     canOpenStudent = () => true,
     onSessionChange = () => {},
   }) {
@@ -50,7 +53,8 @@
       state.studentSessionStarted = true;
       state.resumeAvailable = false;
       clearSelection();
-      if (state.puzzle.timerDuration > 0 && !state.timerExpired && state.foundWordIds?.size !== state.puzzle.words?.length) {
+      // Untimed boards start too: startTimer also runs the play-time stopwatch.
+      if (!state.timerExpired && state.foundWordIds?.size !== state.puzzle.words?.length) {
         startTimer(resuming ? state.timerSecondsLeft : (state.timerSecondsLeft || state.puzzle.timerDuration));
       }
       render();
@@ -85,11 +89,11 @@
       if (
         state.puzzle &&
         state.studentSessionStarted &&
-        state.puzzle.timerDuration > 0 &&
+        state.foundWordIds.size !== state.puzzle.words.length &&
         !state.timerExpired &&
         !state.timerPaused &&
-        state.timerIntervalId === null &&
-        state.timerSecondsLeft > 0
+        state.playStartedAt === null &&
+        (state.puzzle.timerDuration <= 0 || state.timerSecondsLeft > 0)
       ) {
         startTimer(state.timerSecondsLeft);
       }
@@ -355,9 +359,12 @@
             if (dom.boardStatus) dom.boardStatus.textContent = getTranslations().msg_send_offline;
             return;
           }
+          const t = getTranslations();
           const total = state.puzzle.words.length;
           const found = state.foundWordIds.size;
-          const resultat = `${found}/${total}`;
+          // Each new clue raises a word's stage by one; repeats are free.
+          const hintsUsed = Object.values(state.hintStages || {}).reduce((sum, stage) => sum + stage, 0);
+          const resultat = `${found}/${total} · ${formatSecondsAsClock(playElapsedSeconds())} · ${formatCount(t, "result_hints", hintsUsed)}`;
           const url = buildFormSubmitUrl(
             formParsed,
             state.studentName.nom,
@@ -366,6 +373,8 @@
             state.puzzle.title || ""
           );
           window.open(url, "_blank", "noopener");
+          // Google Forms still needs its own Submit press, or nothing reaches the teacher.
+          if (dom.boardStatus) dom.boardStatus.textContent = t.msg_form_opened;
         };
 
         dom.sendResultsButton.addEventListener("click", () => {

@@ -231,6 +231,6 @@ test("decodePuzzleConfig clamps title, words, and formTemplate lengths", () => {
   });
   const decoded = core.decodePuzzleConfig(encoded);
   assert.ok(decoded.title.length <= 60, `title ${decoded.title.length} > 60`);
-  assert.ok(decoded.words.length <= 2000, `words ${decoded.words.length} > 2000`);
+  assert.ok(decoded.words.length <= 6000, `words ${decoded.words.length} > 6000`);
   assert.ok(decoded.formTemplate.length <= 500, `formTemplate ${decoded.formTemplate.length} > 500`);
 });

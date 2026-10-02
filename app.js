@@ -108,12 +108,23 @@
     return composePuzzle(buildPuzzleFromSnapshotData(words, config, metadata));
   }
 
+  // Play time counts while the board is in play, with or without a countdown:
+  // startTimer opens a stretch and stopTimer (pause, teacher tab, finish) closes it.
+  function playElapsedSeconds() {
+    const running = state.playStartedAt === null ? 0 : (Date.now() - state.playStartedAt) / 1000;
+    return Math.floor(state.elapsedSeconds + running);
+  }
+
   function stopTimer() {
     if (state.timerIntervalId !== null) {
       clearInterval(state.timerIntervalId);
       state.timerIntervalId = null;
     }
     state.timerDeadline = null;
+    if (state.playStartedAt !== null) {
+      state.elapsedSeconds += (Date.now() - state.playStartedAt) / 1000;
+      state.playStartedAt = null;
+    }
   }
 
   function prefersReducedMotion() {
@@ -243,6 +254,8 @@
 
   function startTimer(totalSeconds) {
     stopTimer();
+    state.playStartedAt = Date.now();
+    if (!(state.puzzle?.timerDuration > 0)) return;
     state.timerSecondsLeft = Math.max(0, totalSeconds);
     if (state.timerSecondsLeft <= 0) {
       expireTimer();
@@ -381,6 +394,8 @@
     timerIntervalId: null,
     timerSecondsLeft: 0,
     timerDeadline: null,
+    elapsedSeconds: 0,
+    playStartedAt: null,
     timerExpired: false,
     timerPaused: false,
     studentSessionStarted: false,
@@ -426,6 +441,8 @@
       hintDirectionCell: null,
       activeDefinitionWordId: null,
       timerSecondsLeft: state.puzzle?.timerDuration || 0,
+      elapsedSeconds: 0,
+      playStartedAt: null,
       focusedCell: null,
       boardFlash: null,
       wrongCells: [],
@@ -451,7 +468,7 @@
     return {
       version: SHARED_PUZZLE_VERSION,
       title: puzzle.title,
-      words: puzzle.words.map(word => word.display).join("\n"),
+      words: puzzle.words.map(word => word.definition ? `${word.display}: ${word.definition}` : word.display).join("\n"),
       difficulty: puzzle.difficulty,
       size: puzzle.requestedSize || "auto",
       lang: puzzle.sourceLang || state.lang,
@@ -477,6 +494,7 @@
       foundWordIds: [...state.foundWordIds],
       foundWordPaths: Object.fromEntries([...state.foundWordPaths].map(([id, cells]) => [id, serializePlacementCells(cells)])),
       timerSecondsLeft: state.timerSecondsLeft,
+      elapsedSeconds: playElapsedSeconds(),
       timerExpired: state.timerExpired,
       hintsRemaining: state.hintsRemaining,
       started: state.studentSessionStarted || state.resumeAvailable,
@@ -509,6 +527,7 @@
     if (Number.isFinite(record.timerSecondsLeft) && state.puzzle.timerDuration > 0) {
       state.timerSecondsLeft = Math.max(0, Math.min(state.puzzle.timerDuration, record.timerSecondsLeft));
     }
+    if (Number.isFinite(record.elapsedSeconds)) state.elapsedSeconds = Math.max(0, record.elapsedSeconds);
     if (Number.isFinite(record.hintsRemaining) && state.puzzle.hintsAllowed !== -1) {
       state.hintsRemaining = Math.max(0, Math.min(state.puzzle.hintsAllowed, record.hintsRemaining));
     }
@@ -606,6 +625,7 @@
     langBtns: document.querySelectorAll(".lang-btn"),
     themeBtns: document.querySelectorAll(".theme-btn"),
     contrastToggle: document.querySelector("#contrast-toggle"),
+    fullscreenToggle: document.querySelector("#fullscreen-toggle"),
     libSearch: document.querySelector("#lib-search"),
     libCategories: document.querySelector("#lib-categories"),
     libResults: document.querySelector("#lib-results"),
@@ -647,6 +667,7 @@
     wordDefinitionText: document.querySelector("#word-definition-text"),
     wordDefinitionFound: document.querySelector("#word-definition-found"),
     wordDefinitionClose: document.querySelector("#word-definition-close"),
+    wordDefinitionListen: document.querySelector("#word-definition-listen"),
     confirmModal: document.querySelector("#confirm-modal"),
     confirmModalTitle: document.querySelector("#confirm-modal-title"),
     confirmModalText: document.querySelector("#confirm-modal-text"),
@@ -679,8 +700,9 @@
     return state.puzzle?.words.find(word => word.id === wordId) || null;
   }
 
+  // The teacher's own definition wins over the library's.
   function getDefinitionTextForWordId(wordId) {
-    return getDefinitionsForLang(getPuzzleSourceLang())[wordId] || "";
+    return findPuzzleWordById(wordId)?.definition || getDefinitionsForLang(getPuzzleSourceLang())[wordId] || "";
   }
 
   function resetWordDefinitionModalContent() {
@@ -691,7 +713,35 @@
     if (dom.wordDefinitionFound) dom.wordDefinitionFound.hidden = true;
   }
 
+  // Voices are installed per device. Without one for the puzzle's language the
+  // Listen button stays hidden rather than reading in the wrong accent.
+  const SPEECH_LANG_TAGS = { ca: "ca-ES", es: "es-ES", en: "en-GB" };
+
+  function findSpeechVoice(lang) {
+    const voices = globalThis.speechSynthesis?.getVoices?.() || [];
+    // Offline voices first, then the plain-named ones (Mónica, Montse, Daniel) over Apple's
+    // character voices such as "Grandpa (Spanish (Spain))".
+    // ponytail: name heuristic; add a voice picker if it reads badly on some device.
+    const rank = voice => (voice.localService ? 2 : 0) + (voice.name.includes("(") ? 0 : 1);
+    const sameLang = voices
+      .filter(voice => voice.lang.toLowerCase().replace("_", "-").startsWith(lang))
+      .sort((left, right) => rank(right) - rank(left));
+    return sameLang.find(voice => voice.lang.replace("_", "-") === SPEECH_LANG_TAGS[lang]) || sameLang[0] || null;
+  }
+
+  function speakActiveDefinition() {
+    const word = findPuzzleWordById(state.activeDefinitionWordId);
+    const voice = findSpeechVoice(getPuzzleSourceLang());
+    if (!word || !voice) return;
+    const utterance = new SpeechSynthesisUtterance(`${word.display}. ${getDefinitionTextForWordId(word.id)}`);
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  }
+
   function closeWordDefinitionModal(options) {
+    globalThis.speechSynthesis?.cancel();
     state.activeDefinitionWordId = null;
     resetWordDefinitionModalContent();
     closeModal(dom.wordDefinitionModal, options);
@@ -707,6 +757,7 @@
     }
     dom.wordDefinitionTitle.textContent = word.display;
     dom.wordDefinitionText.textContent = definitionText;
+    if (dom.wordDefinitionListen) dom.wordDefinitionListen.hidden = !findSpeechVoice(getPuzzleSourceLang());
     if (dom.wordDefinitionFound) {
       dom.wordDefinitionFound.hidden = !state.foundWordIds.has(word.id);
     }
@@ -1154,6 +1205,7 @@
     allCategoryId: ALL_CATEGORY_ID,
     maxGridSize: CORE.MAX_GRID_SIZE,
     parseWords,
+    splitWordEntries: CORE.splitWordEntries,
     normalizeWord: CORE.normalizeWord,
     normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
     generateSampleId: APP_HELPERS.generateSampleId,
@@ -1183,6 +1235,7 @@
     getTranslations,
     sameCell,
     formatSecondsAsClock,
+    playElapsedSeconds,
     parseFormEntries,
     getDefinitionTextForWordId,
     openWordDefinition,
@@ -1352,6 +1405,9 @@
     printAnswerKey,
     shareCurrentPuzzle,
     confirmDialog,
+    formatSecondsAsClock,
+    formatCount,
+    playElapsedSeconds,
     // Disabled tabs remain discoverable with arrow keys; activation must leave
     // focus in place instead of sending the user to the creation button.
     canOpenStudent: isCurrentActivityReady,
@@ -1622,6 +1678,24 @@
   }
   dom.contrastToggle?.addEventListener("click", () => {
     applyContrast(document.documentElement.dataset.contrast === "high" ? "normal" : "high");
+  });
+  // Projector mode. The whole document goes full screen so dialogs stay visible;
+  // CSS hides the page header and tabs while the pupil area is showing.
+  if (dom.fullscreenToggle && document.fullscreenEnabled) {
+    dom.fullscreenToggle.hidden = false;
+    dom.fullscreenToggle.addEventListener("click", () => {
+      const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+      request?.catch?.(() => {});
+    });
+    document.addEventListener("fullscreenchange", () => {
+      dom.fullscreenToggle.setAttribute("aria-pressed", String(Boolean(document.fullscreenElement)));
+    });
+  }
+  dom.wordDefinitionListen?.addEventListener("click", speakActiveDefinition);
+  // Chrome fills the voice list asynchronously; asking once starts the load.
+  globalThis.speechSynthesis?.getVoices?.();
+  globalThis.speechSynthesis?.addEventListener?.("voiceschanged", () => {
+    if (state.activeDefinitionWordId) renderWordDefinitionModal();
   });
   dom.presetBtns.forEach(btn => btn.addEventListener("click", () => applyDifficultyPreset(btn.dataset.preset)));
   [dom.difficultyInput, dom.sizeInput, dom.timerInput, dom.hintsInput].forEach(input => {

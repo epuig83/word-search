@@ -18,6 +18,7 @@
     getTranslations,
     sameCell,
     formatSecondsAsClock,
+    playElapsedSeconds,
     parseFormEntries,
     getDefinitionTextForWordId,
     openWordDefinition,
@@ -569,9 +570,8 @@
       }
       if (dom.sendResultsButton) dom.sendResultsButton.hidden = !hasSendResults;
       if (dom.completionTime) {
-        if (isComplete && state.puzzle.timerDuration > 0) {
-          const elapsed = state.puzzle.timerDuration - state.timerSecondsLeft;
-          dom.completionTime.textContent = t.completion_time.replace("{time}", formatSecondsAsClock(Math.max(0, elapsed)));
+        if (isComplete) {
+          dom.completionTime.textContent = t.completion_time.replace("{time}", formatSecondsAsClock(playElapsedSeconds()));
           dom.completionTime.hidden = false;
         } else if (isExpiredUnfinished) {
           dom.completionTime.textContent = t.completion_score

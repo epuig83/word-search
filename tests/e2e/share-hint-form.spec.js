@@ -264,7 +264,8 @@ test("student name modal and send results use the configured form URL", async ({
   const url = new URL(openedUrl);
   expect(url.searchParams.get("entry.10")).toBe("Ada");
   expect(url.searchParams.get("entry.20")).toBe("Lovelace");
-  expect(url.searchParams.get("entry.30")).toBe("3/3");
+  // Score, play time and clues used share the teacher's single result field.
+  expect(url.searchParams.get("entry.30")).toMatch(/^3\/3 · \d{2}:\d{2} · 0 pistes$/);
   expect(url.searchParams.get("entry.40")).toBe("Animals del mar");
 });
 

@@ -15,6 +15,7 @@
     allCategoryId,
     maxGridSize,
     parseWords,
+    splitWordEntries,
     normalizeWord,
     normalizeSampleTitle,
     generateSampleId,
@@ -135,22 +136,18 @@
       const strippedWords = [];
       const seen = new Set();
       let distinctValid = 0;
-      dom.wordsInput.value
-        .split(/[\n\t,;]+/)
-        .map(token => token.trim())
-        .filter(Boolean)
-        .forEach(token => {
-          const cleaned = normalizeWord(token);
-          if (cleaned.length === 1) shortWords.push(token);
-          else if (cleaned.length === 0 || seen.has(cleaned)) skippedWords.push(token);
-          else {
-            distinctValid += 1;
-            // Letters (accented too, or with a separate accent mark), spaces, apostrophes,
-            // hyphens and the Catalan middle dot are expected; digits or other symbols vanish.
-            if (/[^\p{L}\p{M}\s'’\-·.]/u.test(token)) strippedWords.push(token);
-          }
-          seen.add(cleaned);
-        });
+      splitWordEntries(dom.wordsInput.value).forEach(({ token, word }) => {
+        const cleaned = normalizeWord(word);
+        if (cleaned.length === 1) shortWords.push(token);
+        else if (cleaned.length === 0 || seen.has(cleaned)) skippedWords.push(token);
+        else {
+          distinctValid += 1;
+          // Letters (accented too, or with a separate accent mark), spaces, apostrophes,
+          // hyphens and the Catalan middle dot are expected; digits or other symbols vanish.
+          if (/[^\p{L}\p{M}\s'’\-·.]/u.test(word)) strippedWords.push(word);
+        }
+        seen.add(cleaned);
+      });
 
       // Mirror the WORD_TOO_LONG generation error before the teacher submits. On
       // Automatic the limit is the biggest board.
@@ -341,11 +338,7 @@
         .split("\n")
         .map(entry => entry.trim())
         .filter(Boolean);
-      const currentNormalized = new Set(currentWords.map(normalizeWord));
-
-      if (currentNormalized.has(normalizeWord(word))) {
-        return;
-      }
+      if (parseWords(dom.wordsInput.value).words.some(entry => entry.id === normalizeWord(word))) return;
 
       dom.wordsInput.value = [...currentWords, word].join("\n");
       setStatus(null);
@@ -402,9 +395,7 @@
         .filter(word => normalizeWord(word).includes(search))
         .sort((left, right) => left.localeCompare(right, lang));
 
-      const addedWords = new Set(
-        dom.wordsInput.value.split(/[\n\t,;]+/).map(token => token.trim()).filter(Boolean).map(normalizeWord)
-      );
+      const addedWords = new Set(parseWords(dom.wordsInput.value).words.map(word => word.id));
       const chipColors = ["chip-green", "chip-blue", "chip-orange", "chip-purple", "chip-teal"];
       const wordCategoryIndex = new Map();
       categoryEntries.forEach(([, category], index) => {

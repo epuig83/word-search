@@ -21,6 +21,7 @@
   // few hundred words — or a crafted ?p= link — freezes a classroom tablet outright.
   const MAX_WORDS = 60;
   const MAX_GENERATION_MS = 1500;
+  const MAX_DEFINITION_LENGTH = 160;
   const SAMPLE_LANGS = ["ca", "es", "en"];
   const SAMPLE_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const SAMPLE_SIZES = new Set(["auto", "8", "10", "12", "14", "16"]);
@@ -50,15 +51,32 @@
       .replace(/[^A-ZÑ]/g, "");
   }
 
+  // A "word: definition" line is one entry, so its definition may contain commas.
+  // Other lines split on tabs, commas and semicolons. `token` is the raw entry.
+  function splitWordEntries(rawText, { legacy = false } = {}) {
+    const text = String(rawText ?? "");
+    if (legacy) {
+      return text.split(/[\n,;]+/).map(token => token.trim()).filter(Boolean).map(token => ({ token, word: token, definition: "" }));
+    }
+    return text.split("\n").flatMap(line => {
+      const colon = line.indexOf(":");
+      if (colon === -1) return line.split(/[\t,;]+/).map(token => ({ token: token.trim(), word: token.trim(), definition: "" }));
+      return [{
+        token: line.trim(),
+        word: line.slice(0, colon).trim(),
+        definition: line.slice(colon + 1).trim().slice(0, MAX_DEFINITION_LENGTH),
+      }];
+    }).filter(entry => entry.token);
+  }
+
   function parseWords(rawText, { legacy = false } = {}) {
-    const tokens = String(rawText ?? "").split(legacy ? /[\n,;]+/ : /[\n\t,;]+/).map(token => token.trim()).filter(Boolean);
     const words = [];
     const seen = new Set();
-    for (const token of tokens) {
-      const cleaned = normalizeWord(token, { legacy });
+    for (const { word, definition } of splitWordEntries(rawText, { legacy })) {
+      const cleaned = normalizeWord(word, { legacy });
       if (cleaned.length >= 2 && !seen.has(cleaned)) {
         seen.add(cleaned);
-        words.push({ id: cleaned, cleaned, display: token });
+        words.push({ id: cleaned, cleaned, display: word, definition });
         if (words.length >= MAX_WORDS) break;
       }
     }
@@ -314,7 +332,8 @@
   // the words textarea. A malicious shared link can still set any value, but
   // the trimmed length keeps rendering + storage predictable.
   const SHARED_TITLE_MAX = 60;
-  const SHARED_WORDS_MAX = 2000;
+  // Teacher definitions travel inside the words text.
+  const SHARED_WORDS_MAX = 6000;
   const SHARED_FORM_TEMPLATE_MAX = 500;
 
   function decodePuzzleConfig(encoded) {
@@ -383,6 +402,7 @@
     SHARED_PUZZLE_VERSION,
     createEmptyCustomSamples,
     normalizeWord,
+    splitWordEntries,
     parseWords,
     countValidWords,
     normalizeSharedSize,

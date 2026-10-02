@@ -3347,7 +3347,8 @@ body[data-tab="student"] .panel {
     max-height: 10px;
   }
 
-  .board-appearance { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; }
+  /* Wraps on narrow touch screens, where 44px targets no longer fit on one line. */
+  .board-appearance { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.75rem; }
   .student-gamebar { margin: 0 0 0.85rem; }
   /* Size the board by the viewport height so it grows on projectors and fits
      short laptops without scrolling; 19rem covers tabs, title, game bar and panel padding.
@@ -3489,5 +3490,22 @@ body[data-tab="student"] .panel {
   .hero .lang-btn {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+/* Projector mode: the pupil area alone fills the screen and the board grows
+   into the room freed by the page header and tabs. */
+html:fullscreen {
+  background: var(--bg-cream);
+}
+
+html:fullscreen body[data-tab="student"] .hero,
+html:fullscreen body[data-tab="student"] .main-tabs {
+  display: none;
+}
+
+@media screen and (min-width: 641px) {
+  html:fullscreen body[data-tab="student"] .puzzle-layout {
+    grid-template-columns: minmax(0, max(520px, calc(100dvh - 15rem), calc(var(--grid-size, 0) * 26px + 2.5rem))) minmax(180px, 1fr);
   }
 }

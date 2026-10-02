@@ -234,3 +234,24 @@ test("normalizeWord drops trademark-style symbols instead of spelling them out",
 test("the legacy parser reproduces boards saved before decomposed accents and tabs were handled", () => {
   assert.deepEqual(core.parseWords("año\ngat\tgos", { legacy: true }).words.map(word => word.cleaned), ["ANO", "GATGOS"]);
 });
+
+test("a 'word: definition' line is one entry whose definition may hold commas", () => {
+  const { words } = core.parseWords("sol: estrella grande, caliente y brillante\nmar, río\nluna:\n: sin palabra");
+  assert.deepEqual(words.map(word => [word.cleaned, word.display, word.definition]), [
+    ["SOL", "sol", "estrella grande, caliente y brillante"],
+    ["MAR", "mar", ""],
+    ["RIO", "río", ""],
+    ["LUNA", "luna", ""],
+  ]);
+});
+
+test("splitWordEntries keeps the raw entry so dropped lines can be named", () => {
+  assert.deepEqual(core.splitWordEntries(": sin palabra\ngos\tgat").map(entry => entry.token), [": sin palabra", "gos", "gat"]);
+});
+
+test("teacher definitions are capped and survive a share link round trip", () => {
+  const { words } = core.parseWords(`sol: ${"a".repeat(400)}`);
+  assert.equal(words[0].definition.length, 160);
+  const decoded = core.decodePuzzleConfig(core.encodePuzzleConfig({ title: "T", words: "sol: estrella, grande", lang: "es" }));
+  assert.equal(core.parseWords(decoded.words).words[0].definition, "estrella, grande");
+});

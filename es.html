@@ -89,6 +89,8 @@
       <symbol id="icon-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></symbol>
       <symbol id="icon-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/></symbol>
       <symbol id="icon-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18A9 9 0 0 0 12 3Z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="icon-fullscreen" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+      <symbol id="icon-speaker" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
     </svg>
     <a href="#main-content" class="skip-link" data-t="skip_to_main">Ir al contenido principal</a>
     <div class="page-shell">
@@ -200,7 +202,9 @@
                   name="words"
                   placeholder="león&#10;tigre"
                   required
+                  aria-describedby="words-definition-hint"
                 ></textarea>
+                <p id="words-definition-hint" class="sample-note words-definition-hint" data-t="words_definition_hint">Opcional: añade una definición con dos puntos, por ejemplo «sol: estrella que nos da luz».</p>
                 <div class="words-tools">
                   <div class="words-tools-meta">
                     <span id="words-count" class="words-count-pill">0 palabras válidas</span>
@@ -381,6 +385,10 @@
                   <svg class="ui-icon" aria-hidden="true"><use href="#icon-contrast"></use></svg>
                   <span class="visually-hidden" data-t="contrast_toggle">Alto contraste</span>
                 </button>
+                <button type="button" id="fullscreen-toggle" class="contrast-toggle" aria-pressed="false" hidden>
+                  <svg class="ui-icon" aria-hidden="true"><use href="#icon-fullscreen"></use></svg>
+                  <span class="visually-hidden" data-t="fullscreen_toggle">Pantalla completa</span>
+                </button>
               </div>
             </div>
           </div>
@@ -490,7 +498,7 @@
     >
       <div class="modal-content" tabindex="-1">
         <h3 id="student-name-title" data-t="name_modal_title">¿Quién eres?</h3>
-        <p id="student-name-text" data-t="name_modal_text">Escribe tu nombre antes de empezar el juego.</p>
+        <p id="student-name-text" data-t="name_modal_text">Escribe tu nombre para enviar tu resultado.</p>
         <p id="student-name-privacy" class="privacy-note" data-t="name_modal_privacy">Tu profe verá tu nombre y cuántas palabras has encontrado. Puedes poner un apodo si lo prefieres.</p>
         <form id="student-name-form">
           <div class="field" style="margin-bottom:0.75rem;">
@@ -526,7 +534,13 @@
           data-t="word_definition_found"
           hidden
         >Ya has encontrado esta palabra.</p>
-        <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">Cerrar</button>
+        <div class="confirm-modal-actions">
+          <button type="button" id="word-definition-listen" class="ghost-button" hidden>
+            <svg class="ui-icon" aria-hidden="true"><use href="#icon-speaker"></use></svg>
+            <span data-t="word_definition_listen">Escuchar</span>
+          </button>
+          <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">Cerrar</button>
+        </div>
       </div>
     </div>
 

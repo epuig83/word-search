@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const sessionModule = require("../../app-session.js");
+const { formatCount, formatSecondsAsClock } = require("../../app-helpers.js");
 require("../../i18n.js");
 
 const TRANSLATIONS = globalThis.WORD_SEARCH_I18N;
@@ -152,6 +153,7 @@ function createFixture() {
     pinChangeMessage: createFakeElement({ style: { display: "none" } }),
     pinChangeDetails: createFakeElement({ open: true }),
     sendResultsButton: createFakeElement(),
+    boardStatus: createFakeElement(),
   };
 
   const state = {
@@ -168,6 +170,8 @@ function createFixture() {
     timerExpired: false,
     timerIntervalId: null,
     timerSecondsLeft: 0,
+    playStartedAt: null,
+    hintStages: {},
     formTemplate: "",
     studentName: { nom: "", cognoms: "" },
     pinCallback: null,
@@ -236,6 +240,9 @@ function createFixture() {
     shareCurrentPuzzle: button => {
       calls.shareCurrentPuzzle.push(button);
     },
+    formatCount,
+    formatSecondsAsClock,
+    playElapsedSeconds: () => 133,
   });
 
   return { controller, dom, state, calls };
@@ -265,6 +272,34 @@ test("setTab('student') resumes the timer and never traps the student in the nam
     assert.equal(dom.tabTeacher.getAttribute("aria-selected"), "false");
     assert.equal(dom.tabStudent.getAttribute("aria-selected"), "true");
     assert.equal(dom.tabStudent.classList.contains("is-active"), true);
+  });
+});
+
+test("setTab('student') restarts the play stopwatch on untimed boards but not on finished ones", () => {
+  withBrowserGlobals(() => {
+    const { controller, state, calls } = createFixture();
+    state.puzzle.timerDuration = 0;
+    state.studentSessionStarted = true;
+
+    controller.setTab("student");
+    assert.deepEqual(calls.startTimer, [0]);
+
+    calls.startTimer.length = 0;
+    state.activeTab = "teacher";
+    state.foundWordIds = new Set(["a", "b", "c"]);
+    controller.setTab("student");
+    assert.deepEqual(calls.startTimer, []);
+  });
+});
+
+test("startStudentSession starts the stopwatch on an untimed board", () => {
+  withBrowserGlobals(() => {
+    const { controller, state, calls } = createFixture();
+    state.puzzle.timerDuration = 0;
+
+    controller.startStudentSession();
+
+    assert.deepEqual(calls.startTimer, [0]);
   });
 });
 
@@ -317,6 +352,8 @@ test("sendResultsButton uses the parsed form configuration and opens the expecte
     controller.bindEvents();
     state.formTemplate = "https://forms.example.com";
     state.studentName = { nom: "Ada", cognoms: "Lovelace" };
+    // First letter of one word, then first letter and direction of another: 3 clues.
+    state.hintStages = { a: 1, b: 2 };
 
     dom.sendResultsButton.dispatch("click");
 
@@ -324,10 +361,12 @@ test("sendResultsButton uses the parsed form configuration and opens the expecte
       { url: "https://forms.example.com" },
       "Ada",
       "Lovelace",
-      "2/3",
+      "2/3 · 02:13 · 3 pistes",
       "Animals del bosc",
     ]]);
     assert.deepEqual(openCalls, [["https://example.com/form-submit", "_blank", "noopener"]]);
+    // The pupil still has to press Submit inside Google Forms.
+    assert.equal(dom.boardStatus.textContent, TRANSLATIONS.ca.msg_form_opened);
   });
 });
 
