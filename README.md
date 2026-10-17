@@ -32,20 +32,24 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - That means they stay available after refreshing the page on the same computer.
 - To move them to another laptop, use `Export JSON` and `Import JSON`.
 - Titles retain numbers, punctuation, accents and word boundaries: `Tema 1` and `Tema 2` are separate examples. Equivalent titles ignore case and extra spaces; replacing one keeps its existing identifier.
+- Teacher definitions are retained when saving, reopening, exporting and importing examples, including definitions containing commas. Existing examples with plain words remain compatible.
 
 ## Classroom Flow
 
 - The creation form saves incomplete drafts automatically in this browser. Reloading restores the last activity with its exact board, timer, progress, and hint usage; student names are not saved.
+- The browser keeps one current activity. If another tab changes the draft, activity or pupil progress, an older tab pauses and offers **Load the saved activity**. Its content stays in memory until that action replaces it; closing it cannot overwrite the newer work. The check also runs before writes and resets, including when a tab closes.
 - Editing a generated activity shows a pending-changes message and disables opening, sharing, and printing until it is generated again. Reverting the edits re-enables the actions.
 - A saved game offers **Continue** or **New pupil: start fresh**. Starting fresh keeps the same puzzle and resets the score, timer, hints, and any result-submission name. Completed and expired games can also be reviewed or restarted.
 - Hints let students choose an unsolved word, reveal its first letter, then request its direction. Each new clue consumes one hint when hints are limited; repeating a revealed clue is free. Opening or dismissing the picker does not spend a hint.
 - The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
 - Shared links rebuild the exact same puzzle when opened.
+- Shared activities have a 64 KiB UTF-8 JSON limit, applied equally when creating and reopening them. Word lists and definitions are never cut to fit: an oversized activity is rejected while the draft and previous board remain available.
 - Any straight occurrence of a listed word counts, in either direction, even when it is not the generator's original placement. Each word counts once, and the selected cells remain highlighted after reopening. Hints and answer keys use the original placements.
 - Invalid shared paths are rejected without overwriting an existing teacher draft. Saved selections that fail validation fall back to the original positions.
 - The student start overlay shows the timer and available hints before the activity begins.
 - A first/last-letter example explains how to select a word. Words marked with a book icon open a definition. Teachers can write their own as `word: definition` in the list; it replaces the library's and travels with shared links.
 - The definition dialog has a **Listen** button that reads the word and its definition with a voice installed on the device for the puzzle's language. It is hidden when no such voice exists.
+- Changing the interface language keeps the activity's original language attached to its words, definitions, title and printed content for assistive reading.
 - **Full screen** in the pupil area hides the tabs so the board fills the projector.
 - On phones, the word list appears above the grid and the activity actions below it.
 - Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
@@ -98,6 +102,7 @@ Then open `http://localhost:8000` in the browser.
 ## Features
 
 - Automatic grid generation.
+- Cooperative generation in short tasks, with a visible busy state and protection against duplicate submissions; the reviewed activity is replaced only after successful generation and validation.
 - Easy, medium, and hard difficulty levels.
 - Mouse, touch, and keyboard solving.
 - Review step before opening the student area, sharing, or printing.
@@ -163,6 +168,7 @@ pnpm test
 - `tests/e2e/design-polish.spec.js`: compact progress through completion, responsive board sizing with long titles, and keyboard navigation from successful creation or validation errors.
 - `tests/e2e/recovery-hints.spec.js`: incomplete drafts, pending changes, exact local recovery, pupil handoff, staged hints, storage failures, and accessibility of the new states.
 - `tests/e2e/audit-regressions.spec.js`: numbered examples, alternate word occurrences and inverse words, exact selection recovery, older/invalid progress, malformed links and clearing invalid input.
+- `tests/e2e/activity-integrity.spec.js`: complete definition round trips, long activity recovery, oversized-input preservation, conflicts between tabs, content language, duplicate generation and opening from disk.
 - `tests/e2e/offline-updates.spec.js`: two incompatible releases served from an isolated in-memory server, waiting for every tab, offline reopening, interrupted downloads, integrity failures, retries, progress retention and preservation of other applications' caches.
 - `tests/e2e/print-variants.spec.js`: 2–4 versions in all languages, paired answer keys, A4 PDFs, repeat printing, unchanged pupil progress, cancellation/failure, overflow handling, narrow screens, accessibility and local files.
 - `tests/e2e/tablet.spec.js`: iPad WebKit profile with real tap input, viewport orientation changes, hints, exact progress recovery and the versions dialog in all three languages. These checks do not emulate the native virtual keyboard, physical finger dragging or Safari's system print sheet.

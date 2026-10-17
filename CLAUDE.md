@@ -53,13 +53,15 @@ All mutable state lives in a single `state` object in `app.js`. It includes `puz
 
 ### Puzzle Generation (`core.js`)
 
-`buildPuzzleData` runs randomized backtracking up to `MAX_GENERATION_ATTEMPTS` (180) times to place all words. If the longest word exceeds grid size it throws `WORD_TOO_LONG`; any other failure surfaces to the user as the generic `msg_puzzle_error` string. Available directions depend on difficulty (easy: →↓, medium: + ↘, hard: all 8). Empty cells filled with random letters afterwards. Generation is bounded by `MAX_GENERATION_MS` (1500) as well as the attempt count, and `parseWords` caps a puzzle at `MAX_WORDS` (60) — both guard the main thread against an oversized word list.
+`buildPuzzleData` and `buildPuzzleDataAsync` consume the same randomized placement iterator, bounded by 180 attempts, 1500 ms and 60 words. The synchronous API remains available for pure callers; activity creation and printable variants use the async API, yielding after roughly 8 ms and checking cancellation between grid rows. The default yield uses `MessageChannel`, including from `file://`. Directions remain easy: →↓, medium: + ↘, hard: all 8. `WORD_TOO_LONG` identifies an oversized word; other placement failures use `msg_puzzle_error`. Generation disables competing submissions and validates the full candidate before replacing the current activity.
 
 ### Word Selection (`app-board.js`)
 
 Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a straight/diagonal line between two cells; `checkMatch` (in `app-board.js`) matches the selected letters to an unfound word, preferring forward then reverse. Any occurrence counts once. `state.foundWordPaths` stores the selected cells without changing the original placements used for hints, answer keys and share identity. A miss sets `state.boardFlash` and `state.wrongCells`. Pointer events are used for mouse+touch+pen.
 
 ### Persistence
+
+`createWorkspaceStorage` guards draft, activity and progress writes/removals against the exact records last read by that tab, plus an additive `word-search-workspace-revision-v1` token. Existing records need no migration. A mismatch detected before a write or through a storage event pauses the stale tab, cancels generation, makes its main UI inert and offers an explicit reload of the saved activity. Startup restoration must not delete progress. Unavailable storage still uses the existing save-error feedback.
 
 - `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection. Title comparison uses `normalizeSampleTitle` (NFC, trimmed/collapsed spaces, lowercase), not puzzle-letter normalization.
 - `word-search-teacher-pin-v1` — teacher PIN. Fallback: `"1234"`.
@@ -72,6 +74,8 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 - Printable versions are temporary controller state, never persisted over the classroom activity. A is the current puzzle; B–D use the same words, actual size and difficulty with different placements. Printing uses its own DOM container and does not switch game mode; the single worksheet and answer key reuse the same sheet (`printSheet`), and answer keys ring each word with an SVG outline instead of shading cells. Closing or cancelling a print clears only the print container; models remain reusable until the activity changes or the page reloads.
 
 ### URL Sharing
+
+Encoded JSON has a shared 64 KiB UTF-8 byte limit on encode and decode. Words, definitions and form URLs stay intact; oversized candidates fail before replacing the current board. `serializeWords` is the common text serializer for saved/imported examples and shared activity identity.
 
 Full puzzle config is base64-encoded into a `?p=` query parameter (`encodePuzzleConfig`/`decodePuzzleConfig` in `core.js`, version `SHARED_PUZZLE_VERSION = 2`). Every link carries its grid snapshot (`gridRows` + `placementPaths`); links without one are rejected. Loaded at startup by `tryLoadPuzzle()`; on decode failure, rolls back to previous state and shows `msg_link_error`. Teacher definitions travel inside the words text as `word: definition` lines (`splitWordEntries` in `core.js` is the only word splitter), so links, drafts, samples and progress keys need no extra field. Public language variants use generated `es.html` and `en.html` pages with localized server-rendered metadata; shared puzzle URLs keep their embedded language.
 

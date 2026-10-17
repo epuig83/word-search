@@ -214,7 +214,7 @@ test("parseFormEntries rejects allowed host without entry.* params", () => {
   assert.equal(core.parseFormEntries("https://docs.google.com/forms/d/x/viewform"), null);
 });
 
-test("decodePuzzleConfig clamps title, words, and formTemplate lengths", () => {
+test("decodePuzzleConfig keeps long words and form URLs intact within the byte budget", () => {
   const longTitle = "A".repeat(500);
   const longWords = "palabra\n".repeat(1000);
   const longForm = "https://docs.google.com/forms/d/" + "z".repeat(1000) + "?entry.1=x";
@@ -231,6 +231,6 @@ test("decodePuzzleConfig clamps title, words, and formTemplate lengths", () => {
   });
   const decoded = core.decodePuzzleConfig(encoded);
   assert.ok(decoded.title.length <= 60, `title ${decoded.title.length} > 60`);
-  assert.ok(decoded.words.length <= 6000, `words ${decoded.words.length} > 6000`);
-  assert.ok(decoded.formTemplate.length <= 500, `formTemplate ${decoded.formTemplate.length} > 500`);
+  assert.equal(decoded.words, longWords);
+  assert.equal(decoded.formTemplate, longForm);
 });

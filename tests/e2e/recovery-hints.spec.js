@@ -177,6 +177,7 @@ test("editing a shared puzzle recovers pending work instead of reloading the ori
   await expect(page.locator("#title-input")).toHaveValue("Nova activitat");
   await expect(page.locator("#teacher-pending-changes")).toBeVisible();
   await page.locator("#generate-button").click();
+  await expect(page.locator("#teacher-ready-topic")).toHaveText("Nova activitat");
   expect(new URL(page.url()).searchParams.has("p")).toBe(false);
   await page.reload();
   await expect(page.locator("#teacher-ready-topic")).toHaveText("Nova activitat");

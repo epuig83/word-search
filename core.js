@@ -16,9 +16,8 @@
   // If exceeded, buildPuzzleData throws and the UI shows the generic msg_puzzle_error.
   const MAX_GENERATION_ATTEMPTS = 180;
   const MAX_GRID_SIZE = 22;
-  // Backtracking is O(size² × directions × wordLength) per word per attempt and runs
-  // synchronously on the main thread. Without these two ceilings a pasted list of a
-  // few hundred words — or a crafted ?p= link — freezes a classroom tablet outright.
+  // Placement is O(size² × directions × wordLength) per word per attempt.
+  // Both synchronous and cooperative callers keep these work budgets.
   const MAX_WORDS = 60;
   const MAX_GENERATION_MS = 1500;
   const MAX_DEFINITION_LENGTH = 160;
@@ -26,6 +25,7 @@
   const SAMPLE_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const SAMPLE_SIZES = new Set(["auto", "8", "10", "12", "14", "16"]);
   const SHARED_PUZZLE_VERSION = 2;
+  const MAX_SHARED_BYTES = 64 * 1024;
 
   function createEmptyCustomSamples() {
     return { ca: [], es: [], en: [] };
@@ -78,6 +78,10 @@
 
   function countValidWords(rawText) {
     return parseWords(rawText).words.length;
+  }
+
+  function serializeWords(words) {
+    return words.map(word => word.definition ? `${word.display}: ${word.definition}` : word.display).join("\n");
   }
 
   function normalizeSharedSize(value) {
@@ -164,7 +168,9 @@
     return Array.from({ length: size }, () => Array(size).fill(""));
   }
 
-  function buildPuzzleData(words, requestedSize, difficultyKey, metadata, options = {}) {
+  // Both entry points consume the same placement algorithm. A row is a small,
+  // bounded unit of work, including on the largest supported board.
+  function* puzzleSteps(words, requestedSize, difficultyKey, metadata, options = {}) {
     const random = options.random || Math.random;
     const size = requestedSize === "auto" ? calculateAutoSize(words) : Number(requestedSize);
     const directions = [{ row: 0, col: 1 }, { row: 1, col: 0 }];
@@ -194,6 +200,8 @@
       for (const word of words) {
         const optionsForWord = [];
         for (let row = 0; row < size; row++) {
+          if (Date.now() > deadline) throw new Error("Error generating puzzle.");
+          yield;
           for (let col = 0; col < size; col++) {
             for (const direction of directions) {
               let canPlace = true;
@@ -257,6 +265,42 @@
     throw new Error("Error generating puzzle.");
   }
 
+  function buildPuzzleData(words, requestedSize, difficultyKey, metadata, options = {}) {
+    const steps = puzzleSteps(words, requestedSize, difficultyKey, metadata, options);
+    let result;
+    do { result = steps.next(); } while (!result.done);
+    return result.value;
+  }
+
+  function yieldToBrowser() {
+    // MessageChannel also works from file:// and is independent of the game clock.
+    return new Promise(resolve => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
+        channel.port1.close();
+        channel.port2.close();
+        resolve();
+      };
+      channel.port2.postMessage(null);
+    });
+  }
+
+  async function buildPuzzleDataAsync(words, requestedSize, difficultyKey, metadata, options = {}) {
+    const { cancelled = () => false, yieldTask = yieldToBrowser, now = () => performance.now() } = options;
+    const steps = puzzleSteps(words, requestedSize, difficultyKey, metadata, options);
+    await yieldTask();
+    let sliceStart = now();
+    while (true) {
+      if (cancelled()) throw new Error("CANCELLED");
+      const result = steps.next();
+      if (result.done) return result.value;
+      if (now() - sliceStart >= 8) {
+        await yieldTask();
+        sliceStart = now();
+      }
+    }
+  }
+
   function buildPuzzleFromSnapshotData(words, config, metadata) {
     const grid = parseGridRows(config.gridRows);
     if (!grid || !Array.isArray(config.placementPaths) || config.placementPaths.length !== words.length) {
@@ -292,7 +336,12 @@
 
   function encodeBase64(value) {
     if (typeof btoa === "function" && typeof TextEncoder === "function") {
-      return btoa(String.fromCharCode(...new TextEncoder().encode(value)));
+      const bytes = new TextEncoder().encode(value);
+      let binary = "";
+      for (let offset = 0; offset < bytes.length; offset += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+      }
+      return btoa(binary);
     }
     return Buffer.from(value, "utf8").toString("base64");
   }
@@ -318,33 +367,31 @@
       g: config.gridRows,
       p: config.placementPaths,
     });
+    if (new TextEncoder().encode(json).length > MAX_SHARED_BYTES) throw new Error("ACTIVITY_TOO_LARGE");
     return encodeBase64(json);
   }
 
-  // Caps match the UI's max-length on title-input and a generous ceiling for
-  // the words textarea. A malicious shared link can still set any value, but
-  // the trimmed length keeps rendering + storage predictable.
+  // The title follows the existing UI limit. Words, definitions and form URLs
+  // remain intact inside the shared byte budget, preserving snapshot identity.
   const SHARED_TITLE_MAX = 60;
-  // Teacher definitions travel inside the words text.
-  const SHARED_WORDS_MAX = 6000;
-  const SHARED_FORM_TEMPLATE_MAX = 500;
-
   function decodePuzzleConfig(encoded) {
     try {
+      if (typeof encoded !== "string" || encoded.length > Math.ceil(MAX_SHARED_BYTES / 3) * 4) return null;
       const json = decodeBase64(encoded);
+      if (new TextEncoder().encode(json).length > MAX_SHARED_BYTES) return null;
       const obj = JSON.parse(json);
       const requestedSize = normalizeSharedSize(obj.s);
       return {
         version: Number(obj.v) || 1,
         title: typeof obj.t === "string" ? obj.t.slice(0, SHARED_TITLE_MAX) : "",
-        words: typeof obj.w === "string" ? obj.w.slice(0, SHARED_WORDS_MAX) : "",
+        words: typeof obj.w === "string" ? obj.w : "",
         difficulty: SAMPLE_DIFFICULTIES.has(obj.d) ? obj.d : "easy",
         size: requestedSize,
         requestedSize,
         lang: SAMPLE_LANGS.includes(obj.l) ? obj.l : "ca",
         timer: Math.max(0, Number(obj.tm) || 0),
         hints: Math.max(-1, Number(obj.h) || 0),
-        formTemplate: typeof obj.f === "string" ? obj.f.slice(0, SHARED_FORM_TEMPLATE_MAX) : "",
+        formTemplate: typeof obj.f === "string" ? obj.f : "",
         gridRows: Array.isArray(obj.g) ? obj.g : null,
         placementPaths: Array.isArray(obj.p) ? obj.p : null,
       };
@@ -393,10 +440,12 @@
     SAMPLE_DIFFICULTIES,
     SAMPLE_SIZES,
     SHARED_PUZZLE_VERSION,
+    MAX_SHARED_BYTES,
     createEmptyCustomSamples,
     normalizeWord,
     splitWordEntries,
     parseWords,
+    serializeWords,
     countValidWords,
     normalizeSharedSize,
     sameCell,
@@ -408,6 +457,7 @@
     calculateAutoSize,
     buildEmptyGrid,
     buildPuzzleData,
+    buildPuzzleDataAsync,
     buildPuzzleFromSnapshotData,
     encodePuzzleConfig,
     decodePuzzleConfig,

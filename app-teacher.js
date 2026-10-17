@@ -15,6 +15,7 @@
     allCategoryId,
     maxGridSize,
     parseWords,
+    serializeWords,
     splitWordEntries,
     normalizeWord,
     normalizeSampleTitle,
@@ -64,7 +65,7 @@
       return {
         id: generateSampleId(),
         title,
-        words: parsed.words.map(word => word.display).join("\n"),
+        words: serializeWords(parsed.words),
         difficulty: dom.difficultyInput.value,
         size: dom.sizeInput.value,
         timerDuration: Number(dom.timerInput?.value) || 0,

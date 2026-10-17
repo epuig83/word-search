@@ -174,6 +174,7 @@ test("offline readiness waits for complete installation and detects missing file
   await page.locator("#title-input").fill("Para mañana");
   await page.locator("#words-input").fill("sol\nmar\nluna");
   await page.locator("#generate-button").click();
+  await expect(page.locator("#teacher-ready-card")).toBeVisible();
   await waitForOfflineControl(page);
   await context.setOffline(true);
   await page.reload();

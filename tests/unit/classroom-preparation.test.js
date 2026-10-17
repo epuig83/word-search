@@ -7,7 +7,7 @@ const { requestOfflineStatus } = require("../../app-offline.js");
 function generator() {
   let seed = 27;
   const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  return (...args) => core.buildPuzzleData(...args, { random });
+  return (words, size, difficulty, metadata) => core.buildPuzzleData(words, size, difficulty, metadata, { random });
 }
 
 function original(generate) {

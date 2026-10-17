@@ -16,7 +16,7 @@
 
   async function buildVariantBatch(puzzle, count, {
     previous = [],
-    generate = core.buildPuzzleData,
+    generate = core.buildPuzzleDataAsync,
     now = Date.now,
     yieldFrame = () => new Promise(resolve => setTimeout(resolve, 0)),
     cancelled = () => false,
@@ -38,13 +38,14 @@
         await yieldFrame();
         check();
         try {
-          candidate = generate(puzzle.words, String(puzzle.actualSize), puzzle.difficulty, {
+          candidate = await generate(puzzle.words, String(puzzle.actualSize), puzzle.difficulty, {
             title: puzzle.title,
             sourceLang: puzzle.sourceLang,
             timerDuration: puzzle.timerDuration,
             hintsAllowed: puzzle.hintsAllowed,
-          });
-        } catch {
+          }, { cancelled, yieldTask: yieldFrame });
+        } catch (error) {
+          if (error.message === "CANCELLED") throw error;
           candidate = null;
         }
         check();
@@ -124,7 +125,9 @@
         ? (solution ? t.print_solution_suffix : "")
         : (solution ? `${label} · ${t.print_solution_suffix}` : label);
       if (sheetLabel) sheet.append(element("p", "variant-label", sheetLabel));
-      sheet.append(element("h3", "variant-title", puzzle.title));
+      const title = element("h3", "variant-title", puzzle.title);
+      title.lang = puzzle.sourceLang || document.documentElement.lang;
+      sheet.append(title);
       if (!solution) {
         const meta = element("div", "variant-meta");
         meta.append(element("span", "", `${t.print_name_label}:`), element("span", "", `${t.print_date_label}:`));
@@ -144,6 +147,7 @@
       }));
       if (solution) grid.append(createAnswerMarks(puzzle));
       const words = element("ul", "variant-words");
+      words.lang = puzzle.sourceLang || document.documentElement.lang;
       puzzle.words.forEach(word => words.append(element("li", "", word.display)));
       sheet.append(grid, words);
       if (!solution) sheet.append(element("p", "variant-learning", t.learning_prompt));
@@ -296,6 +300,7 @@
     window.matchMedia("print").addEventListener("change", event => { if (!event.matches) clearPrint(); });
 
     return Object.freeze({
+      cancel: dismiss,
       updateLanguage() { if (!modal.hidden && !busy) showPreview(); },
       printSheet,
     });

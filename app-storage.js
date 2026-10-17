@@ -17,6 +17,7 @@
   const PROGRESS_STORAGE_KEY = "word-search-progress-v1";
   const DRAFT_STORAGE_KEY = "word-search-draft-v1";
   const ACTIVITY_STORAGE_KEY = "word-search-activity-v1";
+  const WORKSPACE_REVISION_KEY = "word-search-workspace-revision-v1";
   const DEFAULT_TEACHER_PIN = "1234";
   const DEFAULT_THEME = "pergami";
   const THEMES = ["pergami", "ocea", "bosc", "espai"];
@@ -214,7 +215,56 @@
   }
 
   function saveActivity(activity, storage) {
+    if (!core.decodePuzzleConfig(activity?.key)) return false;
     return saveRecord(ACTIVITY_STORAGE_KEY, activity, storage);
+  }
+
+  // A tab keeps the exact revision it read, including legacy records without
+  // metadata. Check all three records before *every* write or removal; storage
+  // events alone arrive too late to protect pagehide or a reset in an old tab.
+  function createWorkspaceStorage({ storage, onConflict = () => {} } = {}) {
+    const keys = [DRAFT_STORAGE_KEY, ACTIVITY_STORAGE_KEY, PROGRESS_STORAGE_KEY, WORKSPACE_REVISION_KEY];
+    const getStorage = () => storage || globalThis.localStorage;
+    const read = () => keys.map(key => getStorage().getItem(key));
+    let expected;
+    let conflicted = false;
+    try { expected = read(); } catch { /* Ordinary save functions report unavailable storage. */ }
+
+    function check() {
+      if (conflicted) return false;
+      const current = read();
+      if (!expected) expected = current;
+      if (current.some((value, index) => value !== expected[index])) {
+        conflicted = true;
+        onConflict();
+        return false;
+      }
+      return true;
+    }
+
+    function mutate(key, value) {
+      if (!keys.includes(key) || key === WORKSPACE_REVISION_KEY) throw new Error("INVALID_WORKSPACE_KEY");
+      if (!check()) throw new Error("WORKSPACE_CONFLICT");
+      const target = getStorage();
+      if (target.getItem(key) === value) return;
+      const revision = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+      // Publish ownership before the data: a quota failure never grants an old
+      // tab permission to overwrite a partially saved workspace.
+      target.setItem(WORKSPACE_REVISION_KEY, revision);
+      expected[keys.indexOf(WORKSPACE_REVISION_KEY)] = revision;
+      if (value === null) target.removeItem(key);
+      else target.setItem(key, value);
+      expected[keys.indexOf(key)] = value;
+    }
+
+    return Object.freeze({
+      getItem: key => getStorage().getItem(key),
+      setItem: (key, value) => mutate(key, value),
+      removeItem: key => mutate(key, null),
+      check,
+      handles: key => key === null || keys.includes(key),
+      get conflicted() { return conflicted; },
+    });
   }
 
   function loadCustomSamples(storage) {
@@ -270,6 +320,8 @@
     clearProgress,
     DRAFT_STORAGE_KEY,
     ACTIVITY_STORAGE_KEY,
+    WORKSPACE_REVISION_KEY,
+    createWorkspaceStorage,
     loadDraft,
     saveDraft,
     loadActivity,

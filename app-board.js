@@ -508,11 +508,15 @@
       state.prevFoundPlacementIds = new Set(state.foundPlacementIds);
 
       if (!dom.wordListItems) initWordList();
+      const contentLang = state.puzzle.sourceLang || state.lang;
+      dom.boardTitle.lang = contentLang;
       state.puzzle.words.forEach(word => {
         const solved = state.foundWordIds.has(word.id);
         const colorClass = solved ? (state.foundWordColors.get(word.id) || "wc-0") : "";
         const item = dom.wordListItems.get(word.id);
         if (item) {
+          item.firstElementChild.lang = contentLang;
+          item.querySelector(".word-found-label").lang = state.lang;
           item.className = "word-item" +
             (item.dataset.definable === "true" ? " is-definable" : "") +
             (solved ? ` is-found ${colorClass}` : "");

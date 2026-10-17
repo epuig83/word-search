@@ -29,11 +29,12 @@
     SAMPLE_SIZES,
     SHARED_PUZZLE_VERSION,
     parseWords,
+    serializeWords,
     sameCell,
     serializeGridRows,
     serializePlacementCells,
     parsePlacementCells,
-    buildPuzzleData,
+    buildPuzzleDataAsync,
     buildPuzzleFromSnapshotData,
     encodePuzzleConfig,
     decodePuzzleConfig,
@@ -75,6 +76,7 @@
     closeModal,
     trapModalFocus,
   } = APP_MODAL.createModalController({ focusableSelector: FOCUSABLE_SELECTOR });
+  const workspaceStorage = APP_STORAGE.createWorkspaceStorage({ onConflict: suspendWorkspace });
 
   function getVocabularyCategories(lang) {
     return VOCABULARY[lang] || {};
@@ -98,10 +100,6 @@
 
   function getCustomSamplePuzzles(lang) {
     return state.customSamples[lang] || [];
-  }
-
-  function buildPuzzle(words, requestedSize, difficultyKey, metadata) {
-    return composePuzzle(buildPuzzleData(words, requestedSize, difficultyKey, metadata));
   }
 
   function buildPuzzleFromSnapshot(words, config, metadata) {
@@ -136,7 +134,7 @@
   }
 
   function canInteractWithPuzzle() {
-    return Boolean(state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired && !state.timerPaused);
+    return Boolean(!state.workspaceConflict && state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired && !state.timerPaused);
   }
 
   function pauseTimer() {
@@ -382,6 +380,8 @@
     completionDismissed: false,
     progressSaveWarned: false,
     restoring: true,
+    generating: false,
+    workspaceConflict: false,
     keepDraftFromLink: false,
     generatedForm: null,
     resumeAvailable: false,
@@ -452,29 +452,30 @@
   }
 
   function resetPuzzleProgress() {
+    if (!state.restoring && !checkWorkspace()) return;
     stopTimer();
     resetHintCooldown?.();
     Object.assign(state, buildInitialPuzzleProgress());
     dom.gridCells = null;
     dom.wordListItems = null;
-    clearProgressFromStorage();
+    if (!state.restoring) clearProgressFromStorage(workspaceStorage);
     if (dom.studentNomInput) dom.studentNomInput.value = "";
     if (dom.studentCognomsInput) dom.studentCognomsInput.value = "";
     closeWordDefinitionModal({ restoreFocus: false });
     closeModal(dom.hintModal, { restoreFocus: false });
   }
 
-  function buildShareConfigFromPuzzle(puzzle) {
+  function buildShareConfigFromPuzzle(puzzle, formTemplate = state.formTemplate) {
     return {
       version: SHARED_PUZZLE_VERSION,
       title: puzzle.title,
-      words: puzzle.words.map(word => word.definition ? `${word.display}: ${word.definition}` : word.display).join("\n"),
+      words: serializeWords(puzzle.words),
       difficulty: puzzle.difficulty,
       size: puzzle.requestedSize || "auto",
       lang: puzzle.sourceLang || state.lang,
       timer: puzzle.timerDuration,
       hints: puzzle.hintsAllowed,
-      formTemplate: state.formTemplate || "",
+      formTemplate: formTemplate || "",
       gridRows: serializeGridRows(puzzle.grid),
       placementPaths: puzzle.placements.map(placement => serializePlacementCells(placement.cells)),
     };
@@ -487,7 +488,7 @@
   }
 
   function saveStudentProgress() {
-    if (!state.puzzle || state.restoring) return;
+    if (!state.puzzle || state.restoring || !checkWorkspace()) return;
     saveWorkspace();
     const saved = saveProgressToStorage({
       key: puzzleProgressKey(state.puzzle),
@@ -499,7 +500,7 @@
       hintsRemaining: state.hintsRemaining,
       started: state.studentSessionStarted || state.resumeAvailable,
       hintStages: state.hintStages,
-    });
+    }, workspaceStorage);
     // Private mode and a full quota both fail here, and this runs every 5 timer
     // seconds — so warn once instead of silently losing a 20-minute session on reload.
     if (!saved && !state.progressSaveWarned) {
@@ -757,6 +758,8 @@
     }
     dom.wordDefinitionTitle.textContent = word.display;
     dom.wordDefinitionText.textContent = definitionText;
+    dom.wordDefinitionTitle.lang = getPuzzleSourceLang();
+    dom.wordDefinitionText.lang = getPuzzleSourceLang();
     if (dom.wordDefinitionListen) dom.wordDefinitionListen.hidden = !findSpeechVoice(getPuzzleSourceLang());
     if (dom.wordDefinitionFound) {
       dom.wordDefinitionFound.hidden = !state.foundWordIds.has(word.id);
@@ -840,13 +843,14 @@
     dom.teacherReadyCard.hidden = !state.puzzle;
     if (!state.puzzle) return;
     dom.teacherReadyTopic.textContent = state.puzzle.title;
+    dom.teacherReadyTopic.lang = getPuzzleSourceLang();
     dom.teacherReadyMeta.textContent = buildTeacherReadyMeta(state.puzzle);
     const pending = hasPendingChanges();
     dom.teacherPendingChanges.hidden = !pending;
     dom.teacherReadyNote.hidden = pending;
     dom.teacherReadyCard.classList.toggle("has-pending-changes", pending);
     [dom.teacherOpenStudentButton, dom.teacherShareButton, dom.teacherPrintButton, dom.teacherPrintSolutionButton, dom.teacherVariantsButton]
-      .forEach(button => { if (button) button.disabled = pending; });
+      .forEach(button => { if (button) button.disabled = pending || state.generating || state.workspaceConflict; });
   }
 
   function readTeacherForm() {
@@ -910,7 +914,7 @@
   }
 
   function isCurrentActivityReady() {
-    return Boolean(state.puzzle && state.generatedForm) && !hasPendingChanges();
+    return Boolean(!state.generating && !state.workspaceConflict && state.puzzle && state.generatedForm) && !hasPendingChanges();
   }
 
   function requireCurrentActivity() {
@@ -923,15 +927,34 @@
   }
 
   function saveWorkspace() {
-    if (state.restoring) return;
+    if (state.restoring || !checkWorkspace()) return;
     let saved = true;
-    if (state.activeTab === "teacher" && !state.keepDraftFromLink) saved = saveDraft(readTeacherForm());
+    if (state.activeTab === "teacher" && !state.keepDraftFromLink) saved = saveDraft(readTeacherForm(), workspaceStorage);
     if (state.puzzle && state.generatedForm) {
-      saved = saveActivity({ key: puzzleProgressKey(state.puzzle), form: state.generatedForm, activeTab: state.activeTab }) && saved;
+      saved = saveActivity({ key: puzzleProgressKey(state.puzzle), form: state.generatedForm, activeTab: state.activeTab }, workspaceStorage) && saved;
     }
     dom.draftStatus.hidden = false;
     dom.draftStatus.textContent = TRANSLATIONS[state.lang][saved ? "draft_saved" : "msg_storage_unavailable"];
     dom.draftStatus.classList.toggle("is-error", !saved);
+  }
+
+  function checkWorkspace() {
+    if (state.workspaceConflict) return false;
+    try { return workspaceStorage.check(); } catch { return true; }
+  }
+
+  function suspendWorkspace() {
+    state.workspaceConflict = true;
+    stopTimer();
+    state.timerPaused = true;
+    state.dragSelection = null;
+    state.clickAnchor = null;
+    state.previewCells = [];
+    closeWordDefinitionModal({ restoreFocus: false });
+    printController.cancel();
+    document.querySelectorAll(".modal-overlay").forEach(modal => closeModal(modal, { restoreFocus: false }));
+    document.querySelector(".page-shell").inert = true;
+    openModal(document.querySelector("#workspace-conflict-modal"), document.querySelector("#workspace-reload"));
   }
 
   function onTeacherFormChange() {
@@ -974,6 +997,7 @@
       const option = document.createElement("option");
       option.value = word.id;
       option.textContent = word.display;
+      option.lang = getPuzzleSourceLang();
       return option;
     }));
     if (unsolved.some(word => word.id === state.selectedHintWordId)) dom.hintWordSelect.value = state.selectedHintWordId;
@@ -1205,6 +1229,7 @@
     allCategoryId: ALL_CATEGORY_ID,
     maxGridSize: CORE.MAX_GRID_SIZE,
     parseWords,
+    serializeWords,
     splitWordEntries: CORE.splitWordEntries,
     normalizeWord: CORE.normalizeWord,
     normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
@@ -1414,7 +1439,8 @@
     onSessionChange: saveStudentProgress,
   });
 
-  function generatePuzzle({ triggerButton = dom.generateButton } = {}) {
+  async function generatePuzzle({ triggerButton = dom.generateButton } = {}) {
+    if (state.generating || !checkWorkspace()) return;
     const t = TRANSLATIONS[state.lang];
     const parsed = parseWords(dom.wordsInput.value);
     const triggerLabel = triggerButton?.querySelector("[data-t]") || triggerButton;
@@ -1446,20 +1472,37 @@
       return;
     }
 
-    if (dom.generateButton) dom.generateButton.disabled = true;
+    const form = readTeacherForm();
+    const previousFocus = document.activeElement;
+    let completed = false;
+    state.generating = true;
+    const controls = [...document.querySelectorAll('.page-shell button, .page-shell input, .page-shell select, .page-shell textarea')];
+    const previouslyDisabled = controls.map(control => control.disabled);
+    controls.forEach(control => { control.disabled = true; });
+    dom.form.setAttribute("aria-busy", "true");
     if (triggerLabel) triggerLabel.textContent = t.btn_generating || "...";
 
     try {
-      state.puzzle = buildPuzzle(parsed.words, dom.sizeInput.value, dom.difficultyInput.value, {
-        title: dom.titleInput.value,
-        requestedSize: dom.sizeInput.value,
-        timerDuration: Number(dom.timerInput?.value) || 0,
-        hintsAllowed: Number(dom.hintsInput?.value) || 0,
-        sourceLang: state.lang,
-      });
+      const metadata = {
+        title: form.title,
+        requestedSize: form.size,
+        timerDuration: Number(form.timer) || 0,
+        hintsAllowed: Number(form.hints) || 0,
+        sourceLang: form.lang,
+      };
+      // Validate before doing work, then validate the complete snapshot before
+      // replacing the reviewed activity or clearing any of its progress.
+      encodePuzzleConfig(buildShareConfigFromPuzzle({ ...metadata, words: parsed.words, difficulty: form.difficulty, grid: [], placements: [] }, formTemplate));
+      const puzzle = composePuzzle(await buildPuzzleDataAsync(parsed.words, form.size, form.difficulty, metadata, {
+        cancelled: () => state.workspaceConflict,
+      }));
+      encodePuzzleConfig(buildShareConfigFromPuzzle(puzzle, formTemplate));
+      if (!checkWorkspace()) return;
+      state.puzzle = puzzle;
+      completed = true;
       state.studentName = { nom: "", cognoms: "" };
       state.formTemplate = formTemplate;
-      state.generatedForm = readTeacherForm();
+      state.generatedForm = form;
       state.keepDraftFromLink = false;
       // A new puzzle is a new party; the damping is only meant to stop confetti
       // spamming within one puzzle.
@@ -1471,32 +1514,35 @@
       saveStudentProgress();
       setStatus(t.msg_success, "success");
       render();
-      // Show the next step only after an explicit, successful creation. Rendering
-      // progress or returning from the student area must never steal focus.
-      const readyCard = dom.teacherReadyCard;
-      if (readyCard && state.activeTab === "teacher") {
-        readyCard.focus({ preventScroll: true });
-        readyCard.scrollIntoView({
-          block: "nearest",
-          behavior: prefersReducedMotion() ? "instant" : "smooth",
-        });
-      }
     } catch (err) {
+      if (err.message === "CANCELLED" || state.workspaceConflict) return;
       const wordTooLong = err.message?.startsWith("WORD_TOO_LONG:");
       // "Choose a larger size or Automatic" is impossible advice when Automatic
       // is already chosen: then the word is longer than the biggest board.
       const tooLongMsg = dom.sizeInput.value === "auto" ? t.msg_word_over_max : t.msg_puzzle_word_too_long;
       const errMsg = wordTooLong
         ? tooLongMsg.replace("{word}", err.message.slice("WORD_TOO_LONG:".length)).replace("{max}", CORE.MAX_GRID_SIZE)
-        : (t.msg_puzzle_error || err.message);
+        : err.message === "ACTIVITY_TOO_LARGE" ? t.msg_activity_too_large : (t.msg_puzzle_error || err.message);
       setStatus(errMsg, "error");
     } finally {
-      if (dom.generateButton) dom.generateButton.disabled = false;
+      state.generating = false;
+      controls.forEach((control, index) => { control.disabled = previouslyDisabled[index]; });
+      dom.form.removeAttribute("aria-busy");
       if (triggerLabel) triggerLabel.textContent = originalTriggerText;
       const generateLabel = dom.generateButton?.querySelector("[data-t]");
       if (generateLabel) generateLabel.textContent = t.btn_generate;
       syncDifficultyPresetState();
       teacherController.updateWordsHelper();
+      updateTeacherReadyCard();
+      // Finish the busy state and its layout changes before scrolling: WebKit
+      // can cancel a smooth scroll when the ready controls are still changing.
+      if (completed && !state.workspaceConflict && state.activeTab === "teacher" && dom.teacherReadyCard) {
+        dom.teacherReadyCard.focus({ preventScroll: true });
+        dom.teacherReadyCard.scrollIntoView({
+          block: "nearest",
+          behavior: prefersReducedMotion() ? "instant" : "smooth",
+        });
+      } else if (!state.workspaceConflict) previousFocus?.focus();
     }
   }
 
@@ -1508,6 +1554,26 @@
   dom.form.addEventListener("change", onTeacherFormChange);
   teacherController.bindEvents();
   sessionController.bindEvents();
+
+  window.addEventListener("storage", event => {
+    if (workspaceStorage.handles(event.key)) checkWorkspace();
+  });
+  // Close the event-delivery gap before a stale tab can reset or edit the board.
+  ["click", "keydown", "submit"].forEach(type => document.addEventListener(type, event => {
+    if (event.target.closest?.("#workspace-conflict-modal")) return;
+    if (state.generating || !checkWorkspace()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true));
+  document.querySelector("#workspace-reload").addEventListener("click", () => {
+    const url = new URL(location.href);
+    url.searchParams.delete("p");
+    location.replace(url.href);
+  });
+  document.querySelector("#workspace-conflict-modal").addEventListener("keydown", event => {
+    trapModalFocus(event, event.currentTarget);
+  });
 
   if (dom.hintButton) {
     dom.hintButton.addEventListener("click", openHintPicker);

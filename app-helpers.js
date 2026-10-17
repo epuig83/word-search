@@ -13,6 +13,7 @@
     SAMPLE_DIFFICULTIES,
     SAMPLE_SIZES,
     parseWords,
+    serializeWords,
   } = core;
 
   function formatSecondsAsClock(totalSeconds) {
@@ -78,7 +79,7 @@
     return {
       id: typeof rawSample.id === "string" && rawSample.id ? rawSample.id : generateSampleId(),
       title,
-      words: parsed.words.map(word => word.display).join("\n"),
+      words: serializeWords(parsed.words),
       difficulty,
       size,
       timerDuration,

@@ -4,6 +4,10 @@
   // UI copy lives outside app.js so the application script stays focused on behavior.
   global.WORD_SEARCH_I18N = Object.freeze({
     es: Object.freeze({
+      msg_activity_too_large: "La actividad contiene demasiado texto para guardarla y compartirla. Acorta las palabras o las definiciones; tu borrador y la actividad anterior se conservan.",
+      workspace_conflict_title: "La actividad ha cambiado en otra pestaña",
+      workspace_conflict_text: "Esta pestaña se ha pausado para proteger el trabajo más reciente. Carga la actividad guardada para continuar; se sustituirá el contenido de esta pestaña.",
+      workspace_reload: "Cargar la actividad guardada",
       offline_preparing: "Preparando el uso sin conexión…",
       offline_ready: "Lista para usar sin conexión",
       offline_ready_offline: "Sin conexión · lista para usar",
@@ -269,6 +273,10 @@
       nav_sections: "Secciones",
     }),
     ca: Object.freeze({
+      msg_activity_too_large: "L'activitat conté massa text per desar-la i compartir-la. Escurça les paraules o les definicions; l'esborrany i l'activitat anterior es conserven.",
+      workspace_conflict_title: "L'activitat ha canviat en una altra pestanya",
+      workspace_conflict_text: "Aquesta pestanya s'ha pausat per protegir la feina més recent. Carrega l'activitat desada per continuar; se substituirà el contingut d'aquesta pestanya.",
+      workspace_reload: "Carregar l'activitat desada",
       offline_preparing: "Preparant l'ús sense connexió…",
       offline_ready: "A punt per fer servir sense connexió",
       offline_ready_offline: "Sense connexió · a punt per fer servir",
@@ -534,6 +542,10 @@
       nav_sections: "Seccions",
     }),
     en: Object.freeze({
+      msg_activity_too_large: "This activity has too much text to save and share. Shorten the words or definitions; your draft and previous activity are kept.",
+      workspace_conflict_title: "The activity changed in another tab",
+      workspace_conflict_text: "This tab has been paused to protect the latest work. Load the saved activity to continue; it will replace the content of this tab.",
+      workspace_reload: "Load the saved activity",
       offline_preparing: "Preparing offline use…",
       offline_ready: "Ready to use offline",
       offline_ready_offline: "Offline · ready to use",
