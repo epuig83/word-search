@@ -20,7 +20,7 @@ function createRelease(label, { ignoreStatus = false } = {}) {
   return { files, manifest };
 }
 
-async function startOfflineServer() {
+async function startOfflineServer({ maxUrlLength = Infinity } = {}) {
   const releases = { one: createRelease("one"), two: createRelease("two"), legacy: createRelease("legacy", { ignoreStatus: true }) };
   // A new worker next to a stale offline-manifest.js from the CDN: it reuses the
   // active release's revision, and therefore its cache name.
@@ -34,6 +34,11 @@ async function startOfflineServer() {
   const requests = [];
   const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".woff2": "font/woff2", ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml" };
   const server = http.createServer(async (request, response) => {
+    if (request.url.length > maxUrlLength) {
+      response.writeHead(414, { "Content-Type": "text/plain" });
+      response.end("URI Too Long");
+      return;
+    }
     const url = new URL(request.url, "http://localhost");
     const filename = url.pathname.replace(/^\/word-search\//, "") || "index.html";
     requests.push(filename);

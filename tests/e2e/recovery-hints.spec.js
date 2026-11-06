@@ -61,7 +61,7 @@ test("pending edits block stale actions, survive reload, and clear after regener
   await expect(page.locator("#teacher-pending-changes")).toBeHidden();
   await page.locator("#teacher-share-button").click();
   const shared = await page.evaluate(() => window.__sharedUrl);
-  const config = core.decodePuzzleConfig(new URL(shared).searchParams.get("p"));
+  const config = core.decodePuzzleConfig(new URLSearchParams(new URL(shared).hash.slice(1)).get("p"));
   expect(config.title).toBe("Fruites");
   expect(config.words).toBe("pera\npoma\nkiwi");
 });
@@ -179,6 +179,7 @@ test("editing a shared puzzle recovers pending work instead of reloading the ori
   await page.locator("#generate-button").click();
   await expect(page.locator("#teacher-ready-topic")).toHaveText("Nova activitat");
   expect(new URL(page.url()).searchParams.has("p")).toBe(false);
+  expect(new URLSearchParams(new URL(page.url()).hash.slice(1)).has("p")).toBe(false);
   await page.reload();
   await expect(page.locator("#teacher-ready-topic")).toHaveText("Nova activitat");
   await expect(page.locator("#teacher-share-button")).toBeEnabled();

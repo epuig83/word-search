@@ -29,7 +29,7 @@ for (const example of examples) {
     await expect(page.locator("#teacher-ready-meta")).toContainText("8 x 8");
     await expect(page.locator("#word-list li")).toHaveCount(6);
     await page.locator("#teacher-share-button").click();
-    await expect.poll(() => page.evaluate(() => window.__sharedUrl)).toContain("?p=");
+    await expect.poll(() => page.evaluate(() => window.__sharedUrl)).toContain("#p=");
     const url = await page.evaluate(() => window.__sharedUrl);
     const originalGrid = await page.locator(".grid-cell").allTextContents();
     await page.locator("#teacher-open-student-button").click();

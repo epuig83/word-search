@@ -103,6 +103,20 @@
     return [...byTitle.values()].sort((left, right) => left.title.localeCompare(right.title, lang));
   }
 
+  function readSharedPuzzleParam(url) {
+    return new URLSearchParams(url.hash.slice(1)).get("p") ?? url.searchParams.get("p");
+  }
+
+  function clearSharedPuzzleParams(url) {
+    url.searchParams.delete("p");
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    if (fragment.has("p")) {
+      fragment.delete("p");
+      url.hash = fragment.toString();
+    }
+    return url;
+  }
+
   async function shareUrlWithFallback({ url, share, writeText, prompt, promptMessage = "" }) {
     if (!url) throw new Error("url_required");
 
@@ -148,6 +162,8 @@
     sanitizeStoredSample,
     normalizeSampleTitle,
     mergeSamples,
+    readSharedPuzzleParam,
+    clearSharedPuzzleParams,
     shareUrlWithFallback,
   });
 });

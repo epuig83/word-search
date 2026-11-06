@@ -45,3 +45,15 @@ Desktop and tablet screenshots and a rendered A4 worksheet were visually reviewe
 ## Physical-device follow-up
 
 **Pending:** native Safari on a physical iPad. WebKit emulation does not establish physical drag behaviour, virtual-keyboard ergonomics or system print-sheet behaviour. Follow the [iPad classroom check](ipad-classroom-check.md) when a device is available.
+
+## Audit follow-up validation — 2026-11-06
+
+The complete local `pnpm test` passed: ESLint, generated locales, offline-manifest integrity, **162 unit tests** and **394 browser tests** across Chrome, WebKit and the iPad WebKit profile. `pnpm audit` reported no known vulnerabilities.
+
+New regression coverage checks that library changes pause stale tabs, an import whose file chooser was already open cannot overwrite newer examples, and closing a stale tab during the delete-undo window cannot replace the saved library. After explicitly loading the saved work, a second import retains both sets of examples.
+
+Shared links now use `#p=`. A local HTTP server configured to reject request targets over 2048 characters returns 414 for the legacy query form of a large activity; the fragment form opens in a fresh context with service workers blocked and preserves every word, definition and grid cell. Existing query links, malformed fragments, same-page fragment navigation and clearing the fragment after editing are also covered.
+
+Overlong definitions show their original length and keep the complete draft and previous activity. Tests cover blocked generation/saving, rejected imports and correction to the 160-character boundary in all three languages. The Spanish warning was visually reviewed in Chrome at 390 px; the warning states passed Axe in both engines.
+
+The scoped `minimatch` override was checked against the two consumers' actual API usage, and ESLint selected the same 48 existing files before and after the update. The new regression spec is also linted by the complete suite. Physical iPad validation remains pending; its checklist now includes long links, definition warnings and example-library conflicts.

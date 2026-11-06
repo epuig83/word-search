@@ -72,7 +72,7 @@ test("shared links reopen the exact same puzzle", async ({ browser, page }) => {
   await expect.poll(
     () => page.evaluate(() => window.__copiedText || ""),
     { timeout: 3_000 }
-  ).toContain("?p=");
+  ).toContain("#p=");
   const sharedUrl = await page.evaluate(() => window.__copiedText);
 
   const context = await browser.newContext();
@@ -152,7 +152,7 @@ test("student progress resumes after reopening the shared link", async ({ browse
   await expect.poll(
     () => page.evaluate(() => window.__copiedText || ""),
     { timeout: 3_000 }
-  ).toContain("?p=");
+  ).toContain("#p=");
   const sharedUrl = await page.evaluate(() => window.__copiedText);
 
   // Solve one of the four words.

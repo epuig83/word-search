@@ -54,10 +54,12 @@
     return String(rawText ?? "").split("\n").flatMap(line => {
       const colon = line.indexOf(":");
       if (colon === -1) return line.split(/[\t,;]+/).map(token => ({ token: token.trim(), word: token.trim(), definition: "" }));
+      const definition = line.slice(colon + 1).trim();
       return [{
         token: line.trim(),
         word: line.slice(0, colon).trim(),
-        definition: line.slice(colon + 1).trim().slice(0, MAX_DEFINITION_LENGTH),
+        definition: definition.slice(0, MAX_DEFINITION_LENGTH),
+        definitionLength: definition.length,
       }];
     }).filter(entry => entry.token);
   }
@@ -74,6 +76,12 @@
       }
     }
     return { words };
+  }
+
+  function getDefinitionOverflows(rawText) {
+    return splitWordEntries(rawText)
+      .filter(entry => entry.definitionLength > MAX_DEFINITION_LENGTH)
+      .map(entry => ({ word: entry.word, length: entry.definitionLength }));
   }
 
   function countValidWords(rawText) {
@@ -441,9 +449,11 @@
     SAMPLE_SIZES,
     SHARED_PUZZLE_VERSION,
     MAX_SHARED_BYTES,
+    MAX_DEFINITION_LENGTH,
     createEmptyCustomSamples,
     normalizeWord,
     splitWordEntries,
+    getDefinitionOverflows,
     parseWords,
     serializeWords,
     countValidWords,

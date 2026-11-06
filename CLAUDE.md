@@ -61,7 +61,7 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 
 ### Persistence
 
-`createWorkspaceStorage` guards draft, activity and progress writes/removals against the exact records last read by that tab, plus an additive `word-search-workspace-revision-v1` token. Existing records need no migration. A mismatch detected before a write or through a storage event pauses the stale tab, cancels generation, makes its main UI inert and offers an explicit reload of the saved activity. Startup restoration must not delete progress. Unavailable storage still uses the existing save-error feedback.
+`createWorkspaceStorage` guards draft, activity, progress and custom-example writes/removals against the exact records last read by that tab, plus an additive `word-search-workspace-revision-v1` token. Existing records need no migration. A mismatch detected before a write or through a storage event pauses the stale tab, cancels generation, makes its main UI inert and offers an explicit reload of the saved work. Custom-example persistence must use this wrapper too, including async import continuations and delayed deletion/undo. Startup restoration must not delete progress. Unavailable storage still uses the existing save-error feedback.
 
 - `word-search-custom-samples-v1` — user-created sample templates (per language). Corruption falls back to empty collection. Title comparison uses `normalizeSampleTitle` (NFC, trimmed/collapsed spaces, lowercase), not puzzle-letter normalization.
 - `word-search-teacher-pin-v1` — teacher PIN. Fallback: `"1234"`.
@@ -77,7 +77,13 @@ Drag or two-tap: `buildSelectionPath` (in `app-helpers.js`) interpolates a strai
 
 Encoded JSON has a shared 64 KiB UTF-8 byte limit on encode and decode. Words, definitions and form URLs stay intact; oversized candidates fail before replacing the current board. `serializeWords` is the common text serializer for saved/imported examples and shared activity identity.
 
-Full puzzle config is base64-encoded into a `?p=` query parameter (`encodePuzzleConfig`/`decodePuzzleConfig` in `core.js`, version `SHARED_PUZZLE_VERSION = 2`). Every link carries its grid snapshot (`gridRows` + `placementPaths`); links without one are rejected. Loaded at startup by `tryLoadPuzzle()`; on decode failure, rolls back to previous state and shows `msg_link_error`. Teacher definitions travel inside the words text as `word: definition` lines (`splitWordEntries` in `core.js` is the only word splitter), so links, drafts, samples and progress keys need no extra field. Public language variants use generated `es.html` and `en.html` pages with localized server-rendered metadata; shared puzzle URLs keep their embedded language.
+Full puzzle config is base64-encoded into a `#p=` fragment (`encodePuzzleConfig`/`decodePuzzleConfig` in `core.js`, version `SHARED_PUZZLE_VERSION = 2`), so its size does not affect the HTTP request target. `readSharedPuzzleParam` reads fragments first and falls back to existing `?p=` links; an empty or invalid fragment still takes precedence. `clearSharedPuzzleParams` clears both forms after editing/regeneration or conflict reload. A new shared fragment on the current page reloads through the normal startup path. Every link carries its grid snapshot (`gridRows` + `placementPaths`); links without one are rejected. Loaded at startup by `tryLoadPuzzle()`; on decode failure, rolls back to previous state and shows `msg_link_error`. Teacher definitions travel inside the words text as `word: definition` lines (`splitWordEntries` in `core.js` is the only word splitter), so links, drafts, samples and progress keys need no extra field. Public language variants use generated `es.html` and `en.html` pages with localized server-rendered metadata; shared puzzle URLs keep their embedded language.
+
+Definitions have a 160-character limit. `getDefinitionOverflows` uses the splitter's original lengths before its defensive cap. The teacher form reports word/length/limit and blocks generation and sample saving; imports validate before sanitization and reject the entire file on overflow. Draft text stays intact.
+
+### Development dependency override
+
+`package.json` pins `minimatch` 11.0.1 only beneath ESLint 10.11.0 and `@eslint/config-array` 0.23.5 to address GHSA-g3hv-75wg-m249. Version 11 removes APIs such as `makeRe`/`AST`; these consumers use `Minimatch.match`, which remains available. Their actual linted-file list was compared before/after. Reassess these overrides when updating ESLint; remove them once upstream selects a fixed version.
 
 ### i18n
 

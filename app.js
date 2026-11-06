@@ -48,6 +48,8 @@
     formatCount,
     buildSelectionPath,
     shareUrlWithFallback,
+    readSharedPuzzleParam,
+    clearSharedPuzzleParams,
   } = APP_HELPERS;
   const {
     loadTeacherPin: loadTeacherPinFromStorage,
@@ -91,7 +93,8 @@
   }
 
   function persistCustomSamples() {
-    if (persistCustomSamplesToStorage(state.customSamples)) {
+    if (!checkWorkspace()) return false;
+    if (persistCustomSamplesToStorage(state.customSamples, workspaceStorage)) {
       return true;
     }
     setStatus(TRANSLATIONS[state.lang].msg_storage_unavailable, "error");
@@ -972,8 +975,8 @@
 
   function clearSharedPuzzleUrl() {
     const currentUrl = new URL(window.location.href);
-    if (!currentUrl.searchParams.has("p")) return;
-    currentUrl.searchParams.delete("p");
+    if (readSharedPuzzleParam(currentUrl) === null) return;
+    clearSharedPuzzleParams(currentUrl);
     window.history.replaceState(null, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
   }
 
@@ -1128,7 +1131,7 @@
       }
     }
     const currentUrl = new URL(window.location.href);
-    if (!currentUrl.searchParams.has("p")) {
+    if (readSharedPuzzleParam(currentUrl) === null) {
       currentUrl.searchParams.delete("lang");
       let localizedPath = currentUrl.pathname;
       if (currentUrl.protocol === "file:") {
@@ -1231,6 +1234,8 @@
     parseWords,
     serializeWords,
     splitWordEntries: CORE.splitWordEntries,
+    getDefinitionOverflows: CORE.getDefinitionOverflows,
+    maxDefinitionLength: CORE.MAX_DEFINITION_LENGTH,
     normalizeWord: CORE.normalizeWord,
     normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
     generateSampleId: APP_HELPERS.generateSampleId,
@@ -1297,8 +1302,9 @@
     // A file: link would only open on this computer and would reveal its folders.
     const shareUrl = new URL(window.location.protocol === "file:" ? dom.canonicalLink.href : window.location.href);
     shareUrl.search = "";
-    shareUrl.hash = "";
-    shareUrl.searchParams.set("p", encoded);
+    // Fragments stay in the browser, so large activities never exceed the
+    // hosting server's request-URL limit on a pupil's first visit.
+    shareUrl.hash = new URLSearchParams({ p: encoded }).toString();
     const url = shareUrl.toString();
     const t = TRANSLATIONS[state.lang];
     const isLong = url.length > SHARE_URL_LONG_THRESHOLD;
@@ -1457,6 +1463,8 @@
     dom.titleError.hidden = true;
     dom.titleInput.removeAttribute("aria-invalid");
 
+    if (!teacherController.validateDefinitions()) return;
+
     if (parsed.words.length < 1) {
       setStatus(t.words_summary_empty, "error");
       dom.wordsInput.focus();
@@ -1568,7 +1576,7 @@
   }, true));
   document.querySelector("#workspace-reload").addEventListener("click", () => {
     const url = new URL(location.href);
-    url.searchParams.delete("p");
+    clearSharedPuzzleParams(url);
     location.replace(url.href);
   });
   document.querySelector("#workspace-conflict-modal").addEventListener("keydown", event => {
@@ -1870,7 +1878,7 @@
     }
   }
 
-  const sharedParam = new URLSearchParams(window.location.search).get("p");
+  const sharedParam = readSharedPuzzleParam(new URL(window.location.href));
   const requestedPageLang = new URLSearchParams(window.location.search).get("lang") ||
     window.location.pathname.match(/\/(es|en)\.html$/)?.[1];
   let lastActivity = sharedParam === null ? loadActivity() : null;
@@ -1920,5 +1928,12 @@
   state.restoring = false;
   if (state.puzzle) saveStudentProgress();
   refreshDefaultPinWarning();
+
+  // Pasting another shared link for this page can be a same-document navigation.
+  // Reload through the normal restoration path instead of keeping the old board.
+  window.addEventListener("hashchange", event => {
+    const next = readSharedPuzzleParam(new URL(event.newURL));
+    if (next !== null && next !== readSharedPuzzleParam(new URL(event.oldURL))) location.reload();
+  });
 
 })();

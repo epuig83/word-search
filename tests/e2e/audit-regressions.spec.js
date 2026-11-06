@@ -298,7 +298,7 @@ test("a copy opened from disk switches language and shares the public link", asy
   await page.locator("#teacher-share-button").click();
   // A file:// link would point at the teacher's own disk, and name their account.
   await expect.poll(() => page.evaluate(() => window.__copiedText))
-    .toMatch(/^https:\/\/epuig83\.github\.io\/word-search\/es\.html\?p=/);
+    .toMatch(/^https:\/\/epuig83\.github\.io\/word-search\/es\.html#p=/);
   expect(errors).toEqual([]);
 });
 
@@ -488,7 +488,7 @@ const examplesFile = samples => ({ name: "examples.json", mimeType: "application
 test("a broken link reopens this device's activity instead of an unlocked teacher panel", async ({ page }) => {
   await generatePuzzle(page, { timer: "0" });
   await expect(page.locator("#section-student")).toBeVisible();
-  for (const query of ["?p=", "?p=roto"]) {
+  for (const query of ["?p=", "?p=roto", "#p=", "#p=roto"]) {
     await page.goto(`/index.html${query}`);
     await expect(page.locator("#section-student")).toBeVisible();
     await expect(page.locator("#section-teacher")).toBeHidden();

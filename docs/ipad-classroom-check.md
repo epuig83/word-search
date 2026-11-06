@@ -11,12 +11,12 @@ The automated `ipad-webkit` project covers touch taps, portrait/landscape viewpo
 - Browser tab or installed home-screen app:
 - Result: pending / passed / issue found
 
-Use a disposable activity so existing classroom work is not replaced. Allow about 5–10 minutes. No pupil names or real results are needed.
+Use a disposable activity so existing classroom work is not replaced. Allow about 10–15 minutes. No pupil names or real results are needed.
 
 ## Classroom walkthrough
 
 1. Open the app in Safari with a connection. Wait for **Ready to use offline** in the teacher panel.
-2. Enter a short topic and 4–6 words with the on-screen keyboard. Check that fields and creation controls remain reachable while the keyboard is open, and create the activity.
+2. Enter a short topic and 4–6 words with the on-screen keyboard. Add one definition longer than 160 characters and verify its warning remains readable above the keyboard, creation is blocked and the text survives reload. Shorten it and create the activity. Check that fields and creation controls remain reachable while the keyboard is open.
 3. Open the pupil area. Find one word with first/last-letter taps and another by dragging a finger. Scroll outside the board and check the bottom row is reachable without accidental selections.
 4. Rotate the iPad both ways. Verify the full grid, word list and hint controls remain usable; use both stages of a hint.
 5. Reload and continue. Verify the same letters, found words and used hints return. Try **New pupil** and verify the board stays the same while progress resets.
@@ -24,5 +24,9 @@ Use a disposable activity so existing classroom work is not replaced. Allow abou
 7. Open **Print / PDF**. Check eight pages: worksheets A–D followed by matching answer keys A–D. Check labels, last rows, word lists and solution markings. Cancel once, reopen and confirm the same models; save a PDF if possible. AirPrint on paper is optional if no printer is available.
 8. While the app reports offline readiness, enable airplane mode, close Safari's app tabs, reopen the app URL and continue the activity. Prepare another batch without a connection. Check that the indicator describes offline readiness correctly.
 9. Restore the connection. If an update is available, leave the activity open and verify it is not interrupted. After class, close every app tab/window and reopen to apply it. Mark this step **not exercised** if no update is available.
+10. Share an activity with many words and definitions using Safari's share sheet. Open the complete `#p=` link in a fresh private tab and verify the exact board and definitions; also paste a different shared link into that same tab. If the receiver still runs an older release without fragment support, close every app tab and reopen to activate the update first.
+11. Open two teacher tabs from the same saved draft. Import examples in one and verify that the other pauses. Use **Load the saved work**, import a second file and reload: both sets of examples must remain. Use disposable examples only.
+
+Record each step independently; a pending or unavailable hardware check remains pending after automated tests pass.
 
 For an issue, record the numbered step, expected behaviour, observed behaviour and whether it repeats. A screenshot without pupil information is useful. Do not mark the physical check passed based on automated WebKit results.

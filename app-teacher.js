@@ -17,6 +17,8 @@
     parseWords,
     serializeWords,
     splitWordEntries,
+    getDefinitionOverflows,
+    maxDefinitionLength,
     normalizeWord,
     normalizeSampleTitle,
     generateSampleId,
@@ -56,6 +58,8 @@
         return null;
       }
 
+      if (!validateDefinitions()) return null;
+
       const parsed = parseWords(dom.wordsInput.value);
       if (parsed.words.length < 3) {
         setSampleStatus(getTranslations().msg_sample_requires_words, "error");
@@ -88,6 +92,14 @@
         }
 
         const rawSamples = parsed && typeof parsed === "object" && parsed.samples ? parsed.samples : parsed;
+        // Validate before sanitization can shorten a definition. Reject the whole
+        // import so its original file and the current library remain intact.
+        const oversized = sampleLangs.flatMap(lang => Array.isArray(rawSamples?.[lang]) ? rawSamples[lang] : [])
+          .flatMap(sample => getDefinitionOverflows(Array.isArray(sample?.words) ? sample.words.join("\n") : sample?.words || ""));
+        if (oversized.length) {
+          setSampleStatus(definitionWarning(oversized), "error");
+          return;
+        }
         const importedSamples = sanitizeCustomSampleCollection(rawSamples);
         const totalImported = sampleLangs.reduce((sum, lang) => sum + importedSamples[lang].length, 0);
 
@@ -157,6 +169,9 @@
       const tooLong = sizeLimit ? words.find(word => word.cleaned.length > sizeLimit) : null;
 
       const messages = [];
+      const oversizedDefinitions = getDefinitionOverflows(dom.wordsInput.value);
+      dom.wordsInput.setAttribute("aria-invalid", String(oversizedDefinitions.length > 0));
+      if (oversizedDefinitions.length) messages.push(definitionWarning(oversizedDefinitions));
       if (tooLong) {
         const tooLongMsg = fixedSize ? t.msg_puzzle_word_too_long : t.msg_word_over_max;
         messages.push(tooLongMsg.replace("{word}", tooLong.display).replace("{max}", sizeLimit));
@@ -176,6 +191,21 @@
       dom.wordsFeedback.className = "words-feedback" + (feedbackTone ? ` is-${feedbackTone}` : "");
 
       if (dom.clearWordsButton) dom.clearWordsButton.disabled = dom.wordsInput.value.length === 0;
+    }
+
+    function definitionWarning(entries) {
+      return getTranslations().words_definitions_too_long
+        .replace("{max}", maxDefinitionLength)
+        .replace("{definitions}", entries.map(entry => `${entry.word} (${entry.length}/${maxDefinitionLength})`).join(", "));
+    }
+
+    function validateDefinitions() {
+      const oversized = getDefinitionOverflows(dom.wordsInput.value);
+      if (!oversized.length) return true;
+      updateWordsHelper();
+      setStatus(definitionWarning(oversized), "error");
+      dom.wordsInput.focus();
+      return false;
     }
 
     function syncWordsUi({ notifyChange = true } = {}) {
@@ -578,6 +608,7 @@
     }
 
     return Object.freeze({
+      validateDefinitions,
       bindEvents,
       renderLibrary,
       renderSampleOptions,

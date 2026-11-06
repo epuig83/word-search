@@ -7,6 +7,24 @@ const helpers = require("../../app-helpers.js");
 require("../../i18n.js");
 const TRANSLATIONS = globalThis.WORD_SEARCH_I18N;
 
+test("shared fragments preserve base64 characters and take precedence over old query links", () => {
+  const encoded = "+/base64==";
+  const url = new URL("https://example.com/es.html?p=old&lang=es");
+  url.hash = new URLSearchParams({ p: encoded }).toString();
+  assert.equal(helpers.readSharedPuzzleParam(url), encoded);
+  url.hash = "p=";
+  assert.equal(helpers.readSharedPuzzleParam(url), "");
+  url.hash = "teacher";
+  assert.equal(helpers.readSharedPuzzleParam(url), "old");
+  helpers.clearSharedPuzzleParams(url);
+  assert.equal(url.hash, "#teacher");
+  assert.equal(url.searchParams.get("lang"), "es");
+  assert.equal(helpers.readSharedPuzzleParam(url), null);
+  url.hash = new URLSearchParams({ p: encoded }).toString();
+  helpers.clearSharedPuzzleParams(url);
+  assert.equal(url.hash, "");
+});
+
 const {
   formatSecondsAsClock,
   formatTimerSummary,

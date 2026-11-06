@@ -208,10 +208,10 @@
                   name="words"
                   placeholder="lleó&#10;tigre&#10;girafa&#10;mico"
                   required
-                  aria-describedby="words-definition-hint"
+                  aria-describedby="words-definition-hint words-feedback"
                 ></textarea>
                 <p id="words-definition-hint" class="sample-note words-definition-hint" data-t="words_definition_hint">
-                  Opcional: afegeix una definició amb dos punts, per exemple «sol: estrella que ens dona llum».
+                  Opcional: afegeix una definició amb dos punts, per exemple «sol: estrella que ens dona llum». Màxim 160 caràcters per definició.
                 </p>
                 <div class="words-tools">
                   <div class="words-tools-meta">
@@ -542,9 +542,9 @@
 
     <div id="workspace-conflict-modal" class="modal-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="workspace-conflict-title" aria-describedby="workspace-conflict-text">
       <div class="modal-content" tabindex="-1">
-        <h3 id="workspace-conflict-title" data-t="workspace_conflict_title">L'activitat ha canviat en una altra pestanya</h3>
-        <p id="workspace-conflict-text" data-t="workspace_conflict_text">Aquesta pestanya s'ha pausat per protegir la feina més recent. Carrega l'activitat desada per continuar; se substituirà el contingut d'aquesta pestanya.</p>
-        <button type="button" id="workspace-reload" class="primary-button" data-t="workspace_reload">Carregar l'activitat desada</button>
+        <h3 id="workspace-conflict-title" data-t="workspace_conflict_title">La feina ha canviat en una altra pestanya</h3>
+        <p id="workspace-conflict-text" data-t="workspace_conflict_text">Aquesta pestanya s'ha pausat per protegir l'activitat i els exemples més recents. Carrega la feina desada per continuar; se substituirà el contingut d'aquesta pestanya.</p>
+        <button type="button" id="workspace-reload" class="primary-button" data-t="workspace_reload">Carregar la feina desada</button>
       </div>
     </div>
 

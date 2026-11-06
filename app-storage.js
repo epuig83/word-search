@@ -220,10 +220,10 @@
   }
 
   // A tab keeps the exact revision it read, including legacy records without
-  // metadata. Check all three records before *every* write or removal; storage
+  // metadata. Check every shared record before *every* write or removal; storage
   // events alone arrive too late to protect pagehide or a reset in an old tab.
   function createWorkspaceStorage({ storage, onConflict = () => {} } = {}) {
-    const keys = [DRAFT_STORAGE_KEY, ACTIVITY_STORAGE_KEY, PROGRESS_STORAGE_KEY, WORKSPACE_REVISION_KEY];
+    const keys = [DRAFT_STORAGE_KEY, ACTIVITY_STORAGE_KEY, PROGRESS_STORAGE_KEY, CUSTOM_SAMPLES_STORAGE_KEY, WORKSPACE_REVISION_KEY];
     const getStorage = () => storage || globalThis.localStorage;
     const read = () => keys.map(key => getStorage().getItem(key));
     let expected;

@@ -110,3 +110,25 @@ test("a tab loaded from the latest revision can continue saving without a migrat
   assert.equal(next.check(), true);
   assert.equal(first.check(), false);
 });
+
+test("library writes invalidate stale tabs and cannot be overwritten by an old import or deletion", () => {
+  const backend = memoryStorage();
+  const old = storage.createWorkspaceStorage({ storage: backend });
+  const current = storage.createWorkspaceStorage({ storage: backend });
+  const samples = { ca: [], es: [{ title: "Saved elsewhere", words: "sol\nluna\nmar" }], en: [] };
+  assert.equal(storage.persistCustomSamples(samples, current), true);
+  assert.equal(old.handles(storage.CUSTOM_SAMPLES_STORAGE_KEY), true);
+  assert.equal(storage.persistCustomSamples({ ca: [], es: [], en: [] }, old), false);
+  assert.throws(() => old.removeItem(storage.CUSTOM_SAMPLES_STORAGE_KEY), /WORKSPACE_CONFLICT/);
+  assert.equal(storage.loadCustomSamples(backend).es[0].title, "Saved elsewhere");
+  const next = storage.createWorkspaceStorage({ storage: backend });
+  backend.setItem(storage.CUSTOM_SAMPLES_STORAGE_KEY, "legacy library write");
+  assert.equal(next.check(), false);
+});
+
+test("definition validation reports the original length before the parser caps it", () => {
+  const text = `sol: ${"a".repeat(160)}\nluna:  ${"é".repeat(161)}  \nmar: ${"b".repeat(170)}\npez`;
+  assert.deepEqual(core.getDefinitionOverflows(text), [{ word: "luna", length: 161 }, { word: "mar", length: 170 }]);
+  assert.equal(core.parseWords(text).words[1].definition.length, core.MAX_DEFINITION_LENGTH);
+  assert.deepEqual(core.getDefinitionOverflows("sol: luz, calor\nmar;pez"), []);
+});
