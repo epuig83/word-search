@@ -343,12 +343,14 @@ test("time running out leaves focus in an open dialog", async ({ page }) => {
   await installPausedClock(page);
   await generatePuzzle(page, { words: "sol\ngat\nmar", size: "8", timer: "300", hints: "0" });
   await startStudentSession(page);
-  await page.locator(".word-definition-button").first().click();
-  await expect(page.locator("#word-definition-modal")).toBeVisible();
+  // Learning dialogs pause time; a teacher PIN dialog must still keep focus on expiry.
+  await page.locator("#teacher-tools summary").click();
+  await page.locator("#solution-toggle-button").click();
+  await expect(page.locator("#pin-modal")).toBeVisible();
   await page.clock.runFor(301000);
   await expect(page.locator("#completion-message")).toBeVisible();
   // Otherwise Enter lands on "Play again" behind the dialog and wipes the result.
-  await expect(page.locator("#word-definition-modal :focus")).toHaveCount(1);
+  await expect(page.locator("#pin-modal :focus")).toHaveCount(1);
 });
 
 test("pupils can go back to the result card to send it", async ({ page }) => {

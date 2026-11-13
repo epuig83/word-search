@@ -24,7 +24,9 @@ async function openImport(page) {
 }
 
 async function savedTitles(page) {
-  return page.evaluate(() => JSON.parse(localStorage.getItem("word-search-custom-samples-v1")).samples.es.map(sample => sample.title));
+  // FileReader may still be importing on the first poll. Keep waiting for the
+  // expected titles instead of throwing on the not-yet-created storage record.
+  return page.evaluate(() => (JSON.parse(localStorage.getItem("word-search-custom-samples-v1"))?.samples?.es || []).map(sample => sample.title));
 }
 
 test("an import already open in a stale tab cannot overwrite a newer library", async ({ page, context }) => {

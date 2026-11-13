@@ -3509,3 +3509,167 @@ html:fullscreen body[data-tab="student"] .main-tabs {
     grid-template-columns: minmax(0, max(520px, calc(100dvh - 15rem), calc(var(--grid-size, 0) * 26px + 2.5rem))) minmax(180px, 1fr);
   }
 }
+
+/* Independent classroom play: keep help beside the activity and give fingers room. */
+@media screen {
+  .word-item.is-definable { padding: 0; }
+  .word-definition-button {
+    width: 100%;
+    min-height: 44px;
+    align-self: stretch;
+    padding: 0.6rem 1rem;
+    border-radius: inherit;
+  }
+  .word-item.is-found::after { pointer-events: none; }
+  .word-definition-button .definition-icon { flex-shrink: 0; }
+  .word-definition-button .check-icon { flex-shrink: 0; }
+}
+.grid-cell.is-hint { animation: none; }
+
+.appearance-picker { position: relative; }
+.appearance-picker > summary {
+  cursor: pointer;
+  padding: 0.5rem 0.65rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  font-size: 0.85rem;
+}
+.appearance-picker > summary::after { content: "+"; }
+.appearance-picker[open] > summary::after { content: "−"; }
+.appearance-picker > summary::-webkit-details-marker { display: none; }
+.appearance-picker .theme-selector {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: nowrap;
+}
+.appearance-picker .theme-btn { min-width: 44px; min-height: 44px; }
+.appearance-picker > summary:focus-visible,
+.teacher-preview > summary:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.active-hint {
+  grid-area: hint;
+  min-width: 0;
+  padding: 0.85rem;
+  background: var(--hint-bg);
+  border: 1px solid var(--hint-border);
+  border-radius: var(--radius-sm);
+  color: var(--hint-ink);
+}
+.active-hint p { margin: 0 0 0.5rem; }
+.active-hint-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.active-hint .ghost-button { font-size: 0.9rem; }
+.active-hint .sample-note { color: inherit; }
+
+.teacher-preview { margin: 1rem 0; }
+.teacher-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 28rem) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+.teacher-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--preview-size), minmax(0, 1fr));
+  border-top: 1px solid var(--panel-border);
+  border-left: 1px solid var(--panel-border);
+  font-size: clamp(0.5rem, calc(22rem / var(--preview-size)), 1.15rem);
+  font-weight: 700;
+}
+.teacher-preview-grid > [role="row"] { display: contents; }
+.teacher-preview-cell {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-right: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel);
+}
+.teacher-preview-cell.is-solution {
+  color: var(--found-strong);
+  background: var(--found-soft);
+  box-shadow: inset 0 0 0 1px var(--found);
+}
+.teacher-preview-words { min-width: 0; overflow-wrap: anywhere; }
+.word-definition-modal-content .confirm-modal-actions { flex-wrap: wrap; }
+#word-review-next { flex-basis: 100%; }
+.teacher-preview-words ul {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  gap: 0.5rem 1rem;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+@media screen {
+  body[data-tab="student"] .main-tabs {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 0 0.75rem auto;
+    box-shadow: none;
+  }
+  body[data-tab="student"] .main-tabs .tab-btn {
+    white-space: nowrap;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 44px;
+  }
+  .puzzle-layout {
+    grid-template-areas: "grid words" "grid hint" "grid actions";
+    grid-template-rows: auto auto 1fr;
+  }
+}
+
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+  body[data-tab="student"] .page-shell { width: calc(100% - 1.5rem); }
+  body[data-tab="student"] .panel { padding: 1rem; }
+  .puzzle-layout,
+  html:fullscreen body[data-tab="student"] .puzzle-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "words" "hint" "grid" "actions";
+    grid-template-rows: auto;
+    gap: 0.75rem;
+  }
+  .board-topbar { margin-bottom: 0.75rem; }
+  .board-appearance { gap: 0.4rem; }
+  .word-bank { gap: 0.5rem; }
+  .word-item { font-size: 0.95rem; }
+  .grid-container {
+    width: 100%;
+    max-width: max(calc(100dvh - 21rem), calc(var(--grid-size) * 42px + 2rem));
+    justify-self: center;
+  }
+  .grid-container[data-grid-density] { --cell-font: 1.1rem; }
+  .student-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .teacher-tools { margin-top: 0; }
+}
+
+@media screen and (max-width: 640px) {
+  .puzzle-layout { grid-template-areas: "words" "hint" "grid" "actions"; grid-template-rows: auto; }
+  body[data-tab="student"] .main-tabs .tab-icon { display: none; }
+  .appearance-picker .theme-selector { left: 0; right: auto; }
+  .teacher-preview-layout { grid-template-columns: minmax(0, 1fr); }
+  .word-definition-button { padding: 0.4rem 0.6rem; }
+}
+
+@media print {
+  .active-hint,
+  .appearance-picker { display: none !important; }
+}

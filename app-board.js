@@ -7,8 +7,6 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const HINT_HIGHLIGHT_MS = 8000;
-  const HINT_COOLDOWN_MS = 4000;
   const BOARD_FLASH_MS = 2600;
   const WRONG_FLASH_MS = 600;
 
@@ -23,6 +21,7 @@
     getDefinitionTextForWordId,
     openWordDefinition,
     renderWordDefinitionModal,
+    getReviewWords,
     syncStudentStartOverlay,
     updateTeacherReadyCard,
     stopTimer,
@@ -38,11 +37,8 @@
     const onWordFoundFn = typeof onWordFound === "function" ? onWordFound : () => {};
     const onHintUsedFn = typeof onHintUsed === "function" ? onHintUsed : () => {};
     const updateTimerDisplayFn = typeof updateTimerDisplay === "function" ? updateTimerDisplay : () => {};
-    let hintCooldownUntil = 0;
-    let hintCooldownTimeoutId = null;
     let boardFlashTimeoutId = null;
     let wrongFlashTimeoutId = null;
-    let hintHighlightTimeoutId = null;
     let gridOverflowObserver = null;
     let launchConfetti = null;
     function buildGridCellLabel(letter, row, col, flags) {
@@ -187,7 +183,7 @@
           textElement.addEventListener("click", () => openWordDefinition(word.id));
         }
         item.appendChild(textElement);
-        item.appendChild(checkSpan);
+        (isDefinable ? textElement : item).appendChild(checkSpan);
         dom.wordList.appendChild(item);
         dom.wordListItems.set(word.id, item);
       });
@@ -205,7 +201,6 @@
       }
       dom.hintButton.hidden = false;
       const t = getTranslations();
-      const onCooldown = Date.now() < hintCooldownUntil;
       const setHintText = (count) => {
         const visibleText = t.btn_hint.replace("{n}", count);
         const label = dom.hintButton.querySelector(".button-label");
@@ -219,22 +214,16 @@
         if (label) label.textContent = visibleText;
         else dom.hintButton.textContent = visibleText;
         dom.hintButton.setAttribute("aria-label", visibleText);
-        dom.hintButton.disabled = !canInteractWithPuzzle() || onCooldown;
+        dom.hintButton.disabled = !canInteractWithPuzzle();
       } else {
         setHintText(state.hintsRemaining);
         const canRepeat = state.puzzle.words.some(word => !state.foundWordIds.has(word.id) && state.hintStages[word.id]);
-        dom.hintButton.disabled = !canInteractWithPuzzle() || (state.hintsRemaining <= 0 && !canRepeat) || onCooldown;
+        dom.hintButton.disabled = !canInteractWithPuzzle() || (state.hintsRemaining <= 0 && !canRepeat);
       }
-      dom.hintButton.title = onCooldown ? t.hint_cooldown_wait : "";
     }
 
     function useHint(wordId, level = 1) {
       if (!canInteractWithPuzzle() || state.puzzle.hintsAllowed === 0) return false;
-      if (Date.now() < hintCooldownUntil) {
-        flashBoard(getTranslations().hint_cooldown_wait, "paused");
-        render();
-        return false;
-      }
       const placement = state.puzzle.placements.find(item => item.wordId === wordId && !state.foundWordIds.has(wordId));
       if (!placement || (level !== 1 && level !== 2)) return false;
       const previousLevel = state.hintStages[wordId] || 0;
@@ -245,19 +234,17 @@
       state.hintStages[wordId] = Math.max(previousLevel, level);
       state.hintCell = placement.cells[0];
       state.hintDirectionCell = level === 2 ? placement.cells[1] : null;
-      clearTimeout(hintHighlightTimeoutId);
-      hintHighlightTimeoutId = setTimeout(() => {
-        state.hintCell = null;
-        state.hintDirectionCell = null;
-        render();
-      }, HINT_HIGHLIGHT_MS);
       if (newHelp && state.puzzle.hintsAllowed !== -1) {
         state.hintsRemaining = Math.max(0, state.hintsRemaining - 1);
       }
-      hintCooldownUntil = Date.now() + HINT_COOLDOWN_MS;
-      clearTimeout(hintCooldownTimeoutId);
-      hintCooldownTimeoutId = setTimeout(() => updateHintButton(), HINT_COOLDOWN_MS);
       updateHintButton();
+      flashBoard(hintMessage(placement, level), "success");
+      onHintUsedFn();
+      render();
+      return true;
+    }
+
+    function hintMessage(placement, level) {
       const t = getTranslations();
       const first = placement.cells[0];
       const next = placement.cells[1];
@@ -266,14 +253,25 @@
         "1,1": "down_right", "1,-1": "down_left", "-1,1": "up_right", "-1,-1": "up_left",
       };
       const direction = t[`hint_direction_${directionKeys[`${next.row - first.row},${next.col - first.col}`]}`];
-      const hintMsg = (level === 2 ? t.hint_direction_message : t.hint_start_message)
+      return (level === 2 ? t.hint_direction_message : t.hint_start_message)
         .replace("{word}", placement.display).replace("{row}", first.row + 1).replace("{col}", first.col + 1)
         .replace("{direction}", direction);
-      flashBoard(hintMsg, "success", HINT_HIGHLIGHT_MS);
-      onHintUsedFn();
-      // useHint is also reachable from the H shortcut, and neither caller renders.
-      render();
-      return true;
+    }
+
+    function renderActiveHint() {
+      if (!dom.activeHint) return;
+      const placement = state.hintCell && state.puzzle?.placements.find(item => item.wordId === state.selectedHintWordId);
+      dom.activeHint.hidden = !placement || !canInteractWithPuzzle() || state.foundWordIds.has(placement.wordId);
+      if (dom.activeHint.hidden) return;
+      const level = state.hintDirectionCell ? 2 : 1;
+      const t = getTranslations();
+      dom.activeHintText.textContent = hintMessage(placement, level);
+      const canSpend = state.puzzle.hintsAllowed === -1 || state.hintsRemaining > 0;
+      dom.activeHintDirection.hidden = level === 2;
+      dom.activeHintDirection.disabled = !canSpend && state.hintStages[placement.wordId] < 2;
+      dom.activeHintCost.hidden = level === 2 || state.hintStages[placement.wordId] >= 2;
+      dom.activeHintCost.textContent = state.puzzle.hintsAllowed === -1 ? t.hint_unlimited_note
+        : canSpend ? t.hint_direction_cost : t.hint_no_more;
     }
 
     // Single source of truth for a cell's class string. render() sets isFoundNew;
@@ -434,6 +432,10 @@
       flashWrongCells(null);
       state.foundPlacementIds.add(placement.placementId);
       state.foundWordIds.add(placement.wordId);
+      if (state.selectedHintWordId === placement.wordId) {
+        state.hintCell = null;
+        state.hintDirectionCell = null;
+      }
       state.foundWordPaths.set(placement.wordId, path.map(cell => ({ ...cell })));
       if (!state.foundWordColors.has(placement.wordId)) {
         state.foundWordColors.set(placement.wordId, `wc-${state.foundWordColors.size % 5}`);
@@ -450,6 +452,7 @@
       dom.studentActions.hidden = !state.puzzle;
       if (dom.studentGamebar) dom.studentGamebar.hidden = !state.puzzle;
       updateTeacherReadyCard();
+      renderActiveHint();
 
       if (!state.puzzle) {
         if (dom.timerDisplay) dom.timerDisplay.hidden = true;
@@ -587,6 +590,9 @@
         }
       }
       if (dom.playAgainButton) dom.playAgainButton.hidden = !showCompletionCard;
+      const canReview = showCompletionCard && (getReviewWords?.().length || 0) > 0;
+      if (dom.reviewWordsButton) dom.reviewWordsButton.hidden = !canReview;
+      if (dom.completionReviewNote) dom.completionReviewNote.hidden = !canReview;
       if (dom.viewBoardButton) dom.viewBoardButton.hidden = !showCompletionCard;
       if (dom.viewResultButton) dom.viewResultButton.hidden = !((isComplete || isExpiredUnfinished) && state.completionDismissed);
       if (dom.pauseButton) {
@@ -647,15 +653,9 @@
       if (dom.shareButton) dom.shareButton.disabled = !state.puzzle;
     }
 
-    function resetHintCooldown() {
-      hintCooldownUntil = 0;
-      clearTimeout(hintHighlightTimeoutId);
+    function resetFeedback() {
       clearTimeout(boardFlashTimeoutId);
       clearTimeout(wrongFlashTimeoutId);
-      if (hintCooldownTimeoutId !== null) {
-        clearTimeout(hintCooldownTimeoutId);
-        hintCooldownTimeoutId = null;
-      }
     }
 
     return Object.freeze({
@@ -664,7 +664,7 @@
       renderGridHighlights,
       updateHintButton,
       useHint,
-      resetHintCooldown,
+      resetFeedback,
     });
   }
 

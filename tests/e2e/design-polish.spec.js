@@ -51,7 +51,9 @@ for (const width of [1440, 390]) {
 
       const ready = page.getByRole("region", { name: /^Activitat preparada/ });
       await expect(ready).toBeFocused();
-      await expect(ready).toBeInViewport({ ratio: 1 });
+      // The expanded preview can extend below the fold; the next action must not.
+      await expect(page.locator("#teacher-ready-title")).toBeInViewport({ ratio: 1 });
+      await expect(page.locator("#teacher-open-student-button")).toBeInViewport({ ratio: 1 });
       // macOS WebKit uses Option+Tab to include all actionable controls.
       await page.keyboard.press(browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
       await expect(page.locator("#teacher-open-student-button")).toBeFocused();

@@ -56,7 +56,7 @@ for (const example of examples) {
     await expect(page.locator("#send-results-button")).toBeHidden();
     await expect(page.locator("#hint-button")).toBeHidden();
     await expect(page.locator("#pause-button")).toBeHidden();
-    await expect(page.locator('#completion-message [data-t="learning_prompt"]')).toBeVisible();
+    await expect(page.locator("#completion-review-note")).toBeVisible();
 
     const reopened = await context.newPage();
     await reopened.goto(url);
@@ -99,7 +99,7 @@ for (const width of [320, 390, 768, 1366]) {
     const words = await page.locator(".word-bank").boundingBox();
     const grid = await page.locator("#grid-container").boundingBox();
     const actions = await page.locator("#student-actions").boundingBox();
-    if (width <= 640) {
+    if (width <= 1024) {
       expect(words.y + words.height).toBeLessThanOrEqual(grid.y);
       expect(actions.y).toBeGreaterThanOrEqual(grid.y + grid.height);
     } else {

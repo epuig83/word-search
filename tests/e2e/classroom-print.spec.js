@@ -44,7 +44,13 @@ for (const lang of ["ca", "es", "en"]) {
         expect((pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length).toBe(1);
         await testInfo.attach(filename, { body: pdf, contentType: "application/pdf" });
 
-        // The default print path: no background graphics requested by the user.
+        // afterprint clears the prepared sheet. Stage a fresh print request for
+        // the default path, otherwise this checks the fallback board instead.
+        await page.emulateMedia({ media: "screen" });
+        await page.locator(solution ? "#teacher-print-solution-button" : "#teacher-print-button").click();
+        await page.emulateMedia({ media: "print" });
+        await expect(sheet).toHaveCount(1);
+        await expect(sheet).toHaveAttribute("data-solution", String(solution));
         const plainPdf = await page.pdf({ format: "A4", preferCSSPageSize: true, printBackground: false });
         expect((plainPdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length).toBe(1);
       }

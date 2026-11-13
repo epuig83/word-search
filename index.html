@@ -332,6 +332,16 @@
               </button>
               <button type="button" id="teacher-variants-button" class="ghost-button" data-t="variants_title">Preparar variants</button>
             </div>
+            <details id="teacher-preview" class="teacher-preview" open>
+              <summary class="teacher-tools-summary" data-t="teacher_preview">Vista prèvia de l'activitat</summary>
+              <div class="teacher-preview-layout">
+                <div id="teacher-preview-grid" class="teacher-preview-grid" role="table"></div>
+                <div class="teacher-preview-words">
+                  <ul id="teacher-preview-words"></ul>
+                  <button type="button" id="teacher-preview-solution" class="ghost-button" aria-pressed="false" data-t="btn_show_solution">Veure solució</button>
+                </div>
+              </div>
+            </details>
           </section>
 
           <p id="status-message" class="status-message visually-hidden" role="status" aria-live="polite" data-t="status_default">
@@ -411,12 +421,15 @@
                 <progress id="progress-bar" class="progress-bar" value="0" max="1" aria-hidden="true"></progress>
               </div>
               <div class="board-appearance">
+                <details class="appearance-picker">
+                  <summary data-t="appearance_colors">Colors</summary>
                 <div class="theme-selector" role="group" aria-label="Tema visual">
                   <button type="button" class="theme-btn is-active" data-theme="pergami" aria-pressed="true"><span class="visually-hidden" data-t="theme_pergami">Pergamí</span></button>
                   <button type="button" class="theme-btn" data-theme="ocea" aria-pressed="false"><span class="visually-hidden" data-t="theme_ocea">Oceà</span></button>
                   <button type="button" class="theme-btn" data-theme="bosc" aria-pressed="false"><span class="visually-hidden" data-t="theme_bosc">Bosc</span></button>
                   <button type="button" class="theme-btn" data-theme="espai" aria-pressed="false"><span class="visually-hidden" data-t="theme_espai">Espai</span></button>
                 </div>
+                </details>
                 <button type="button" id="contrast-toggle" class="contrast-toggle" aria-pressed="false">
                   <svg class="ui-icon" aria-hidden="true"><use href="#icon-contrast"></use></svg>
                   <span class="visually-hidden" data-t="contrast_toggle">Alt contrast</span>
@@ -496,16 +509,26 @@
                     <div class="completion-card">
                       <p id="completion-message-title" class="completion-message-title" data-t="completion_msg">🎉 Excel·lent treball! Has completat l'exercici.</p>
                       <p id="completion-note" class="completion-note" data-t="completion_note">Pots mirar la sopa una altra vegada o tornar a jugar.</p>
-                      <p class="completion-note" data-t="learning_prompt">Sabries dir què volen dir dues d'aquestes paraules?</p>
+                      <p id="completion-review-note" class="completion-note" data-t="review_invitation" hidden>Pots repassar què volen dir les paraules.</p>
                       <p id="completion-time" class="completion-note" hidden></p>
                       <button type="button" id="send-results-button" class="primary-button completion-message-button" data-t="btn_send_results" hidden>
                         Enviar resultats
                       </button>
                       <button type="button" id="play-again-button" class="ghost-button completion-message-button" data-t="btn_play_again" hidden>
-                        Tornar a jugar
+                        Repetir aquesta sopa
                       </button>
+                      <button type="button" id="review-words-button" class="ghost-button completion-message-button" data-t="review_words" hidden>Repassar paraules</button>
                       <button type="button" id="view-board-button" class="ghost-button completion-message-button" data-t="btn_view_board" hidden>Veure la sopa</button>
                     </div>
+                  </div>
+                </div>
+
+                <div id="active-hint" class="active-hint" hidden>
+                  <p id="active-hint-text" role="status" aria-live="polite"></p>
+                  <p id="active-hint-cost" class="sample-note"></p>
+                  <div class="active-hint-actions">
+                    <button type="button" id="active-hint-direction" class="ghost-button" data-t="hint_show_direction">2. Veure la direcció</button>
+                    <button type="button" id="active-hint-hide" class="ghost-button" data-t="hint_hide">Amagar l'ajuda</button>
                   </div>
                 </div>
 
@@ -591,6 +614,8 @@
       <div class="modal-content word-definition-modal-content" tabindex="-1">
         <p class="section-kicker" data-t="word_definition_kicker">Definició</p>
         <h3 id="word-definition-title" data-t="word_definition_placeholder_title">Paraula</h3>
+        <p id="word-review-progress" class="sample-note" hidden></p>
+        <p id="learning-dialog-note" class="sample-note" data-t="learning_time_paused" hidden>El temps està aturat mentre consultes l'ajuda.</p>
         <p id="word-definition-text" data-t="word_definition_placeholder_text">Definició</p>
         <p
           id="word-definition-found"
@@ -601,6 +626,7 @@
           Aquesta paraula ja l'has trobada.
         </p>
         <div class="confirm-modal-actions">
+          <button type="button" id="word-review-next" class="primary-button" data-t="review_next" hidden>Paraula següent</button>
           <button type="button" id="word-definition-listen" class="ghost-button" hidden>
             <svg class="ui-icon" aria-hidden="true"><use href="#icon-speaker"></use></svg>
             <span data-t="word_definition_listen">Escolta</span>
@@ -615,6 +641,7 @@
     <div id="hint-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="hint-title" aria-describedby="hint-explanation">
       <div class="modal-content hint-modal-content" tabindex="-1">
         <h3 id="hint-title" data-t="hint_title">Una mica d'ajuda</h3>
+        <p id="hint-time-paused" class="sample-note" data-t="learning_time_paused" hidden>El temps està aturat mentre consultes l'ajuda.</p>
         <div class="field">
           <label for="hint-word-select" data-t="hint_choose_word">Quina paraula busques?</label>
           <select id="hint-word-select"></select>

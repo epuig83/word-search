@@ -41,7 +41,10 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - Editing a generated activity shows a pending-changes message and disables opening, sharing, and printing until it is generated again. Reverting the edits re-enables the actions.
 - A saved game offers **Continue** or **New pupil: start fresh**. Starting fresh keeps the same puzzle and resets the score, timer, hints, and any result-submission name. Completed and expired games can also be reviewed or restarted.
 - Hints let students choose an unsolved word, reveal its first letter, then request its direction. Each new clue consumes one hint when hints are limited; repeating a revealed clue is free. Opening or dismissing the picker does not spend a hint.
+- The clue stays beside the board until its word is found, another clue is chosen, or the pupil hides it. The direction can be requested there immediately, without reopening the picker.
+- Definitions and the hint picker suspend both the countdown and play-time stopwatch. Closing them resumes an active game, preserves a manual pause, and never restarts a finished game.
 - The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
+- Its read-only preview shows the exact generated board and word list, with an optional solution. Reviewing it does not start or reset a pupil's game; pending edits hide the old preview until regeneration.
 - Shared links rebuild the exact same puzzle when opened. New links keep the activity in a `#p=` fragment, which is not sent to the hosting server; large activities can open on a pupil's first visit without exceeding its request-URL limit. Existing `?p=` links still load. If both forms are present, the fragment takes precedence.
 - Shared activities have a 64 KiB UTF-8 JSON limit, applied equally when creating and reopening them. Word lists and definitions are never cut to fit: an oversized activity is rejected while the draft and previous board remain available.
 - Any straight occurrence of a listed word counts, in either direction, even when it is not the generator's original placement. Each word counts once, and the selected cells remain highlighted after reopening. Hints and answer keys use the original placements.
@@ -53,6 +56,8 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - Changing the interface language keeps the activity's original language attached to its words, definitions, title and printed content for assistive reading.
 - **Full screen** in the pupil area hides the tabs so the board fills the projector.
 - On phones, the word list appears above the grid and the activity actions below it.
+- Tablets up to 1024px also place the words above the board, leaving room for larger cells. Colours live in a compact disclosure; contrast and full screen remain directly available.
+- Found-word tiles remain fully clickable for definitions. At the end, **Review words** walks through up to two available definitions without changing the result; **Repeat this puzzle** resets progress on the same board.
 - Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
 - If you configure Google Forms, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed. The result field reads `found/total · play time · clues used` (for example `8/8 · 04:12 · 2 hints`), and pupils are reminded to press Submit in the form that opens. Play time is also shown on untimed boards.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
@@ -174,6 +179,7 @@ pnpm test
 - `tests/e2e/offline-updates.spec.js`: two incompatible releases served from an isolated in-memory server, waiting for every tab, offline reopening, interrupted downloads, integrity failures, retries, progress retention and preservation of other applications' caches.
 - `tests/e2e/print-variants.spec.js`: 2–4 versions in all languages, paired answer keys, A4 PDFs, repeat printing, unchanged pupil progress, cancellation/failure, overflow handling, narrow screens, accessibility and local files.
 - `tests/e2e/tablet.spec.js`: iPad WebKit profile with real tap input, viewport orientation changes, hints, exact progress recovery and the versions dialog in all three languages. These checks do not emulate the native virtual keyboard, physical finger dragging or Safari's system print sheet.
+- `tests/e2e/independent-play.spec.js`: found-word hit targets, persistent hints, learning-dialog clock suspension, manual pause and expiry, end-of-activity review, exact teacher preview, and tablet cell sizes.
 
 ## CI
 

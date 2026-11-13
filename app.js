@@ -74,11 +74,50 @@
     saveActivity,
   } = APP_STORAGE;
   const {
-    openModal,
-    closeModal,
+    openModal: showModal,
+    closeModal: hideModal,
     trapModalFocus,
   } = APP_MODAL.createModalController({ focusableSelector: FOCUSABLE_SELECTOR });
   const workspaceStorage = APP_STORAGE.createWorkspaceStorage({ onConflict: suspendWorkspace });
+
+  // A learning dialog suspends play without changing the pupil's manual pause.
+  // Keep the sub-second deadline too: repeatedly opening a dialog must not add time.
+  function openModal(overlay, focusTarget) {
+    if ((overlay === dom.wordDefinitionModal || overlay === dom.hintModal) && overlay.hidden) {
+      tickTimer();
+      state.learningPause = {
+        overlay,
+        puzzle: state.puzzle,
+        running: state.playStartedAt !== null,
+        remainingMs: state.timerDeadline === null ? null : Math.max(0, state.timerDeadline - Date.now()),
+      };
+      stopTimer();
+      clearSelection();
+      const note = overlay === dom.wordDefinitionModal ? dom.learningDialogNote : dom.hintTimePaused;
+      note.hidden = !state.learningPause.running;
+      saveStudentProgress();
+      if (state.workspaceConflict) return;
+    }
+    showModal(overlay, focusTarget);
+  }
+
+  function closeModal(overlay, options) {
+    if (!overlay || overlay.hidden) return;
+    const pause = state.learningPause?.overlay === overlay ? state.learningPause : null;
+    if (pause) {
+      state.learningPause = null;
+      // A feedback timeout may have rendered disabled controls behind the dialog.
+      // Restore them before the modal controller returns focus to its trigger.
+      if (!state.workspaceConflict) render();
+    }
+    hideModal(overlay, options);
+    if (pause?.running && pause.puzzle === state.puzzle && state.activeTab === "student" &&
+        state.studentSessionStarted && !state.timerPaused && !state.timerExpired && !state.workspaceConflict &&
+        state.foundWordIds.size < state.puzzle.words.length) {
+      startTimer(state.timerSecondsLeft);
+      if (pause.remainingMs !== null) state.timerDeadline = Date.now() + pause.remainingMs;
+    }
+  }
 
   function getVocabularyCategories(lang) {
     return VOCABULARY[lang] || {};
@@ -137,7 +176,7 @@
   }
 
   function canInteractWithPuzzle() {
-    return Boolean(!state.workspaceConflict && state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired && !state.timerPaused);
+    return Boolean(!state.workspaceConflict && !state.learningPause && state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired && !state.timerPaused);
   }
 
   function pauseTimer() {
@@ -406,6 +445,9 @@
     studentName: { nom: "", cognoms: "" },
     formTemplate: "",
     activeDefinitionWordId: null,
+    learningPause: null,
+    reviewWordIds: [],
+    reviewIndex: 0,
     focusedCell: null,
     lastBoardInputMode: getDefaultBoardInputMode(),
   };
@@ -443,6 +485,9 @@
       selectedHintWordId: null,
       hintDirectionCell: null,
       activeDefinitionWordId: null,
+      learningPause: null,
+      reviewWordIds: [],
+      reviewIndex: 0,
       timerSecondsLeft: state.puzzle?.timerDuration || 0,
       elapsedSeconds: 0,
       playStartedAt: null,
@@ -457,7 +502,7 @@
   function resetPuzzleProgress() {
     if (!state.restoring && !checkWorkspace()) return;
     stopTimer();
-    resetHintCooldown?.();
+    resetFeedback?.();
     Object.assign(state, buildInitialPuzzleProgress());
     dom.gridCells = null;
     dom.wordListItems = null;
@@ -547,6 +592,21 @@
   }
 
   const dom = {
+    teacherPreview: document.querySelector("#teacher-preview"),
+    teacherPreviewGrid: document.querySelector("#teacher-preview-grid"),
+    teacherPreviewWords: document.querySelector("#teacher-preview-words"),
+    teacherPreviewSolution: document.querySelector("#teacher-preview-solution"),
+    activeHint: document.querySelector("#active-hint"),
+    activeHintText: document.querySelector("#active-hint-text"),
+    activeHintCost: document.querySelector("#active-hint-cost"),
+    activeHintDirection: document.querySelector("#active-hint-direction"),
+    activeHintHide: document.querySelector("#active-hint-hide"),
+    hintTimePaused: document.querySelector("#hint-time-paused"),
+    learningDialogNote: document.querySelector("#learning-dialog-note"),
+    reviewWordsButton: document.querySelector("#review-words-button"),
+    completionReviewNote: document.querySelector("#completion-review-note"),
+    wordReviewNext: document.querySelector("#word-review-next"),
+    wordReviewProgress: document.querySelector("#word-review-progress"),
     metaDescription: document.querySelector('meta[name="description"]'),
     canonicalLink: document.querySelector('link[rel="canonical"]'),
     ogTitle: document.querySelector('meta[property="og:title"]'),
@@ -745,10 +805,16 @@
   }
 
   function closeWordDefinitionModal(options) {
+    const reviewing = state.reviewWordIds.length > 0;
     globalThis.speechSynthesis?.cancel();
     state.activeDefinitionWordId = null;
+    state.reviewWordIds = [];
+    state.reviewIndex = 0;
     resetWordDefinitionModalContent();
     closeModal(dom.wordDefinitionModal, options);
+    // Safari does not focus buttons on a pointer click; return to the review's
+    // explicit entry point rather than whichever board cell happened to have focus.
+    if (reviewing && options?.restoreFocus !== false && !state.workspaceConflict) dom.reviewWordsButton.focus();
   }
 
   function renderWordDefinitionModal() {
@@ -767,16 +833,98 @@
     if (dom.wordDefinitionFound) {
       dom.wordDefinitionFound.hidden = !state.foundWordIds.has(word.id);
     }
+    const reviewing = state.reviewWordIds.length > 0;
+    dom.wordReviewProgress.hidden = !reviewing;
+    dom.wordReviewNext.hidden = !reviewing;
+    dom.wordDefinitionClose.classList.toggle("primary-button", !reviewing);
+    dom.wordDefinitionClose.classList.toggle("ghost-button", reviewing);
+    if (reviewing) {
+      const t = getTranslations();
+      dom.wordReviewProgress.textContent = t.review_progress
+        .replace("{current}", state.reviewIndex + 1).replace("{total}", state.reviewWordIds.length);
+      dom.wordReviewNext.textContent = state.reviewIndex < state.reviewWordIds.length - 1 ? t.review_next : t.review_finish;
+    }
   }
 
-  function openWordDefinition(wordId) {
+  function getReviewWords() {
+    return (state.puzzle?.words || []).filter(word => getDefinitionTextForWordId(word.id)).slice(0, 2);
+  }
+
+  function openWordDefinition(wordId, { review = false } = {}) {
     if (!state.puzzle) return;
     const definitionText = getDefinitionTextForWordId(wordId);
     if (!definitionText) return;
+    if (!review) {
+      state.reviewWordIds = [];
+      state.reviewIndex = 0;
+    }
     state.activeDefinitionWordId = wordId;
     renderWordDefinitionModal();
     openModal(dom.wordDefinitionModal, dom.wordDefinitionClose);
   }
+
+  dom.reviewWordsButton.addEventListener("click", () => {
+    state.reviewWordIds = getReviewWords().map(word => word.id);
+    state.reviewIndex = 0;
+    if (state.reviewWordIds.length) openWordDefinition(state.reviewWordIds[0], { review: true });
+  });
+  dom.wordReviewNext.addEventListener("click", () => {
+    if (state.reviewIndex >= state.reviewWordIds.length - 1) {
+      closeWordDefinitionModal();
+      return;
+    }
+    globalThis.speechSynthesis?.cancel();
+    state.activeDefinitionWordId = state.reviewWordIds[++state.reviewIndex];
+    renderWordDefinitionModal();
+    dom.wordDefinitionTitle.tabIndex = -1;
+    dom.wordDefinitionTitle.focus();
+  });
+
+  let previewPuzzle = null;
+  let previewLanguage = null;
+  let previewSolution = false;
+  function renderTeacherPreview({ force = false } = {}) {
+    if (!state.puzzle) return;
+    const changed = previewPuzzle !== state.puzzle;
+    if (changed) {
+      previewSolution = false;
+      dom.teacherPreview.open = true;
+    }
+    if (!changed && previewLanguage === state.lang && !force) return;
+    previewPuzzle = state.puzzle;
+    previewLanguage = state.lang;
+    const t = getTranslations();
+    const solution = new Set(previewSolution ? state.puzzle.placements.flatMap(placement =>
+      placement.cells.map(cell => `${cell.row}:${cell.col}`)) : []);
+    dom.teacherPreviewGrid.style.setProperty("--preview-size", state.puzzle.actualSize);
+    dom.teacherPreviewGrid.setAttribute("aria-label", t.teacher_preview);
+    dom.teacherPreviewGrid.lang = getPuzzleSourceLang();
+    dom.teacherPreviewGrid.replaceChildren(...state.puzzle.grid.map((letters, row) => {
+      const line = document.createElement("div");
+      line.setAttribute("role", "row");
+      letters.forEach((letter, col) => {
+        const cell = document.createElement("span");
+        cell.setAttribute("role", "cell");
+        cell.textContent = letter;
+        cell.className = "teacher-preview-cell";
+        if (solution.has(`${row}:${col}`)) cell.classList.add("is-solution");
+        line.appendChild(cell);
+      });
+      return line;
+    }));
+    dom.teacherPreviewWords.lang = getPuzzleSourceLang();
+    dom.teacherPreviewWords.replaceChildren(...state.puzzle.words.map(word => {
+      const item = document.createElement("li");
+      item.textContent = word.display;
+      return item;
+    }));
+    dom.teacherPreviewSolution.textContent = previewSolution ? t.btn_hide_solution : t.btn_show_solution;
+    dom.teacherPreviewSolution.setAttribute("aria-pressed", String(previewSolution));
+  }
+  dom.teacherPreviewSolution.addEventListener("click", () => {
+    previewSolution = !previewSolution;
+    renderTeacherPreview({ force: true });
+  });
 
   // Promise-based replacement for window.confirm: resolves true/false and reuses
   // the shared modal controller (focus trap, restore, Escape/overlay to cancel).
@@ -849,6 +997,8 @@
     dom.teacherReadyTopic.lang = getPuzzleSourceLang();
     dom.teacherReadyMeta.textContent = buildTeacherReadyMeta(state.puzzle);
     const pending = hasPendingChanges();
+    dom.teacherPreview.hidden = pending;
+    renderTeacherPreview();
     dom.teacherPendingChanges.hidden = !pending;
     dom.teacherReadyNote.hidden = pending;
     dom.teacherReadyCard.classList.toggle("has-pending-changes", pending);
@@ -992,8 +1142,11 @@
       : formatCount(t, "hint_cost_note", state.hintsRemaining);
   }
 
-  function openHintPicker() {
+  function openHintPicker(event) {
     if (!canInteractWithPuzzle() || dom.hintButton.disabled) return;
+    // Safari does not focus a clicked button. Preserve the actual entry point:
+    // the button on a tap, or the current grid cell for the H shortcut.
+    if (event?.currentTarget === dom.hintButton) dom.hintButton.focus({ preventScroll: true });
     const unsolved = state.puzzle.words.filter(word => !state.foundWordIds.has(word.id));
     if (!unsolved.length) return;
     dom.hintWordSelect.replaceChildren(...unsolved.map(word => {
@@ -1022,6 +1175,17 @@
     });
   });
   dom.hintCloseButton.addEventListener("click", () => closeModal(dom.hintModal));
+  dom.activeHintDirection.addEventListener("click", () => {
+    clearSelection();
+    if (useHint(state.selectedHintWordId, 2)) focusGridCell(setFocusedCell(state.hintCell));
+  });
+  dom.activeHintHide.addEventListener("click", () => {
+    state.hintCell = null;
+    state.hintDirectionCell = null;
+    state.boardFlash = null;
+    render();
+    dom.hintButton.focus();
+  });
   dom.hintModal.addEventListener("click", event => {
     if (event.target === event.currentTarget) closeModal(dom.hintModal);
   });
@@ -1258,7 +1422,7 @@
     renderGridHighlights,
     updateHintButton,
     useHint,
-    resetHintCooldown,
+    resetFeedback,
   } = APP_BOARD.createBoardController({
     dom,
     state,
@@ -1270,6 +1434,7 @@
     getDefinitionTextForWordId,
     openWordDefinition,
     renderWordDefinitionModal,
+    getReviewWords,
     syncStudentStartOverlay,
     updateTeacherReadyCard,
     stopTimer,
@@ -1547,7 +1712,7 @@
       if (completed && !state.workspaceConflict && state.activeTab === "teacher" && dom.teacherReadyCard) {
         dom.teacherReadyCard.focus({ preventScroll: true });
         dom.teacherReadyCard.scrollIntoView({
-          block: "nearest",
+          block: "start",
           behavior: prefersReducedMotion() ? "instant" : "smooth",
         });
       } else if (!state.workspaceConflict) previousFocus?.focus();

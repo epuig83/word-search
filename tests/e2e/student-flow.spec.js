@@ -209,6 +209,7 @@ test("board theme picker reskins the page and persists across reloads", async ({
   await startStudentSession(page);
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "pergami");
+  await page.locator(".appearance-picker summary").click();
   const oceaBtn = page.locator('.theme-btn[data-theme="ocea"]');
   await oceaBtn.click();
 
@@ -580,7 +581,7 @@ test("print worksheet shows a localized name/date line and drops the screen back
     expect(metrics.size).toBe(puzzle.size);
     expect(metrics.minCellWidth, JSON.stringify(metrics)).toBeGreaterThanOrEqual(24);
     expect(metrics.minCellHeight, JSON.stringify(metrics)).toBeGreaterThanOrEqual(24);
-    if (context.viewport.width <= 683 && puzzle.size === "16") {
+    if (context.viewport.width <= 640 && puzzle.size === "16") {
       expect(metrics.isHorizontallyScrollable, JSON.stringify(metrics)).toBe(true);
     }
 
