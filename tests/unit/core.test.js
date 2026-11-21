@@ -214,6 +214,15 @@ test("parseFormEntries rejects allowed host without entry.* params", () => {
   assert.equal(core.parseFormEntries("https://docs.google.com/forms/d/x/viewform"), null);
 });
 
+test("result forms require distinct question IDs and share only the fields used by the activity", () => {
+  const base = "https://docs.google.com/forms/d/e/test/viewform";
+  assert.equal(core.parseResultForm(base + "?entry.1=a&entry.2=b&entry.2=c&entry.other=z"), null);
+  const legacy = base + "?entry.9=name&entry.2=surname&entry.3=score";
+  assert.equal(core.parseResultForm(legacy).entries.length, 3);
+  assert.equal(core.shareableFormTemplate(legacy + "&entry.4=topic&entry.5=unused&other=value#note"),
+    base + "?entry.9=&entry.2=&entry.3=&entry.4=");
+});
+
 test("decodePuzzleConfig keeps long words and form URLs intact within the byte budget", () => {
   const longTitle = "A".repeat(500);
   const longWords = "palabra\n".repeat(1000);

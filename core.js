@@ -419,12 +419,26 @@
       const url = new URL(templateUrl);
       if (url.protocol !== "https:") return null;
       if (!ALLOWED_FORM_HOSTS.has(url.hostname)) return null;
-      const entries = [...url.searchParams.keys()].filter(key => key.startsWith("entry."));
+      const entries = [...new Set([...url.searchParams.keys()].filter(key => /^entry\.\d+$/.test(key)))];
       if (!entries.length) return null;
       return { baseUrl: url.origin + url.pathname, entries };
     } catch {
       return null;
     }
+  }
+
+  function parseResultForm(templateUrl) {
+    const parsed = parseFormEntries(templateUrl);
+    // Existing three-question forms can still receive the score in the third field.
+    return parsed && parsed.entries.length >= 3 ? parsed : null;
+  }
+
+  function shareableFormTemplate(templateUrl) {
+    const parsed = templateUrl && parseResultForm(templateUrl);
+    if (!parsed) return "";
+    const url = new URL(parsed.baseUrl);
+    for (const entry of parsed.entries.slice(0, 4)) url.searchParams.set(entry, "");
+    return url.href;
   }
 
   function buildFormSubmitUrl(parsed, nom, cognoms, resultat, puzzle) {
@@ -472,6 +486,8 @@
     encodePuzzleConfig,
     decodePuzzleConfig,
     parseFormEntries,
+    parseResultForm,
+    shareableFormTemplate,
     buildFormSubmitUrl,
   });
 });

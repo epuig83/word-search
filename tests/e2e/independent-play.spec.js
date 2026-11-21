@@ -65,6 +65,40 @@ test("closing a definition keeps a manual pause and never restarts an expired ga
   await expect(page.locator("#pause-button")).toBeHidden();
 });
 
+test("manual pauses preserve fractional seconds through resume, reload and expiry", async ({ page }) => {
+  await installPausedClock(page);
+  await page.goto(activityPath({ timer: 300 }));
+  await startStudentSession(page);
+  const pause = page.locator("#pause-button");
+  for (let i = 0; i < 10; i++) {
+    await page.clock.runFor(900);
+    await pause.click();
+    await page.clock.runFor(500);
+    await pause.click();
+  }
+  await expect(page.locator("#timer-display")).toHaveText("04:51");
+  await page.clock.runFor(750);
+  await pause.click();
+  await page.reload();
+  await startStudentSession(page);
+  await page.clock.runFor(250);
+  await expect(page.locator("#timer-display")).toHaveText("04:50");
+  await page.clock.fastForward(290000);
+  await expect(page.locator("#grid-container")).toHaveClass(/is-expired/);
+});
+
+test("arrow keys keep the focused cell visible across a scrollable board", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await generatePuzzle(page, { size: "16", timer: "0" });
+  await startStudentSession(page);
+  for (const [key, col] of [["ArrowRight", 15], ["ArrowLeft", 0]]) {
+    for (let i = 0; i < 15; i++) await page.keyboard.press(key);
+    const cell = page.locator(`#puzzle-grid [data-row="0"][data-col="${col}"]`);
+    await expect(cell).toBeFocused();
+    await expect(cell).toBeInViewport({ ratio: 1 });
+  }
+});
+
 test("an untimed game saves only play time when reloaded from a definition", async ({ page }) => {
   await installPausedClock(page);
   await page.goto(activityPath());

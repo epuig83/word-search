@@ -114,7 +114,7 @@ test("the student name modal is only asked for at send time and can be escaped",
     words: wordsText,
     timer: "0",
     hints: "0",
-    formTemplate: "https://docs.google.com/forms/d/e/abc/viewform?entry.1=x&entry.2=y",
+    formTemplate: "https://docs.google.com/forms/d/e/abc/viewform?entry.1=x&entry.2=y&entry.3=z&entry.4=t",
   });
   await startStudentSession(page);
 

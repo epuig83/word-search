@@ -80,6 +80,38 @@ test("library, presets and form settings also mark a generated activity as pendi
   await page.locator("#form-config-details summary").click();
   await page.locator("#form-template-input").fill("https://docs.google.com/forms/d/e/test/viewform?entry.1=Name&entry.2=Score");
   await expect(page.locator("#teacher-share-button")).toBeDisabled();
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#form-template-input")).toBeFocused();
+  await expect(page.locator("#form-template-input")).toHaveAccessibleDescription(/2 de 4/);
+  await expect(page.locator("#teacher-pending-changes")).toBeVisible();
+});
+
+test("a shared form contains only question IDs and resumes progress from the original prefilled link", async ({ page }) => {
+  const base = "https://docs.google.com/forms/d/e/test/viewform";
+  const formTemplate = base + "?usp=pp_url&entry.4=Nombre&entry.2=Alias&entry.7=Puntos&entry.1=Tema";
+  await generatePuzzle(page, { words: wordsText, size: "8", timer: "0", formTemplate, openStudent: false });
+  await page.locator("#teacher-share-button").click();
+  const link = await page.evaluate(() => window.__sharedUrl);
+  const key = new URLSearchParams(new URL(link).hash.slice(1)).get("p");
+  const config = core.decodePuzzleConfig(key);
+  expect(config.formTemplate).toBe(base + "?entry.4=&entry.2=&entry.7=&entry.1=");
+  await page.goto(link);
+  await expect(page.locator("#section-student")).toBeVisible();
+  await page.goto("/index.html");
+  await unlockTeacherView(page);
+  await expect(page.locator("#form-template-input")).toHaveValue(formTemplate);
+  await expect(page.locator("#teacher-share-button")).toBeEnabled();
+
+  // Start the receiving browser with a progress record written by the older release.
+  const legacyKey = core.encodePuzzleConfig({ ...config, formTemplate });
+  await page.goto("about:blank");
+  await page.addInitScript(key => localStorage.setItem("word-search-progress-v1", JSON.stringify({
+    key, foundWordIds: ["GAT"], started: true,
+  })), legacyKey);
+  await page.goto(link);
+  await expect(page.locator("#progress-text")).toHaveText("1 / 3");
+  await expect(page.locator("#student-start-button")).toHaveText("Continuar");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("word-search-progress-v1")).key)).toBe(key);
 });
 
 test("a local game resumes the exact grid, time and hints, then starts fresh for another pupil", async ({ page }) => {

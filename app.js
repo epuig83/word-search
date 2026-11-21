@@ -39,6 +39,8 @@
     encodePuzzleConfig,
     decodePuzzleConfig,
     parseFormEntries,
+    parseResultForm,
+    shareableFormTemplate,
     buildFormSubmitUrl,
   } = CORE;
   const {
@@ -89,7 +91,6 @@
         overlay,
         puzzle: state.puzzle,
         running: state.playStartedAt !== null,
-        remainingMs: state.timerDeadline === null ? null : Math.max(0, state.timerDeadline - Date.now()),
       };
       stopTimer();
       clearSelection();
@@ -115,7 +116,6 @@
         state.studentSessionStarted && !state.timerPaused && !state.timerExpired && !state.workspaceConflict &&
         state.foundWordIds.size < state.puzzle.words.length) {
       startTimer(state.timerSecondsLeft);
-      if (pause.remainingMs !== null) state.timerDeadline = Date.now() + pause.remainingMs;
     }
   }
 
@@ -156,9 +156,13 @@
   }
 
   function stopTimer() {
-    if (state.timerIntervalId !== null) {
-      clearInterval(state.timerIntervalId);
-      state.timerIntervalId = null;
+    if (state.timerTimeoutId !== null) {
+      clearTimeout(state.timerTimeoutId);
+      state.timerTimeoutId = null;
+    }
+    if (state.timerDeadline !== null) {
+      state.timerRemainingMs = Math.max(0, state.timerDeadline - Date.now());
+      state.timerSecondsLeft = Math.ceil(state.timerRemainingMs / 1000);
     }
     state.timerDeadline = null;
     if (state.playStartedAt !== null) {
@@ -181,6 +185,8 @@
 
   function pauseTimer() {
     if (!canInteractWithPuzzle() || state.puzzle.timerDuration <= 0) return;
+    tickTimer();
+    if (state.timerExpired || state.workspaceConflict) return;
     stopTimer();
     state.timerPaused = true;
     state.dragSelection = null;
@@ -193,7 +199,7 @@
   function resumeTimer() {
     if (!state.timerPaused) return;
     state.timerPaused = false;
-    if (state.timerSecondsLeft > 0 && !state.timerExpired) {
+    if (!state.timerExpired) {
       startTimer(state.timerSecondsLeft);
     }
     render();
@@ -296,7 +302,8 @@
     stopTimer();
     state.playStartedAt = Date.now();
     if (!(state.puzzle?.timerDuration > 0)) return;
-    state.timerSecondsLeft = Math.max(0, totalSeconds);
+    const remainingMs = state.timerRemainingMs ?? Math.max(0, totalSeconds * 1000);
+    state.timerSecondsLeft = Math.ceil(remainingMs / 1000);
     if (state.timerSecondsLeft <= 0) {
       expireTimer();
       return;
@@ -304,11 +311,20 @@
     // Wall-clock deadline so a backgrounded tab (whose 1s ticks get throttled or
     // dropped) doesn't gift extra time — each tick recomputes the remaining
     // seconds from the clock instead of blindly decrementing by one.
-    state.timerDeadline = Date.now() + state.timerSecondsLeft * 1000;
+    state.timerDeadline = Date.now() + remainingMs;
     dom.timerDisplay.hidden = false;
     dom.timerDisplay.classList.remove("is-warning", "is-expired");
     updateTimerDisplay();
-    state.timerIntervalId = setInterval(tickTimer, 1000);
+    scheduleTimerTick();
+  }
+
+  function scheduleTimerTick() {
+    // A resumed countdown may cross its next display boundary in under a second.
+    const remainingMs = Math.max(0, state.timerDeadline - Date.now());
+    state.timerTimeoutId = setTimeout(() => {
+      tickTimer();
+      if (state.timerDeadline !== null) scheduleTimerTick();
+    }, remainingMs > 0 ? remainingMs % 1000 || 1000 : 0);
   }
 
   function tickTimer() {
@@ -347,10 +363,11 @@
     return { row: Number(btn.dataset.row), col: Number(btn.dataset.col) };
   }
 
-  function focusGridCell(cell) {
+  function focusGridCell(cell, { reveal = false } = {}) {
     if (!cell) return;
     const btn = dom.puzzleGrid.querySelector(`[data-row="${cell.row}"][data-col="${cell.col}"]`);
     btn?.focus({ preventScroll: true });
+    if (reveal) btn?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
   }
 
   function clearSelection() {
@@ -425,6 +442,8 @@
     generating: false,
     workspaceConflict: false,
     keepDraftFromLink: false,
+    draftNeedsSave: false,
+    deferredTeacherDraft: null,
     generatedForm: null,
     resumeAvailable: false,
     hintStages: {},
@@ -433,9 +452,10 @@
     customSamples: loadCustomSamplesFromStorage(),
     teacherPin: loadTeacherPinFromStorage(),
     theme: loadThemeFromStorage(),
-    timerIntervalId: null,
+    timerTimeoutId: null,
     timerSecondsLeft: 0,
     timerDeadline: null,
+    timerRemainingMs: null,
     elapsedSeconds: 0,
     playStartedAt: null,
     timerExpired: false,
@@ -489,6 +509,7 @@
       reviewWordIds: [],
       reviewIndex: 0,
       timerSecondsLeft: state.puzzle?.timerDuration || 0,
+      timerRemainingMs: null,
       elapsedSeconds: 0,
       playStartedAt: null,
       focusedCell: null,
@@ -523,7 +544,7 @@
       lang: puzzle.sourceLang || state.lang,
       timer: puzzle.timerDuration,
       hints: puzzle.hintsAllowed,
-      formTemplate: formTemplate || "",
+      formTemplate: shareableFormTemplate(formTemplate),
       gridRows: serializeGridRows(puzzle.grid),
       placementPaths: puzzle.placements.map(placement => serializePlacementCells(placement.cells)),
     };
@@ -535,14 +556,26 @@
     return encodePuzzleConfig(buildShareConfigFromPuzzle(puzzle));
   }
 
+  function matchesSavedPuzzle(savedKey, puzzle) {
+    const key = puzzleProgressKey(puzzle);
+    if (savedKey === key) return true;
+    // Older progress keys embedded the teacher's original prefilled URL.
+    const legacy = decodePuzzleConfig(savedKey);
+    if (!legacy?.formTemplate) return false;
+    legacy.formTemplate = shareableFormTemplate(legacy.formTemplate);
+    return JSON.stringify(legacy) === JSON.stringify(decodePuzzleConfig(key));
+  }
+
   function saveStudentProgress() {
     if (!state.puzzle || state.restoring || !checkWorkspace()) return;
     saveWorkspace();
+    const remainingMs = state.timerDeadline === null ? state.timerRemainingMs : Math.max(0, state.timerDeadline - Date.now());
     const saved = saveProgressToStorage({
       key: puzzleProgressKey(state.puzzle),
       foundWordIds: [...state.foundWordIds],
       foundWordPaths: Object.fromEntries([...state.foundWordPaths].map(([id, cells]) => [id, serializePlacementCells(cells)])),
-      timerSecondsLeft: state.timerSecondsLeft,
+      timerSecondsLeft: remainingMs === null ? state.timerSecondsLeft : Math.ceil(remainingMs / 1000),
+      timerRemainingMs: remainingMs,
       elapsedSeconds: playElapsedSeconds(),
       timerExpired: state.timerExpired,
       hintsRemaining: state.hintsRemaining,
@@ -575,6 +608,10 @@
     });
     if (Number.isFinite(record.timerSecondsLeft) && state.puzzle.timerDuration > 0) {
       state.timerSecondsLeft = Math.max(0, Math.min(state.puzzle.timerDuration, record.timerSecondsLeft));
+    }
+    if (Number.isFinite(record.timerRemainingMs) && state.puzzle.timerDuration > 0) {
+      state.timerRemainingMs = Math.max(0, Math.min(state.puzzle.timerDuration * 1000, record.timerRemainingMs));
+      state.timerSecondsLeft = Math.ceil(state.timerRemainingMs / 1000);
     }
     if (Number.isFinite(record.elapsedSeconds)) state.elapsedSeconds = Math.max(0, record.elapsedSeconds);
     if (Number.isFinite(record.hintsRemaining) && state.puzzle.hintsAllowed !== -1) {
@@ -1026,17 +1063,17 @@
     const t = TRANSLATIONS[state.lang];
     const parsed = value ? parseFormEntries(value) : null;
     const invalid = Boolean(value && !parsed);
+    const tooFew = parsed && parsed.entries.length < 4;
     const errorEl = document.querySelector("#form-url-error");
     if (errorEl) {
       errorEl.style.display = invalid ? "block" : "none";
       errorEl.textContent = invalid ? t.form_url_invalid : "";
     }
-    dom.formTemplateInput.setAttribute("aria-invalid", String(invalid));
+    dom.formTemplateInput.setAttribute("aria-invalid", String(Boolean(invalid || tooFew)));
     if (!dom.formUrlMapping) return;
     dom.formUrlMapping.hidden = !parsed;
     if (!parsed) return;
     const example = new URL(value).searchParams;
-    const tooFew = parsed.entries.length < 4;
     dom.formUrlMapping.className = tooFew ? "status-message is-warning" : "sample-note";
     dom.formUrlMapping.textContent = tooFew
       ? t.form_mapping_short.replace("{count}", parsed.entries.length)
@@ -1056,7 +1093,7 @@
     dom.formTemplateInput.value = form.formTemplate;
     syncFormTemplateFeedback();
     syncDifficultyPresetState();
-    teacherController.syncWordsUi();
+    teacherController.syncWordsUi({ notifyChange: false });
   }
 
   function hasPendingChanges() {
@@ -1082,13 +1119,19 @@
   function saveWorkspace() {
     if (state.restoring || !checkWorkspace()) return;
     let saved = true;
-    if (state.activeTab === "teacher" && !state.keepDraftFromLink) saved = saveDraft(readTeacherForm(), workspaceStorage);
+    const savingDraft = state.activeTab === "teacher" && state.draftNeedsSave;
+    if (savingDraft) {
+      saved = saveDraft(readTeacherForm(), workspaceStorage);
+      state.draftNeedsSave = !saved;
+    }
     if (state.puzzle && state.generatedForm) {
       saved = saveActivity({ key: puzzleProgressKey(state.puzzle), form: state.generatedForm, activeTab: state.activeTab }, workspaceStorage) && saved;
     }
-    dom.draftStatus.hidden = false;
-    dom.draftStatus.textContent = TRANSLATIONS[state.lang][saved ? "draft_saved" : "msg_storage_unavailable"];
-    dom.draftStatus.classList.toggle("is-error", !saved);
+    if (savingDraft || !saved) {
+      dom.draftStatus.hidden = false;
+      dom.draftStatus.textContent = TRANSLATIONS[state.lang][saved ? "draft_saved" : "msg_storage_unavailable"];
+      dom.draftStatus.classList.toggle("is-error", !saved);
+    }
   }
 
   function checkWorkspace() {
@@ -1111,15 +1154,16 @@
   }
 
   function onTeacherFormChange() {
-    if (state.restoring) return;
+    if (state.restoring || state.activeTab !== "teacher") return;
     updateTeacherReadyCard();
     // The ready card already says the activity changed; the status line stays free.
     if (hasPendingChanges()) {
       // Once a shared activity is edited locally, reloading must recover that
       // draft instead of treating the original link as a fresh navigation.
-      if (state.activeTab === "teacher") clearSharedPuzzleUrl();
+      clearSharedPuzzleUrl();
       state.keepDraftFromLink = false;
     }
+    if (!state.keepDraftFromLink) state.draftNeedsSave = true;
     saveWorkspace();
   }
 
@@ -1168,7 +1212,7 @@
       closeModal(dom.hintModal, { restoreFocus: false });
       clearSelection();
       if (useHint(wordId, index + 1)) {
-        focusGridCell(setFocusedCell(state.hintCell));
+        focusGridCell(setFocusedCell(state.hintCell), { reveal: true });
       } else {
         dom.hintButton.focus();
       }
@@ -1177,7 +1221,7 @@
   dom.hintCloseButton.addEventListener("click", () => closeModal(dom.hintModal));
   dom.activeHintDirection.addEventListener("click", () => {
     clearSelection();
-    if (useHint(state.selectedHintWordId, 2)) focusGridCell(setFocusedCell(state.hintCell));
+    if (useHint(state.selectedHintWordId, 2)) focusGridCell(setFocusedCell(state.hintCell), { reveal: true });
   });
   dom.activeHintHide.addEventListener("click", () => {
     state.hintCell = null;
@@ -1430,7 +1474,7 @@
     sameCell,
     formatSecondsAsClock,
     playElapsedSeconds,
-    parseFormEntries,
+    parseResultForm,
     getDefinitionTextForWordId,
     openWordDefinition,
     renderWordDefinitionModal,
@@ -1582,7 +1626,7 @@
     openModal,
     closeModal,
     trapModalFocus,
-    parseFormEntries,
+    parseResultForm,
     buildFormSubmitUrl,
     saveTeacherPin: saveTeacherPinToStorage,
     refreshDefaultPinWarning,
@@ -1607,7 +1651,16 @@
     // Disabled tabs remain discoverable with arrow keys; activation must leave
     // focus in place instead of sending the user to the creation button.
     canOpenStudent: isCurrentActivityReady,
-    onSessionChange: saveStudentProgress,
+    onSessionChange() {
+      if (state.activeTab === "teacher" && state.deferredTeacherDraft) {
+        writeTeacherForm(state.deferredTeacherDraft);
+        state.deferredTeacherDraft = null;
+        updateTeacherReadyCard();
+        dom.draftStatus.hidden = false;
+        dom.draftStatus.textContent = TRANSLATIONS[state.lang].draft_restored;
+      }
+      saveStudentProgress();
+    },
   });
 
   async function generatePuzzle({ triggerButton = dom.generateButton } = {}) {
@@ -1637,8 +1690,10 @@
     }
 
     const formTemplate = dom.formTemplateInput.value.trim();
-    if (formTemplate && !parseFormEntries(formTemplate)) {
-      setStatus(t.form_url_invalid, "error");
+    const resultForm = formTemplate && parseFormEntries(formTemplate);
+    if (formTemplate && (!resultForm || resultForm.entries.length < 4)) {
+      const message = resultForm ? t.form_mapping_short.replace("{count}", resultForm.entries.length) : t.form_url_invalid;
+      setStatus(message, "error");
       const formConfigDetails = document.querySelector("#form-config-details");
       if (formConfigDetails) formConfigDetails.open = true;
       dom.formTemplateInput?.focus?.();
@@ -1677,6 +1732,7 @@
       state.formTemplate = formTemplate;
       state.generatedForm = form;
       state.keepDraftFromLink = false;
+      state.draftNeedsSave = true;
       // A new puzzle is a new party; the damping is only meant to stop confetti
       // spamming within one puzzle.
       state.celebrationsInSession = 0;
@@ -1878,7 +1934,7 @@
       const [rowDelta, colDelta] = focusMoves[event.key];
       const nextCell = moveFocusedCell(rowDelta, colDelta);
       render();
-      focusGridCell(nextCell);
+      focusGridCell(nextCell, { reveal: true });
       return;
     }
 
@@ -1950,7 +2006,7 @@
     if (document.visibilityState === "hidden") {
       saveWorkspace();
       saveStudentProgress();
-    } else if (state.timerIntervalId !== null) {
+    } else if (state.timerTimeoutId !== null) {
       // Reconcile immediately on return so a long background gap reflects real
       // elapsed time (and expires) without waiting for the next 1s tick.
       tickTimer();
@@ -2015,7 +2071,7 @@
       state.puzzle = buildPuzzleFromSnapshot(parsed.words, config, metadata);
       state.generatedForm = readTeacherForm();
       resetPuzzleProgress();
-      if (savedProgress && savedProgress.key === puzzleProgressKey(state.puzzle)) {
+      if (savedProgress && matchesSavedPuzzle(savedProgress.key, state.puzzle)) {
         applyResumeProgress(savedProgress);
         const resumedMsg = TRANSLATIONS[state.lang].msg_progress_resumed;
         if (dom.boardStatus) dom.boardStatus.textContent = resumedMsg;
@@ -2057,6 +2113,16 @@
   }
   // Until the teacher edits it, a shared activity must not overwrite her own draft.
   state.keepDraftFromLink = sharedParam !== null && !linkFailed;
+  if (state.keepDraftFromLink) {
+    // Revisiting the teacher's own link must keep the original form (including
+    // example values and word formatting) paired with this exact board.
+    const localActivity = loadActivity();
+    if (localActivity && matchesSavedPuzzle(localActivity.key, state.puzzle)) {
+      state.generatedForm = localActivity.form;
+      state.formTemplate = localActivity.form.formTemplate.trim();
+      writeTeacherForm(localActivity.form);
+    }
+  }
   if (!restoredPuzzle) {
     const queryLang = new URLSearchParams(window.location.search).get("lang");
     const pathLang = window.location.pathname.match(/\/(es|en)\.html$/)?.[1];
@@ -2081,6 +2147,10 @@
         dom.draftStatus.hidden = false;
         dom.draftStatus.textContent = TRANSLATIONS[state.lang].draft_restored;
       }
+    } else {
+      // A normal visit can reopen the last shared board for the pupil while
+      // the teacher has a different unfinished draft. Apply it after the PIN.
+      state.deferredTeacherDraft = draft;
     }
     if (TRANSLATIONS[requestedPageLang]) updateLanguage(requestedPageLang);
     render();

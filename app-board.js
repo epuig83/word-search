@@ -17,7 +17,7 @@
     sameCell,
     formatSecondsAsClock,
     playElapsedSeconds,
-    parseFormEntries,
+    parseResultForm,
     getDefinitionTextForWordId,
     openWordDefinition,
     renderWordDefinitionModal,
@@ -562,7 +562,7 @@
       // "View the puzzle" lifts the card so pupils can study the found words or the
       // revealed solution; "Restart game" stays beside the board.
       const showCompletionCard = (isComplete || isExpiredUnfinished) && !state.completionDismissed;
-      const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+      const formParsed = state.formTemplate ? parseResultForm(state.formTemplate) : null;
       // A pupil who runs out of time can still send a partial result (e.g. 2/3).
       const hasSendResults = Boolean(showCompletionCard && formParsed);
       if (dom.gridContainer) dom.gridContainer.classList.toggle("is-complete", isComplete);

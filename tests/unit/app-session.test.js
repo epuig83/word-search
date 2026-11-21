@@ -192,7 +192,7 @@ function createFixture() {
       calls.closeModal.push(args);
     },
     trapModalFocus() {},
-    parseFormEntries: value => (value ? { url: value } : null),
+    parseResultForm: value => (value ? { url: value } : null),
     buildFormSubmitUrl: (...args) => {
       calls.buildFormSubmitUrl.push(args);
       return "https://example.com/form-submit";

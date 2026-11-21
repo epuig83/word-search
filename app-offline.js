@@ -7,7 +7,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  function requestOfflineStatus(worker, { timeout = 3000, Channel = globalThis.MessageChannel } = {}) {
+  function requestOfflineStatus(worker, { repair = false, timeout = repair ? 15000 : 3000, Channel = globalThis.MessageChannel } = {}) {
     return new Promise(resolve => {
       const channel = new Channel();
       const finish = value => {
@@ -23,7 +23,7 @@
       };
       channel.port1.onmessageerror = () => finish(null);
       try {
-        worker.postMessage({ type: "OFFLINE_STATUS" }, [channel.port2]);
+        worker.postMessage({ type: "OFFLINE_STATUS", repair }, [channel.port2]);
       } catch {
         finish(null);
       }
@@ -94,12 +94,15 @@
       render();
     }
 
-    async function register() {
+    async function register({ repair = false } = {}) {
       if (!supported) return;
       try {
         watch(await serviceWorker.register("sw.js", { updateViaCache: "none" }));
       } catch {
         // A failed update must not hide a previous complete offline release.
+      }
+      if (repair && registration?.active?.state === "activated") {
+        await requestOfflineStatus(registration.active, { repair: true });
       }
       await check();
     }
@@ -107,7 +110,7 @@
     retry.addEventListener("click", () => {
       phase = "preparing";
       render();
-      void register();
+      void register({ repair: true });
     });
     if (supported) {
       window.addEventListener("online", () => { void register(); });

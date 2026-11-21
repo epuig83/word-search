@@ -14,7 +14,7 @@
     openModal,
     closeModal,
     trapModalFocus,
-    parseFormEntries,
+    parseResultForm,
     buildFormSubmitUrl,
     saveTeacherPin,
     refreshDefaultPinWarning,
@@ -92,8 +92,7 @@
         state.foundWordIds.size !== state.puzzle.words.length &&
         !state.timerExpired &&
         !state.timerPaused &&
-        state.playStartedAt === null &&
-        (state.puzzle.timerDuration <= 0 || state.timerSecondsLeft > 0)
+        state.playStartedAt === null
       ) {
         startTimer(state.timerSecondsLeft);
       }
@@ -353,7 +352,7 @@
 
       if (dom.sendResultsButton) {
         const submitResults = () => {
-          const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+          const formParsed = state.formTemplate ? parseResultForm(state.formTemplate) : null;
           if (!formParsed || !state.puzzle) return;
           if (typeof navigator !== "undefined" && navigator.onLine === false) {
             if (dom.boardStatus) dom.boardStatus.textContent = getTranslations().msg_send_offline;
@@ -378,7 +377,7 @@
         };
 
         dom.sendResultsButton.addEventListener("click", () => {
-          const formParsed = state.formTemplate ? parseFormEntries(state.formTemplate) : null;
+          const formParsed = state.formTemplate ? parseResultForm(state.formTemplate) : null;
           if (!formParsed || !state.puzzle) return;
           // Check the connection first: no point asking for a name we cannot send.
           if (typeof navigator !== "undefined" && navigator.onLine === false) {

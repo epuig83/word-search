@@ -6,17 +6,25 @@ const CACHE_PREFIX = `word-search-shell-${encodeURIComponent(scope.pathname)}-`;
 const CACHE_NAME = `${CACHE_PREFIX}${revision}`;
 const ASSETS = new Map(assets.map(asset => [new URL(asset.url, scope).href, asset]));
 
-// Read only: report the installed revision's own files, never another app's cache
-// or network availability. Legacy workers simply won't answer this protocol.
+async function missingAssets(cache) {
+  const keys = new Set((await cache.keys()).map(request => request.url));
+  return [...ASSETS].filter(([url]) => !keys.has(url)).map(([, asset]) => asset);
+}
+
+// Automatic checks are read-only. An explicit retry repairs this revision only.
 self.addEventListener("message", event => {
   if (event.data?.type !== "OFFLINE_STATUS" || !event.ports[0]) return;
   event.waitUntil((async () => {
     let complete = false;
     try {
+      if (event.data.repair === true) {
+        const cache = await caches.open(CACHE_NAME);
+        const missing = await missingAssets(cache);
+        await Promise.allSettled(missing.map(asset => cacheVerifiedAsset(cache, asset)));
+      }
       if (await caches.has(CACHE_NAME)) {
         const cache = await caches.open(CACHE_NAME);
-        const keys = new Set((await cache.keys()).map(request => request.url));
-        complete = [...ASSETS.keys()].every(url => keys.has(url));
+        complete = (await missingAssets(cache)).length === 0;
       }
     } catch { /* A denied or evicted cache is not confirmed ready. */ }
     event.ports[0].postMessage({ revision, complete });
@@ -34,16 +42,17 @@ async function fetchVerified(asset) {
   return response;
 }
 
+async function cacheVerifiedAsset(cache, asset) {
+  await cache.put(new URL(asset.url, scope), await fetchVerified(asset));
+}
+
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     // A new worker served beside a stale offline-manifest.js reuses the active
     // revision, so its cache may be the one the open tabs are using.
     const existed = await caches.has(CACHE_NAME);
     const cache = await caches.open(CACHE_NAME);
-    const downloads = await Promise.allSettled(assets.map(async asset => {
-      const response = await fetchVerified(asset);
-      await cache.put(new URL(asset.url, scope), response);
-    }));
+    const downloads = await Promise.allSettled(assets.map(asset => cacheVerifiedAsset(cache, asset)));
     const failed = downloads.find(result => result.status === "rejected");
     if (failed) {
       // Wait for all writes before removing the candidate, so a late download

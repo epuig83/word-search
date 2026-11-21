@@ -1748,6 +1748,7 @@ body {
 }
 
 .grid-cell {
+  scroll-margin: 5px;
   aspect-ratio: 1;
   width: 100%;
   display: flex;

@@ -192,6 +192,38 @@ test("offline readiness waits for complete installation and detects missing file
   });
   await expect(page.locator("#offline-status")).toContainText("No se ha podido confirmar");
   await expect(page.locator("#offline-retry")).toBeVisible();
+  await context.setOffline(false);
+  await page.locator("#offline-retry").click();
+  await expect(page.locator("#offline-status")).toHaveText("Lista para usar sin conexión");
+  await context.setOffline(true);
+  await page.goto(`${offlineServer.url}en.html`);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator("#offline-status").locator("..")).toHaveAttribute("data-state", "ready");
+  expect(await canReachNetwork(page)).toBe(false);
+});
+
+test("manual repair rejects a file from another revision and retries only the missing asset", async ({ page, offlineServer }) => {
+  offlineServer.publish("two");
+  await page.goto(`${offlineServer.url}es.html`);
+  await waitForOfflineControl(page);
+  await page.evaluate(async () => {
+    const [name] = await caches.keys();
+    await (await caches.open(name)).delete(new URL("app-storage.js", location.href));
+    dispatchEvent(new Event("pageshow"));
+  });
+  const retry = page.locator("#offline-retry");
+  await expect(retry).toBeVisible();
+  offlineServer.publish("two", "integrity");
+  const start = offlineServer.requests.length;
+  await retry.click();
+  await expect.poll(() => offlineServer.requests.slice(start)).toContain("app-storage.js");
+  await expect(retry).toBeVisible();
+  expect(await page.evaluate(async () => Boolean(await caches.match(new URL("app-storage.js", location.href))))).toBe(false);
+  offlineServer.publish("two");
+  await retry.click();
+  await expect(page.locator("#offline-status").locator("..")).toHaveAttribute("data-state", "ready");
+  const assets = offlineServer.releases.two.manifest.assets.map(asset => asset.url.slice(2));
+  expect(offlineServer.requests.slice(start).filter(name => assets.includes(name))).toEqual(["app-storage.js", "app-storage.js"]);
 });
 
 for (const reportedOnline of [true, false]) {

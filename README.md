@@ -36,7 +36,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 
 ## Classroom Flow
 
-- The creation form saves incomplete drafts automatically in this browser. Reloading restores the last activity with its exact board, timer, progress, and hint usage; student names are not saved.
+- The creation form saves edits automatically in this browser. If a pupil opens a shared board while the teacher has an unfinished draft, returning through the normal app address restores the draft when the teacher opens the panel. Reloading restores the last activity with its exact board, timer, progress, and hint usage; student names are not saved.
 - The browser keeps one current activity. If another tab changes the draft, activity, pupil progress or saved examples, an older tab pauses and offers **Load the saved work**. Its content stays in memory until that action replaces it; closing it cannot overwrite the newer work. The check also runs before writes and resets, including an import already being read or a pending example deletion when a tab closes.
 - Editing a generated activity shows a pending-changes message and disables opening, sharing, and printing until it is generated again. Reverting the edits re-enables the actions.
 - A saved game offers **Continue** or **New pupil: start fresh**. Starting fresh keeps the same puzzle and resets the score, timer, hints, and any result-submission name. Completed and expired games can also be reviewed or restarted.
@@ -59,12 +59,12 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - Tablets up to 1024px also place the words above the board, leaving room for larger cells. Colours live in a compact disclosure; contrast and full screen remain directly available.
 - Found-word tiles remain fully clickable for definitions. At the end, **Review words** walks through up to two available definitions without changing the result; **Repeat this puzzle** resets progress on the same board.
 - Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
-- If you configure Google Forms, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed. The result field reads `found/total · play time · clues used` (for example `8/8 · 04:12 · 2 hints`), and pupils are reminded to press Submit in the form that opens. Play time is also shown on untimed boards.
+- New Google Forms activities require separate questions for first name, surname, result and topic, in that order. The teacher keeps the prefilled examples locally. Shared links contain the form address and empty question fields. Older links with three questions can still send the score. With fewer than three, the pupil can play and the send action stays hidden. When a form is configured, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed. The result field reads `found/total · play time · clues used` (for example `8/8 · 04:12 · 2 hints`), and pupils are reminded to press Submit in the form that opens. Play time is also shown on untimed boards.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
 
 ## Offline Updates
 
-The teacher panel reports **Ready to use offline** only after the active service worker confirms that all files in its installed revision are still cached. This also works on the first visit, before the current page is controlled. Connection status alone does not establish readiness. Interrupted installation, missing cache entries, denied storage or an older worker without the status protocol show an unconfirmed state and a **Check again** action. Opening the app from disk shows **Local file**.
+The teacher panel reports **Ready to use offline** only after the active service worker confirms that all files in its installed revision are still cached. This also works on the first visit, before the current page is controlled. Connection status alone does not establish readiness. Interrupted installation, missing cache entries, denied storage or an older worker without the status protocol show an unconfirmed state and a **Check again** action. With a connection, this action downloads missing files and checks them against the installed version before reporting readiness. Opening the app from disk shows **Local file**.
 
 When an update is waiting, the panel explains how to activate it after class. An unsuccessful update does not remove the readiness of the previous complete version.
 

@@ -554,6 +554,34 @@ test("opening a shared link keeps the teacher's unfinished draft", async ({ page
   await expect.poll(async () => (await stored(page, "word-search-draft-v1"))?.title).toBe("Palabras repetidas 2");
 });
 
+test("returning to the teacher after a normal visit restores the draft alongside the shared game", async ({ page }) => {
+  await page.goto("/es.html");
+  await page.locator("#title-input").fill("Borrador del viernes");
+  await page.locator("#words-input").fill("bosque\nhoja\nh");
+  const draft = await stored(page, "word-search-draft-v1");
+  await page.goto(sharedPath());
+  await startStudentSession(page);
+  await solvePlacement(page, occurrence(1));
+  await page.goto("/es.html");
+  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+  await unlockTeacherView(page);
+  await expect(page.locator("#title-input")).toHaveValue(draft.title);
+  await expect(page.locator("#words-input")).toHaveValue(draft.words);
+  await expect(page.locator("#teacher-pending-changes")).toBeVisible();
+  expect(await stored(page, "word-search-draft-v1")).toEqual(draft);
+  await page.reload();
+  await expect(page.locator("#words-input")).toHaveValue(draft.words);
+});
+
+test("a legacy shared game without a score field can be solved without requesting a name", async ({ page }) => {
+  await page.goto(sharedPath({ formTemplate: "https://docs.google.com/forms/d/e/test/viewform?entry.1=a&entry.2=b" }));
+  await startStudentSession(page);
+  await solvePlacement(page, occurrence(1));
+  await solvePlacement(page, occurrence(2));
+  await expect(page.locator("#completion-message")).toBeVisible();
+  await expect(page.locator("#send-results-button")).toBeHidden();
+});
+
 test("a missing topic is explained next to the field", async ({ page }) => {
   await page.goto("/index.html");
   await page.locator("#words-input").fill("gat\ngos");
