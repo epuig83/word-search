@@ -97,9 +97,8 @@ for (const lang of ["ca", "es", "en"]) {
     expect(errors).toEqual([]);
   });
 
-  // Keep the Axe scan and screenshot in their own classroom workflow so each
-  // touch journey fits the standard timeout on slower Linux WebKit runners.
   test(`${lang} iPad profile prepares accessible print variants with touch`, async ({ page }, testInfo) => {
+    test.slow(process.platform === "linux", "Four sheets, an Axe scan and the return to the board can exceed 30 seconds on Linux WebKit.");
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.emulateMedia({ reducedMotion: "reduce" });

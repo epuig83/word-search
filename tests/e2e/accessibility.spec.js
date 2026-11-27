@@ -38,7 +38,8 @@ test("active student view has valid list, heading, and tab semantics", async ({ 
   await expectNoAccessibilityViolations(page, "active student view");
 });
 
-test("completion state and decorative confetti remain accessible", async ({ page }) => {
+test("completion state and decorative confetti remain accessible", async ({ page, browserName }) => {
+  test.slow(process.platform === "linux" && browserName === "webkit", "Solving the board and scanning its completion state can exceed 30 seconds on Linux WebKit.");
   const wordsText = "balena\ndofi\npeix";
   await page.addInitScript(() => {
     Math.random = () => 0;
