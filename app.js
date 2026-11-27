@@ -366,8 +366,14 @@
   function focusGridCell(cell, { reveal = false } = {}) {
     if (!cell) return;
     const btn = dom.puzzleGrid.querySelector(`[data-row="${cell.row}"][data-col="${cell.col}"]`);
-    btn?.focus({ preventScroll: true });
-    if (reveal) btn?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+    if (!btn) return;
+    if (btn.tabIndex !== 0) {
+      const previous = dom.puzzleGrid.querySelector('[tabindex="0"]');
+      if (previous) previous.tabIndex = -1;
+      btn.tabIndex = 0;
+    }
+    btn.focus({ preventScroll: true });
+    if (reveal) btn.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
   }
 
   function clearSelection() {
@@ -581,6 +587,8 @@
       hintsRemaining: state.hintsRemaining,
       started: state.studentSessionStarted || state.resumeAvailable,
       hintStages: state.hintStages,
+      selectedHintWordId: state.selectedHintWordId,
+      visibleHintLevel: state.hintDirectionCell ? 2 : state.hintCell ? 1 : 0,
     }, workspaceStorage);
     // Private mode and a full quota both fail here, and this runs every 5 timer
     // seconds — so warn once instead of silently losing a 20-minute session on reload.
@@ -622,6 +630,14 @@
       const stage = record.hintStages?.[word.id];
       if (stage === 1 || stage === 2) state.hintStages[word.id] = stage;
     });
+    const selected = state.puzzle.placements.find(item => item.wordId === record.selectedHintWordId);
+    if (selected && state.puzzle.hintsAllowed !== 0 && state.hintStages[selected.wordId] && !state.foundWordIds.has(selected.wordId)) {
+      state.selectedHintWordId = selected.wordId;
+      if (record.visibleHintLevel === 1 || record.visibleHintLevel === 2) {
+        state.hintCell = selected.cells[0];
+        if (record.visibleHintLevel === 2 && state.hintStages[selected.wordId] === 2) state.hintDirectionCell = selected.cells[1];
+      }
+    }
     state.resumeAvailable = Boolean(record.started || state.foundWordIds.size || state.timerExpired ||
       state.timerSecondsLeft !== state.puzzle.timerDuration || state.hintsRemaining !== state.puzzle.hintsAllowed ||
       Object.keys(state.hintStages).length);
@@ -1200,7 +1216,9 @@
       option.lang = getPuzzleSourceLang();
       return option;
     }));
-    if (unsolved.some(word => word.id === state.selectedHintWordId)) dom.hintWordSelect.value = state.selectedHintWordId;
+    const selected = unsolved.find(word => word.id === state.selectedHintWordId)
+      || (state.hintsRemaining === 0 && unsolved.find(word => state.hintStages[word.id]));
+    if (selected) dom.hintWordSelect.value = selected.id;
     updateHintPicker();
     openModal(dom.hintModal, dom.hintWordSelect);
   }
@@ -1227,6 +1245,7 @@
     state.hintCell = null;
     state.hintDirectionCell = null;
     state.boardFlash = null;
+    saveStudentProgress();
     render();
     dom.hintButton.focus();
   });
@@ -1457,6 +1476,7 @@
     setStatus,
     debounce,
     confirmDialog,
+    syncFormTemplateFeedback,
     onFormChange: onTeacherFormChange,
   });
 
@@ -1829,20 +1849,33 @@
   // cancels the trace: only the pointer that started it may move or finish it. A touch
   // is not "primary" while a thumb holds the tablet, so that flag is not required; a
   // new pointer only takes over a press that has not started moving (a resting wrist).
+  let handledGesturePointerId = null;
   dom.puzzleGrid.addEventListener("pointerdown", e => {
     const btn = e.target.closest(".grid-cell");
     if (!btn || e.button !== 0 || !canInteractWithPuzzle()) return;
     if (state.dragSelection?.moved && e.pointerId !== state.dragSelection.pointerId) return;
+    handledGesturePointerId = null;
     state.lastBoardInputMode = e.pointerType === "touch" ? "touch" : "pointer";
     const cell = { row: +btn.dataset.row, col: +btn.dataset.col };
     setFocusedCell(cell);
     state.dragSelection = { start: cell, end: cell, moved: false, pointerId: e.pointerId };
   });
 
-  // A finished word can render the end card under the finger, and the tap's own click
-  // then lands on "Play again". Selection runs on pointer events, so board taps need no click.
+  // A finished word can render the end card under the finger. Suppress the
+  // compatibility click so that it cannot press "Play again" on that card.
   dom.puzzleGrid.addEventListener("touchend", e => {
     if (e.cancelable) e.preventDefault();
+  });
+
+  // A plain click selects a cell, including activation by assistive technology.
+  // Touch taps and drags already selected on release.
+  dom.puzzleGrid.addEventListener("click", event => {
+    if (event.detail > 0 && handledGesturePointerId !== null && event.pointerId === handledGesturePointerId) return;
+    if (!canInteractWithPuzzle()) return;
+    const cell = getGridCellFromElement(event.target);
+    if (!cell) return;
+    selectCell(cell);
+    render();
   });
 
   let gridHighlightRafId = null;
@@ -1883,6 +1916,8 @@
       return;
     }
     const { start, end, moved } = state.dragSelection; state.dragSelection = null;
+    if (!moved && e.pointerType !== "touch") return;
+    handledGesturePointerId = e.pointerId;
     completeSelection(start, end, moved);
     render();
   });
@@ -1956,6 +1991,13 @@
     }
   });
 
+  document.querySelector(".skip-link").addEventListener("click", event => {
+    // The URL fragment can hold the pupil's entire board.
+    event.preventDefault();
+    const main = document.querySelector("#main-content");
+    main.focus({ preventScroll: true });
+    main.scrollIntoView({ block: "start", behavior: "instant" });
+  });
   dom.langBtns.forEach(btn => btn.addEventListener("click", () => updateLanguage(btn.dataset.lang)));
   dom.themeBtns.forEach(btn => btn.addEventListener("click", () => applyTheme(btn.dataset.theme)));
   applyTheme(state.theme);

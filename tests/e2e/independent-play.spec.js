@@ -221,8 +221,8 @@ test("a 16 by 16 tablet board has roomy cells and keeps the word list above it",
   await page.setViewportSize({ width: 768, height: 1024 });
   await generatePuzzle(page, { size: "16", timer: "0" });
   await startStudentSession(page);
+  await expect.poll(async () => (await measureGridVisibility(page)).minCellWidth).toBeGreaterThanOrEqual(40);
   const metrics = await measureGridVisibility(page);
-  expect(metrics.minCellWidth).toBeGreaterThanOrEqual(40);
   expect(metrics.clippedCells).toBe(0);
   expect(metrics.isHorizontallyScrollable).toBe(false);
   const words = await page.locator("#word-list").boundingBox();

@@ -1,7 +1,7 @@
 {
   "name": "rachel-exercises",
   "private": true,
-  "packageManager": "pnpm@10.29.2",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
     "build:locales": "node scripts/generate-localized-pages.js",
     "check:locales": "node scripts/generate-localized-pages.js --check",
@@ -15,19 +15,13 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
+    "@axe-core/playwright": "^4.14.1",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.63.0",
-    "eslint": "^10.11.0",
-    "globals": "^17.13.0"
+    "@playwright/test": "^1.65.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4"
-  },
-  "pnpm": {
-    "overrides": {
-      "eslint@10.11.0>minimatch": "11.0.1",
-      "@eslint/config-array@0.23.5>minimatch": "11.0.1"
-    }
   }
 }

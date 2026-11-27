@@ -30,8 +30,8 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - `Save` does not write back to `data.js`.
 - Custom examples are stored in the laptop browser with `localStorage`.
 - That means they stay available after refreshing the page on the same computer.
-- To move them to another laptop, use `Export JSON` and `Import JSON`.
-- Titles retain numbers, punctuation, accents and word boundaries: `Tema 1` and `Tema 2` are separate examples. Equivalent titles ignore case and extra spaces; replacing one keeps its existing identifier.
+- To move them to another laptop, use `Export JSON` and `Import JSON`. The backup includes the prefilled Google Forms examples saved by the teacher.
+- Titles retain numbers, punctuation, accents and word boundaries: `Tema 1` and `Tema 2` are separate examples. Equivalent titles ignore case and extra spaces; replacing one keeps its existing identifier. If a new example uses a deleted title, Undo lets the teacher choose which version to keep.
 - Teacher definitions are retained when saving, reopening, exporting and importing examples, including definitions containing commas. Existing examples with plain words remain compatible.
 
 ## Classroom Flow
@@ -41,7 +41,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - Editing a generated activity shows a pending-changes message and disables opening, sharing, and printing until it is generated again. Reverting the edits re-enables the actions.
 - A saved game offers **Continue** or **New pupil: start fresh**. Starting fresh keeps the same puzzle and resets the score, timer, hints, and any result-submission name. Completed and expired games can also be reviewed or restarted.
 - Hints let students choose an unsolved word, reveal its first letter, then request its direction. Each new clue consumes one hint when hints are limited; repeating a revealed clue is free. Opening or dismissing the picker does not spend a hint.
-- The clue stays beside the board until its word is found, another clue is chosen, or the pupil hides it. The direction can be requested there immediately, without reopening the picker.
+- Continuing a saved game restores the visible clue. It stays beside the board until its word is found, another clue is chosen, or the pupil hides it. The direction can be requested there immediately, without reopening the picker.
 - Definitions and the hint picker suspend both the countdown and play-time stopwatch. Closing them resumes an active game, preserves a manual pause, and never restarts a finished game.
 - The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
 - Its read-only preview shows the exact generated board and word list, with an optional solution. Reviewing it does not start or reset a pupil's game; pending edits hide the old preview until regeneration.

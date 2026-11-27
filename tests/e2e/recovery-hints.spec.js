@@ -159,6 +159,7 @@ test("hints guide a chosen word in two stages and do not charge for repeating cl
   await page.locator("#hint-start-button").click();
   await expect(page.locator(".grid-cell.is-anchor")).toHaveCount(0);
   await expect(page.locator(".grid-cell.is-hint")).toHaveCount(1);
+  await expect(page.locator('.grid-cell[tabindex="0"]')).toBeFocused();
   await expect(page.locator("#board-status")).toContainText(target.display);
   await expect(page.locator("#hint-button")).toContainText("2");
   await page.clock.runFor(4100);
@@ -170,8 +171,15 @@ test("hints guide a chosen word in two stages and do not charge for repeating cl
   await expect(page.locator("#hint-button")).toContainText("1");
   await page.reload();
   await startStudentSession(page);
+  await expect(page.locator("#active-hint-text")).toContainText(target.display);
+  await expect(page.locator(".grid-cell.is-hint")).toHaveCount(2);
+  await page.locator("#active-hint-hide").click();
+  await page.reload();
+  await startStudentSession(page);
+  await expect(page.locator("#active-hint")).toBeHidden();
+  await expect(page.locator(".grid-cell.is-hint")).toHaveCount(0);
   await page.locator("#hint-button").click();
-  await page.locator("#hint-word-select").selectOption(target.wordId);
+  await expect(page.locator("#hint-word-select")).toHaveValue(target.wordId);
   await page.locator("#hint-direction-button").click();
   await expect(page.locator("#hint-button")).toContainText("1");
   await expect(page.locator(".grid-cell.is-hint")).toHaveCount(2);

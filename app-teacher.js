@@ -32,6 +32,7 @@
     setStatus,
     debounce,
     confirmDialog,
+    syncFormTemplateFeedback,
     onFormChange,
   }) {
     function resolveSelectedSample() {
@@ -215,7 +216,11 @@
     }
 
     function isFormDirty() {
-      return Boolean(dom.titleInput.value.trim() || dom.wordsInput.value.trim());
+      if (dom.titleInput.value.trim() || dom.wordsInput.value.trim() || dom.formTemplateInput.value.trim()) return true;
+      return [dom.difficultyInput, dom.sizeInput, dom.timerInput, dom.hintsInput].some(select => {
+        const initial = select.querySelector("option[selected]") || select.options[0];
+        return select.value !== initial.value;
+      });
     }
 
     // Sample actions sit far above #status-message, so they report next to their own
@@ -286,12 +291,16 @@
     let undoTimeoutId = null;
     let undoSnapshot = null;
 
-    function commitPendingUndo() {
-      if (!undoSnapshot) return;
+    function clearPendingUndo() {
       clearTimeout(undoTimeoutId);
       undoTimeoutId = null;
       undoSnapshot = null;
       if (dom.sampleUndoToast) dom.sampleUndoToast.hidden = true;
+    }
+
+    function commitPendingUndo() {
+      if (!undoSnapshot) return;
+      clearPendingUndo();
       persistCustomSamples();
     }
 
@@ -309,7 +318,7 @@
       state.customSamples[lang] = current.filter((_, i) => i !== index);
       renderSampleOptions();
 
-      undoSnapshot = { lang, sample: removed, index };
+      undoSnapshot = { lang, sample: removed };
       if (dom.sampleUndoToast) {
         dom.sampleUndoToast.hidden = false;
         const container = dom.sampleUndoToast.closest("details");
@@ -318,21 +327,27 @@
       undoTimeoutId = setTimeout(() => commitPendingUndo(), 5000);
     }
 
-    function undoLastDelete() {
+    async function undoLastDelete() {
       if (!undoSnapshot) return;
-      const { lang, sample, index } = undoSnapshot;
-      const collection = state.customSamples[lang] || [];
-      const restored = [...collection];
-      const insertAt = Math.min(index, restored.length);
-      restored.splice(insertAt, 0, sample);
+      const { lang, sample } = undoSnapshot;
+      clearPendingUndo();
+      const titleKey = normalizeSampleTitle(sample.title);
+      const sameTitle = item => normalizeSampleTitle(item.title) === titleKey;
+      if (state.customSamples[lang].some(sameTitle)) {
+        dom.sampleSelect.focus();
+        const replace = await confirmDialog({ message: getTranslations().msg_confirm_undo_replace });
+        if (!replace) return;
+      }
+      const current = state.customSamples[lang];
+      // An import may have reused the deleted ID for a different example.
+      const reusedId = current.some(item => item.id === sample.id && !sameTitle(item));
+      const restored = mergeSamples(current, [reusedId ? { ...sample, id: generateSampleId() } : sample], lang);
       state.customSamples[lang] = restored;
-      undoSnapshot = null;
-      clearTimeout(undoTimeoutId);
-      undoTimeoutId = null;
-      if (dom.sampleUndoToast) dom.sampleUndoToast.hidden = true;
-      // A save or import during the undo window already stored the deletion.
-      persistCustomSamples();
-      renderSampleOptions(`custom:${sample.id}`);
+      if (!persistCustomSamples()) {
+        state.customSamples[lang] = current;
+        return;
+      }
+      renderSampleOptions(lang === state.lang ? `custom:${restored.find(sameTitle).id}` : "");
       setSampleStatus(getTranslations().msg_sample_restored, "success");
     }
 
@@ -355,6 +370,7 @@
       if (dom.hintsInput && sample.hintsAllowed !== undefined) dom.hintsInput.value = String(sample.hintsAllowed);
       if (dom.formTemplateInput) {
         dom.formTemplateInput.value = sample.formTemplate || "";
+        syncFormTemplateFeedback();
       }
       syncWordsUi();
       if (typeof dom.form.requestSubmit === "function") {

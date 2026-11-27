@@ -21,6 +21,64 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
+test("skip to content keeps the exact shared board address", async ({ page, browser }) => {
+  await page.goto(sharedPath().replace("?p=", "#p="));
+  const address = page.url();
+  await page.locator(".skip-link").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main-content")).toBeFocused();
+  await expect(page).toHaveURL(address);
+  const pupil = await browser.newPage();
+  try {
+    await pupil.goto(page.url());
+    await expect(pupil.locator("#student-start-overlay")).toBeVisible();
+    await expect(pupil.locator("#board-title")).toHaveText("Palabras repetidas");
+  } finally { await pupil.close(); }
+});
+
+test("a click without pointer events can mark both ends of a word", async ({ page }) => {
+  await page.goto(sharedPath());
+  await startStudentSession(page);
+  await page.locator('[data-row="0"][data-col="0"]').evaluate(cell => cell.click());
+  await expect(page.locator(".grid-cell.is-anchor")).toHaveCount(1);
+  await page.locator('[data-row="0"][data-col="2"]').dispatchEvent("click", { detail: 1 });
+  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+  await solvePlacement(page, occurrence(2));
+  await expect(page.locator("#progress-text")).toHaveText("2 / 2");
+});
+
+for (const field of ["results form", "settings"]) {
+  test(`loading an example protects a draft containing only ${field}`, async ({ page }) => {
+    await page.goto("/es.html");
+    const isResultsForm = field === "results form";
+    const input = page.locator(isResultsForm ? "#form-template-input" : "#size-input");
+    const value = isResultsForm ? "https://docs.google.com/forms/d/e/classroom/viewform?entry.1=demo" : "12";
+    if (isResultsForm) {
+      await page.locator("#form-config-details summary").click();
+      await input.fill(value);
+    } else {
+      await page.locator('[data-preset="mitja"]').click();
+    }
+    const draftField = isResultsForm ? "formTemplate" : "size";
+    await expect.poll(async () => (await stored(page, "word-search-draft-v1"))?.[draftField]).toBe(value);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(input).toHaveValue(value);
+    await page.locator("#sample-select").selectOption("builtin:0");
+    await page.locator("#load-sample-button").click();
+    await page.locator("#confirm-modal-cancel").click();
+    await expect(input).toHaveValue(value);
+    await expect(page.locator("#title-input")).toBeEmpty();
+    await page.locator("#load-sample-button").click();
+    await page.locator("#confirm-modal-confirm").click();
+    await expect(page.locator("#teacher-ready-card")).toBeVisible();
+    if (isResultsForm) {
+      await expect(input).toHaveValue("");
+      await expect(input).toHaveAttribute("aria-invalid", "false");
+      await expect(page.locator("#form-url-mapping")).toBeHidden();
+    }
+  });
+}
+
 test("numbered examples survive import, reload and manual saving", async ({ page }) => {
   await page.goto("/es.html");
   const samples = { es: [1, 2].map(n => ({ id: `topic-${n}`, title: `Tema ${n}`, words: "sol\nluna\nmar", size: "8" })) };
@@ -649,6 +707,31 @@ test("deleting an example survives other saves, undo and a quick reload", async 
   await page.reload();
   await expect(options).toHaveText(["Tema 1", "Tema 3"]);
 });
+
+for (const restore of [false, true]) {
+  test(`undo with a reused example title can keep the ${restore ? "original" : "new"} version`, async ({ page }) => {
+    await installPausedClock(page);
+    await page.goto("/es.html");
+    const file = page.locator("#import-samples-input");
+    const original = { id: "original", title: "Tema", words: "sol\nluna\nmar" };
+    const newer = { id: "replacement", title: "TEMA", words: "pez\nrio\nsal" };
+    await file.setInputFiles(examplesFile([original]));
+    await page.locator("#sample-select").selectOption("custom:original");
+    await page.locator("#delete-sample-button").click();
+    await file.setInputFiles(examplesFile([newer]));
+    await expect(page.locator('#sample-select option[value="custom:replacement"]')).toHaveCount(1);
+    await page.locator("#sample-undo-button").click();
+    await page.clock.runFor(6000);
+    await page.locator(restore ? "#confirm-modal-confirm" : "#confirm-modal-cancel").click();
+    const saved = page.locator('#sample-select option[value^="custom:"]');
+    await expect(saved).toHaveText([restore ? original.title : newer.title]);
+    await page.reload();
+    await expect(saved).toHaveText([restore ? original.title : newer.title]);
+    await page.locator("#sample-select").selectOption("custom:replacement");
+    await page.locator("#load-sample-button").click();
+    await expect(page.locator("#words-input")).toHaveValue(restore ? original.words : newer.words);
+  });
+}
 
 test("counts of one use the singular", async ({ page }) => {
   await page.goto("/index.html");
