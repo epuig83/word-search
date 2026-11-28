@@ -12,8 +12,16 @@ test("normalizeWord spells out ligatures instead of dropping them", () => {
   assert.equal(core.normalizeWord("Æsir"), "AESIR");
 });
 
-test("normalizeWord removes accents and keeps Ñ", () => {
-  assert.equal(core.normalizeWord("cañón-áéíóú ç"), "CAÑONAEIOUC");
+test("normalizeWord removes vowel accents and keeps Ñ and Ç", () => {
+  assert.equal(core.normalizeWord("cañón-áéíóú ç"), "CAÑONAEIOUÇ");
+  assert.equal(core.normalizeWord("brac\u0327"), "BRAÇ");
+});
+
+test("cedillas distinguish words on new boards and keep their old IDs on earlier boards", () => {
+  const text = "plaça\nplaca\nplac\u0327a\nbraç";
+  const current = core.decodePuzzleConfig(core.encodePuzzleConfig({ words: text }));
+  assert.deepEqual(core.parseWords(text, current.version).words.map(word => word.id), ["PLAÇA", "PLACA", "BRAÇ"]);
+  assert.deepEqual(core.parseWords(text, 2).words.map(word => word.id), ["PLACA", "BRAC"]);
 });
 
 test("parseWords deduplicates normalized words and ignores short entries", () => {
@@ -124,10 +132,21 @@ test("encodePuzzleConfig and decodePuzzleConfig preserve shared puzzle data", ()
     lang: "ca",
     timer: 300,
     hints: 3,
+    definitionMode: false,
     formTemplate: "https://example.com/form",
     gridRows: ["ABC", "DEF", "GHI"],
     placementPaths: ["0.0,0.1,0.2"],
   });
+});
+
+test("definition mode gets its own progress key and ordinary boards keep their original keys", () => {
+  const legacy = Buffer.from(JSON.stringify({ v: 3, w: "sol: Luz", f: "" })).toString("base64");
+  const words = { words: "sol: Luz" };
+  assert.equal(core.encodePuzzleConfig({ ...words, definitionMode: false }), legacy);
+  assert.equal(core.decodePuzzleConfig(legacy).definitionMode, false);
+  const clues = core.encodePuzzleConfig({ ...words, definitionMode: true });
+  assert.notEqual(clues, legacy);
+  assert.equal(core.decodePuzzleConfig(clues).definitionMode, true);
 });
 
 test("decodePuzzleConfig returns null for invalid payloads", () => {

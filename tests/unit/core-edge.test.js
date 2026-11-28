@@ -153,8 +153,8 @@ test("parseGridRows rejects too-large grids", () => {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-test("SHARED_PUZZLE_VERSION is 2", () => {
-  assert.equal(core.SHARED_PUZZLE_VERSION, 2);
+test("SHARED_PUZZLE_VERSION is 3", () => {
+  assert.equal(core.SHARED_PUZZLE_VERSION, 3);
 });
 
 test("SAMPLE_LANGS contains expected languages", () => {

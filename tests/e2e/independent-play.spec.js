@@ -50,6 +50,7 @@ test("closing a definition keeps a manual pause and never restarts an expired ga
   await page.clock.runFor(5000);
   await page.locator("#pause-button").click();
   await page.locator("#word-list button").first().click();
+  await expect(page.locator("#word-definition-hint")).toBeHidden();
   await page.clock.runFor(20000);
   await page.locator("#word-definition-close").click();
   await page.clock.runFor(20000);
@@ -59,6 +60,7 @@ test("closing a definition keeps a manual pause and never restarts an expired ga
   await page.clock.runFor(295000);
   await page.locator("#view-board-button").click();
   await page.locator("#word-list button").first().click();
+  await expect(page.locator("#word-definition-hint")).toBeHidden();
   await page.locator("#word-definition-close").click();
   await page.clock.runFor(5000);
   await expect(page.locator("#grid-container")).toHaveClass(/is-expired/);
@@ -149,6 +151,54 @@ test("hints stay visible, direction is immediate, repeats are free and hiding is
   await solvePlacement(page, SOL);
   await expect(page.locator("#active-hint")).toBeHidden();
   await expect(page.locator(".grid-cell.is-hint")).toHaveCount(0);
+});
+
+test("the definition hint marks the chosen word, keeps the other words hidden and remembers the paid step", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installPausedClock(page);
+  await page.goto(activityPath({ version: 3, definitionMode: true, hints: 1, timer: 300 }));
+  await startStudentSession(page);
+  const moon = page.getByRole("button", { name: "Satélite de la Tierra.", exact: true });
+  const request = page.getByRole("button", { name: "Pista para esta palabra" });
+  const firstLetter = page.locator('.grid-cell[data-row="1"][data-col="0"]');
+  await page.clock.runFor(1000);
+  await moon.click();
+  await expect(request).toHaveAccessibleDescription("Marcar la primera letra cuesta una pista.");
+  await page.clock.runFor(15000);
+  await request.focus();
+  await page.keyboard.press("Enter");
+  await expect(firstLetter).toBeFocused();
+  await expect(firstLetter).toBeInViewport();
+  await expect(firstLetter).toHaveClass(/is-hint/);
+  await expect(page.locator("#active-hint-text")).toContainText("Satélite de la Tierra.");
+  await expect(page.locator("#active-hint-text")).not.toContainText(/luna/i);
+  await expect(page.locator("#timer-display")).toHaveText("04:59");
+  await expect(page.locator("#hint-button")).toHaveText("Pista (0)");
+  await expect(page.locator("#active-hint-direction")).toBeDisabled();
+  await page.clock.runFor(1000);
+  await expect(page.locator("#timer-display")).toHaveText("04:58");
+
+  await page.reload();
+  await startStudentSession(page);
+  await page.getByRole("button", { name: "Estrella que nos da luz.", exact: true }).click();
+  await expect(request).toBeDisabled();
+  await expect(request).toHaveAccessibleDescription("Ya has usado todas las pistas.");
+  await page.keyboard.press("Escape");
+  await moon.click();
+  await expect(request).toHaveAccessibleDescription("Volver a ver esta pista es gratis.");
+  await request.click();
+  await expect(firstLetter).toBeFocused();
+  await expect(page.locator("#hint-button")).toHaveText("Pista (0)");
+  await solvePlacement(page, LUNA);
+  await page.locator("#word-list .is-found button").click();
+  await expect(page.locator("#word-definition-hint")).toBeHidden();
+  await page.keyboard.press("Escape");
+  await solvePlacement(page, SOL);
+  await page.locator("#review-words-button").click();
+  await expect(page.locator("#word-definition-title")).toHaveText("luna");
+  await expect(page.locator("#word-definition-hint")).toBeHidden();
+  await page.locator("#word-review-next").click();
+  await expect(page.locator("#word-definition-title")).toHaveText("sol");
 });
 
 for (const lang of ["ca", "es", "en"]) {

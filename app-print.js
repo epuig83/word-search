@@ -43,6 +43,7 @@
             sourceLang: puzzle.sourceLang,
             timerDuration: puzzle.timerDuration,
             hintsAllowed: puzzle.hintsAllowed,
+            definitionMode: puzzle.definitionMode,
           }, { cancelled, yieldTask: yieldFrame });
         } catch (error) {
           if (error.message === "CANCELLED") throw error;
@@ -121,6 +122,7 @@
       sheet.dataset.model = String.fromCharCode(65 + index);
       sheet.dataset.solution = String(solution);
       sheet.classList.toggle("is-dense", puzzle.words.length > 24 || puzzle.actualSize > 16);
+      if (single && puzzle.definitionMode) sheet.classList.add("definition-handout");
       const sheetLabel = single
         ? (solution ? t.print_solution_suffix : "")
         : (solution ? `${label} · ${t.print_solution_suffix}` : label);
@@ -131,7 +133,7 @@
       if (!solution) {
         const meta = element("div", "variant-meta");
         meta.append(element("span", "", `${t.print_name_label}:`), element("span", "", `${t.print_date_label}:`));
-        sheet.append(meta, element("p", "variant-instructions", t.print_instructions));
+        sheet.append(meta, element("p", "variant-instructions", puzzle.definitionMode ? t.print_definitions : t.print_instructions));
       }
       const answers = new Set(solution ? puzzle.placements.flatMap(placement => placement.cells.map(cell => `${cell.row}.${cell.col}`)) : []);
       const grid = element("div", "variant-grid");
@@ -148,9 +150,10 @@
       if (solution) grid.append(createAnswerMarks(puzzle));
       const words = element("ul", "variant-words");
       words.lang = puzzle.sourceLang || document.documentElement.lang;
-      puzzle.words.forEach(word => words.append(element("li", "", word.display)));
+      words.classList.toggle("is-definitions", Boolean(puzzle.definitionMode));
+      puzzle.words.forEach(word => words.append(element("li", "", core.wordListText(word, puzzle.definitionMode, solution))));
       sheet.append(grid, words);
-      if (!solution) sheet.append(element("p", "variant-learning", t.learning_prompt));
+      if (!solution && !puzzle.definitionMode) sheet.append(element("p", "variant-learning", t.learning_prompt));
       return sheet;
     }
 
@@ -175,18 +178,22 @@
       return sheetsFit();
     }
 
-    // Returns false when the sheet does not fit one A4 page, so the caller can fall
-    // back to printing the on-screen board.
-    function printSheet({ solution = false } = {}) {
-      const puzzle = getPuzzle();
-      if (!puzzle) return false;
+    function stageSingleSheet(puzzle, solution) {
       clearPrint();
       root.append(createSheet(puzzle, 0, solution, { single: true }));
-      if (!sheetsFit()) {
+      // Long definitions can flow onto another page. Always print the clean
+      // worksheet even if the pupil has already uncovered some of the answers.
+      if (!puzzle.definitionMode && !sheetsFit()) {
         clearPrint();
         return false;
       }
       document.body.dataset.printVariants = "true";
+      return true;
+    }
+
+    function printSheet({ solution = false } = {}) {
+      const puzzle = getPuzzle();
+      if (!puzzle || !stageSingleSheet(puzzle, solution)) return false;
       // Synchronous with the user's tap for Safari's print dialog.
       try { window.print(); } catch { clearPrint(); }
       return true;
@@ -294,6 +301,12 @@
       try { window.print(); } catch {
         clearPrint();
         status.textContent = getTranslations().variants_print_error;
+      }
+    });
+    window.addEventListener("beforeprint", () => {
+      const puzzle = getPuzzle();
+      if (puzzle?.definitionMode && !document.body.hasAttribute("data-print-variants")) {
+        stageSingleSheet(puzzle, document.body.dataset.mode === "teacher");
       }
     });
     window.addEventListener("afterprint", clearPrint);

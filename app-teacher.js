@@ -18,6 +18,7 @@
     serializeWords,
     splitWordEntries,
     getDefinitionOverflows,
+    readActivityVocabulary,
     maxDefinitionLength,
     normalizeWord,
     normalizeSampleTitle,
@@ -59,10 +60,9 @@
         return null;
       }
 
-      if (!validateDefinitions()) return null;
-
-      const parsed = parseWords(dom.wordsInput.value);
-      if (parsed.words.length < 3) {
+      const { words } = readActivityVocabulary();
+      if (!validateDefinitions(words)) return null;
+      if (words.length < 3) {
         setSampleStatus(getTranslations().msg_sample_requires_words, "error");
         return null;
       }
@@ -70,11 +70,12 @@
       return {
         id: generateSampleId(),
         title,
-        words: serializeWords(parsed.words),
+        words: serializeWords(words),
         difficulty: dom.difficultyInput.value,
         size: dom.sizeInput.value,
         timerDuration: Number(dom.timerInput?.value) || 0,
         hintsAllowed: Number(dom.hintsInput?.value) || 0,
+        definitionMode: dom.definitionMode.checked,
         formTemplate: dom.formTemplateInput?.value.trim() || "",
       };
     }
@@ -138,7 +139,7 @@
     function updateWordsHelper() {
       if (!dom.wordsCount || !dom.wordsFeedback) return;
       const t = getTranslations();
-      const { words } = parseWords(dom.wordsInput.value);
+      const { words } = readActivityVocabulary();
       const count = words.length;
       const countTone = count >= 3 ? "ready" : count > 0 ? "sparse" : "";
       const feedbackKey = count >= 3 ? "words_summary_ready" : count > 0 ? "words_summary_sparse" : "words_summary_empty";
@@ -170,9 +171,10 @@
       const tooLong = sizeLimit ? words.find(word => word.cleaned.length > sizeLimit) : null;
 
       const messages = [];
-      const oversizedDefinitions = getDefinitionOverflows(dom.wordsInput.value);
-      dom.wordsInput.setAttribute("aria-invalid", String(oversizedDefinitions.length > 0));
-      if (oversizedDefinitions.length) messages.push(definitionWarning(oversizedDefinitions));
+      dom.definitionModeHelp.hidden = !dom.definitionMode.checked;
+      const issue = definitionIssue(words);
+      dom.wordsInput.setAttribute("aria-invalid", String(Boolean(issue)));
+      if (issue) messages.push(issue);
       if (tooLong) {
         const tooLongMsg = fixedSize ? t.msg_puzzle_word_too_long : t.msg_word_over_max;
         messages.push(tooLongMsg.replace("{word}", tooLong.display).replace("{max}", sizeLimit));
@@ -200,11 +202,20 @@
         .replace("{definitions}", entries.map(entry => `${entry.word} (${entry.length}/${maxDefinitionLength})`).join(", "));
     }
 
-    function validateDefinitions() {
+    function definitionIssue(words) {
       const oversized = getDefinitionOverflows(dom.wordsInput.value);
-      if (!oversized.length) return true;
+      if (oversized.length) return definitionWarning(oversized);
+      if (!dom.definitionMode.checked) return "";
+      const missing = words.filter(word => !word.definition);
+      if (!missing.length) return "";
+      return getTranslations().definitions_missing.replace("{words}", () => missing.map(word => word.display).join(", "));
+    }
+
+    function validateDefinitions(words) {
+      const issue = definitionIssue(words);
+      if (!issue) return true;
       updateWordsHelper();
-      setStatus(definitionWarning(oversized), "error");
+      setStatus(issue, "error");
       dom.wordsInput.focus();
       return false;
     }
@@ -216,7 +227,7 @@
     }
 
     function isFormDirty() {
-      if (dom.titleInput.value.trim() || dom.wordsInput.value.trim() || dom.formTemplateInput.value.trim()) return true;
+      if (dom.titleInput.value.trim() || dom.wordsInput.value.trim() || dom.formTemplateInput.value.trim() || dom.definitionMode.checked) return true;
       return [dom.difficultyInput, dom.sizeInput, dom.timerInput, dom.hintsInput].some(select => {
         const initial = select.querySelector("option[selected]") || select.options[0];
         return select.value !== initial.value;
@@ -368,6 +379,7 @@
       dom.sizeInput.value = sample.size;
       if (dom.timerInput && sample.timerDuration !== undefined) dom.timerInput.value = String(sample.timerDuration);
       if (dom.hintsInput && sample.hintsAllowed !== undefined) dom.hintsInput.value = String(sample.hintsAllowed);
+      dom.definitionMode.checked = sample.definitionMode === true;
       if (dom.formTemplateInput) {
         dom.formTemplateInput.value = sample.formTemplate || "";
         syncFormTemplateFeedback();
@@ -392,10 +404,14 @@
       syncWordsUi();
     }
 
+    function librarySearchKey(value) {
+      // A teacher can type "brac" to find "braç"; adding it keeps the spelling.
+      return normalizeWord(value).replace(/Ç/g, "C");
+    }
+
     function renderLibrary() {
       const lang = state.lang;
-      // Same normalization as the puzzle, so "leon" finds "león".
-      const search = normalizeWord(dom.libSearch.value);
+      const search = librarySearchKey(dom.libSearch.value);
       const categories = getVocabularyCategories(lang);
       const categoryEntries = Object.entries(categories);
       // Starting on null showed "choose a category" on first load on every device, not
@@ -439,7 +455,7 @@
       }
 
       wordsToShow = [...new Set(wordsToShow)]
-        .filter(word => normalizeWord(word).includes(search))
+        .filter(word => librarySearchKey(word).includes(search))
         .sort((left, right) => left.localeCompare(right, lang));
 
       const addedWords = new Set(parseWords(dom.wordsInput.value).words.map(word => word.id));
@@ -531,6 +547,8 @@
     }
 
     function bindEvents() {
+      // Set the initial layout once. Rotating a device keeps the teacher's choice.
+      dom.libSearch.closest("details").open = !globalThis.matchMedia?.("(max-width: 640px)")?.matches;
       dom.sampleSelect.addEventListener("change", () => updateDeleteSampleButton());
 
       dom.loadSampleButton.addEventListener("click", () => {
@@ -621,6 +639,7 @@
       // Native input/change events already notify the form synchronously. This
       // delayed refresh must not overwrite a more recent submission error.
       dom.wordsInput.addEventListener("input", debounce(() => syncWordsUi({ notifyChange: false }), 200));
+      dom.definitionMode.addEventListener("change", updateWordsHelper);
     }
 
     return Object.freeze({

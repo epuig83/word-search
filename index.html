@@ -213,6 +213,11 @@
                 <p id="words-definition-hint" class="sample-note words-definition-hint" data-t="words_definition_hint">
                   Opcional: afegeix una definició amb dos punts, per exemple «sol: estrella que ens dona llum». Màxim 160 caràcters per definició.
                 </p>
+                <label class="checkbox-label" for="definition-mode">
+                  <input id="definition-mode" name="definitionMode" type="checkbox" aria-describedby="definition-mode-help" />
+                  <span data-t="definition_mode">Jugar amb definicions</span>
+                </label>
+                <p id="definition-mode-help" class="sample-note" data-t="definition_mode_help" hidden>L’alumnat veurà la definició de cada paraula. Si en deixes una en blanc, es farà servir la de la biblioteca.</p>
                 <div class="words-tools">
                   <div class="words-tools-meta">
                     <span id="words-count" class="words-count-pill">0 paraules vàlides</span>
@@ -227,18 +232,14 @@
               </div>
 
               <!-- Biblioteca de Vocabulari -->
-              <div class="vocabulary-library">
-                <div class="library-header">
-                  <span data-t="lib_title">Biblioteca de paraules</span>
+              <details class="vocabulary-library">
+                <summary class="teacher-tools-summary" data-t="lib_title">Biblioteca de paraules</summary>
+                <div class="library-content">
                   <input type="text" id="lib-search" placeholder="Cercar…" aria-label="Cercar a la biblioteca de paraules" data-t="lib_search_placeholder">
+                  <div class="library-categories" id="lib-categories"></div>
+                  <div class="library-results" id="lib-results"></div>
                 </div>
-                <div class="library-categories" id="lib-categories">
-                  <!-- Categories dinàmiques -->
-                </div>
-                <div class="library-results" id="lib-results">
-                  <!-- Paraules dinàmiques -->
-                </div>
-              </div>
+              </details>
             </div>
 
             <div class="difficulty-presets-field">
@@ -493,7 +494,7 @@
               <div class="puzzle-layout">
                 <aside class="word-bank">
                   <h2 id="word-bank-title">
-                    <span data-t="word_bank_title">Paraules</span>
+                    <span id="word-bank-label" data-t="word_bank_title">Paraules</span>
                     <span id="word-bank-count" style="font-size: 0.8rem; color: var(--ink-soft);">0</span>
                   </h2>
                   <ul id="word-list" class="word-list"></ul>
@@ -524,7 +525,7 @@
                 </div>
 
                 <div id="active-hint" class="active-hint" hidden>
-                  <p id="active-hint-text" role="status" aria-live="polite"></p>
+                  <p id="active-hint-text" role="status" aria-live="polite" aria-atomic="true"><span id="active-hint-clue"></span><span id="active-hint-instruction"></span></p>
                   <p id="active-hint-cost" class="sample-note"></p>
                   <div class="active-hint-actions">
                     <button type="button" id="active-hint-direction" class="ghost-button" data-t="hint_show_direction">2. Veure la direcció</button>
@@ -625,12 +626,14 @@
         >
           Aquesta paraula ja l'has trobada.
         </p>
+        <p id="word-definition-hint-note" class="sample-note" hidden></p>
         <div class="confirm-modal-actions">
           <button type="button" id="word-review-next" class="primary-button" data-t="review_next" hidden>Paraula següent</button>
           <button type="button" id="word-definition-listen" class="ghost-button" hidden>
             <svg class="ui-icon" aria-hidden="true"><use href="#icon-speaker"></use></svg>
             <span data-t="word_definition_listen">Escolta</span>
           </button>
+          <button type="button" id="word-definition-hint" class="ghost-button" data-t="word_definition_hint" aria-describedby="word-definition-hint-note" hidden>Pista per a aquesta paraula</button>
           <button type="button" id="word-definition-close" class="primary-button" data-t="word_definition_close">
             Tancar
           </button>
@@ -666,7 +669,7 @@
               <label for="variants-count" data-t="variants_count">Quants models?</label>
               <select id="variants-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
             </div>
-            <label class="variants-checkbox"><input type="checkbox" id="variants-solutions" checked /><span data-t="variants_solutions">Incloure els solucionaris al final</span></label>
+            <label class="checkbox-label variants-checkbox"><input type="checkbox" id="variants-solutions" checked /><span data-t="variants_solutions">Incloure els solucionaris al final</span></label>
             <button type="submit" id="variants-prepare" class="ghost-button" data-t="variants_prepare">Preparar models</button>
           </div>
         </form>

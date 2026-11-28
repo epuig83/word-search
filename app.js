@@ -30,6 +30,7 @@
     SHARED_PUZZLE_VERSION,
     parseWords,
     serializeWords,
+    wordListText,
     sameCell,
     serializeGridRows,
     serializePlacementCells,
@@ -127,8 +128,22 @@
     return SAMPLE_PUZZLES[lang] || [];
   }
 
-  function getDefinitionsForLang(lang) {
-    return WORD_DEFINITIONS[lang] || {};
+  function definitionForWord(word, lang) {
+    // The displayed spelling also works on older boards where BRAÇ had the ID BRAC.
+    return word.definition || WORD_DEFINITIONS[lang]?.[CORE.normalizeWord(word.display)] || "";
+  }
+
+  function readActivityVocabulary() {
+    const text = dom.wordsInput.value;
+    // Changing only the interface language or board settings keeps the reviewed clues.
+    if (dom.definitionMode.checked && state.puzzle?.definitionMode && state.generatedForm?.words === text) {
+      return { words: state.puzzle.words, sourceLang: getPuzzleSourceLang() };
+    }
+    const { words } = parseWords(text);
+    if (dom.definitionMode.checked) {
+      for (const word of words) word.definition = definitionForWord(word, state.lang);
+    }
+    return { words, sourceLang: state.lang };
   }
 
   function persistCustomSamples() {
@@ -179,8 +194,12 @@
     return Boolean(state.puzzle && state.activeTab === "student" && !state.studentSessionStarted && (state.resumeAvailable || !state.timerExpired));
   }
 
+  function isStudentSessionActive() {
+    return Boolean(!state.workspaceConflict && state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired && !state.timerPaused);
+  }
+
   function canInteractWithPuzzle() {
-    return Boolean(!state.workspaceConflict && !state.learningPause && state.puzzle && state.activeTab === "student" && state.studentSessionStarted && !state.timerExpired && !state.timerPaused);
+    return isStudentSessionActive() && !state.learningPause;
   }
 
   function pauseTimer() {
@@ -211,10 +230,10 @@
     dom.studentStartTitle.textContent = resuming ? t.student_resume_title : t.student_start_title;
     dom.studentStartText.textContent = resuming
       ? t.student_resume_text.replace("{found}", state.foundWordIds.size).replace("{total}", state.puzzle.words.length)
-      : t.student_start_text;
+      : state.puzzle?.definitionMode ? t.definition_instructions : t.student_start_text;
     dom.studentStartButton.textContent = resuming ? t.btn_continue : t.btn_start_game;
     dom.newStudentButton.hidden = !resuming;
-    dom.selectionDemo.hidden = resuming;
+    dom.selectionDemo.hidden = resuming || Boolean(state.puzzle?.definitionMode);
     if (dom.studentStartTimer) {
       dom.studentStartTimer.textContent = state.puzzle
         ? (resuming && state.puzzle.timerDuration > 0 ? formatSecondsAsClock(state.timerSecondsLeft) : formatTimerSummary(state.puzzle.timerDuration, t))
@@ -542,7 +561,7 @@
 
   function buildShareConfigFromPuzzle(puzzle, formTemplate = state.formTemplate) {
     return {
-      version: SHARED_PUZZLE_VERSION,
+      version: puzzle.shareVersion ?? SHARED_PUZZLE_VERSION,
       title: puzzle.title,
       words: serializeWords(puzzle.words),
       difficulty: puzzle.difficulty,
@@ -550,6 +569,7 @@
       lang: puzzle.sourceLang || state.lang,
       timer: puzzle.timerDuration,
       hints: puzzle.hintsAllowed,
+      definitionMode: puzzle.definitionMode,
       formTemplate: shareableFormTemplate(formTemplate),
       gridRows: serializeGridRows(puzzle.grid),
       placementPaths: puzzle.placements.map(placement => serializePlacementCells(placement.cells)),
@@ -650,7 +670,8 @@
     teacherPreviewWords: document.querySelector("#teacher-preview-words"),
     teacherPreviewSolution: document.querySelector("#teacher-preview-solution"),
     activeHint: document.querySelector("#active-hint"),
-    activeHintText: document.querySelector("#active-hint-text"),
+    activeHintClue: document.querySelector("#active-hint-clue"),
+    activeHintInstruction: document.querySelector("#active-hint-instruction"),
     activeHintCost: document.querySelector("#active-hint-cost"),
     activeHintDirection: document.querySelector("#active-hint-direction"),
     activeHintHide: document.querySelector("#active-hint-hide"),
@@ -678,6 +699,8 @@
     titleInput: document.querySelector("#title-input"),
     titleError: document.querySelector("#title-error"),
     wordsInput: document.querySelector("#words-input"),
+    definitionMode: document.querySelector("#definition-mode"),
+    definitionModeHelp: document.querySelector("#definition-mode-help"),
     clearWordsButton: document.querySelector("#clear-words-button"),
     wordsCount: document.querySelector("#words-count"),
     wordsFeedback: document.querySelector("#words-feedback"),
@@ -717,6 +740,7 @@
     progressBar: document.querySelector("#progress-bar"),
     puzzleGrid: document.querySelector("#puzzle-grid"),
     wordList: document.querySelector("#word-list"),
+    wordBankLabel: document.querySelector("#word-bank-label"),
     wordBankCount: document.querySelector("#word-bank-count"),
     wordDefinitionsHelp: document.querySelector("#word-definitions-help"),
     studentActions: document.querySelector("#student-actions"),
@@ -757,6 +781,7 @@
     hintButton: document.querySelector("#hint-button"),
     hintModal: document.querySelector("#hint-modal"),
     hintWordSelect: document.querySelector("#hint-word-select"),
+    hintWordLabel: document.querySelector('label[for="hint-word-select"]'),
     hintExplanation: document.querySelector("#hint-explanation"),
     hintStartButton: document.querySelector("#hint-start-button"),
     hintDirectionButton: document.querySelector("#hint-direction-button"),
@@ -785,6 +810,8 @@
     wordDefinitionFound: document.querySelector("#word-definition-found"),
     wordDefinitionClose: document.querySelector("#word-definition-close"),
     wordDefinitionListen: document.querySelector("#word-definition-listen"),
+    wordDefinitionHint: document.querySelector("#word-definition-hint"),
+    wordDefinitionHintNote: document.querySelector("#word-definition-hint-note"),
     confirmModal: document.querySelector("#confirm-modal"),
     confirmModalTitle: document.querySelector("#confirm-modal-title"),
     confirmModalText: document.querySelector("#confirm-modal-text"),
@@ -817,9 +844,13 @@
     return state.puzzle?.words.find(word => word.id === wordId) || null;
   }
 
-  // The teacher's own definition wins over the library's.
   function getDefinitionTextForWordId(wordId) {
-    return findPuzzleWordById(wordId)?.definition || getDefinitionsForLang(getPuzzleSourceLang())[wordId] || "";
+    const word = findPuzzleWordById(wordId);
+    return word ? definitionForWord(word, getPuzzleSourceLang()) : "";
+  }
+
+  function isAnswerHidden(wordId) {
+    return state.puzzle.definitionMode && state.mode !== "teacher" && !state.foundWordIds.has(wordId);
   }
 
   function resetWordDefinitionModalContent() {
@@ -850,7 +881,8 @@
     const word = findPuzzleWordById(state.activeDefinitionWordId);
     const voice = findSpeechVoice(getPuzzleSourceLang());
     if (!word || !voice) return;
-    const utterance = new SpeechSynthesisUtterance(`${word.display}. ${getDefinitionTextForWordId(word.id)}`);
+    const definition = getDefinitionTextForWordId(word.id);
+    const utterance = new SpeechSynthesisUtterance(isAnswerHidden(word.id) ? definition : `${word.display}. ${definition}`);
     utterance.voice = voice;
     utterance.lang = voice.lang;
     speechSynthesis.cancel();
@@ -870,6 +902,24 @@
     if (reviewing && options?.restoreFocus !== false && !state.workspaceConflict) dom.reviewWordsButton.focus();
   }
 
+  function renderDefinitionHint(wordId, reviewing) {
+    const button = dom.wordDefinitionHint;
+    const note = dom.wordDefinitionHintNote;
+    const { hintsAllowed } = state.puzzle;
+    button.hidden = reviewing || !isStudentSessionActive() || state.mode !== "student" ||
+      state.foundWordIds.has(wordId) || hintsAllowed === 0;
+    const repeat = Boolean(state.hintStages[wordId]);
+    button.disabled = hintsAllowed > 0 && state.hintsRemaining === 0 && !repeat;
+    note.hidden = button.hidden || hintsAllowed === -1;
+    if (note.hidden) {
+      note.textContent = "";
+      return;
+    }
+    const t = getTranslations();
+    const availableHintNote = repeat ? t.word_hint_repeat : t.word_hint_cost;
+    note.textContent = button.disabled ? t.word_hint_empty : availableHintNote;
+  }
+
   function renderWordDefinitionModal() {
     if (!dom.wordDefinitionModal || !state.activeDefinitionWordId) return;
     const word = findPuzzleWordById(state.activeDefinitionWordId);
@@ -878,15 +928,17 @@
       closeWordDefinitionModal({ restoreFocus: false });
       return;
     }
-    dom.wordDefinitionTitle.textContent = word.display;
+    const hiddenAnswer = isAnswerHidden(word.id);
+    dom.wordDefinitionTitle.textContent = hiddenAnswer ? getTranslations().definition_question : word.display;
     dom.wordDefinitionText.textContent = definitionText;
-    dom.wordDefinitionTitle.lang = getPuzzleSourceLang();
+    dom.wordDefinitionTitle.lang = hiddenAnswer ? state.lang : getPuzzleSourceLang();
     dom.wordDefinitionText.lang = getPuzzleSourceLang();
     if (dom.wordDefinitionListen) dom.wordDefinitionListen.hidden = !findSpeechVoice(getPuzzleSourceLang());
     if (dom.wordDefinitionFound) {
       dom.wordDefinitionFound.hidden = !state.foundWordIds.has(word.id);
     }
     const reviewing = state.reviewWordIds.length > 0;
+    renderDefinitionHint(word.id, reviewing);
     dom.wordReviewProgress.hidden = !reviewing;
     dom.wordReviewNext.hidden = !reviewing;
     dom.wordDefinitionClose.classList.toggle("primary-button", !reviewing);
@@ -900,7 +952,10 @@
   }
 
   function getReviewWords() {
-    return (state.puzzle?.words || []).filter(word => getDefinitionTextForWordId(word.id)).slice(0, 2);
+    return (state.puzzle?.words || [])
+      .filter(word => !isAnswerHidden(word.id) && getDefinitionTextForWordId(word.id))
+      .sort((a, b) => (state.hintStages[b.id] || 0) - (state.hintStages[a.id] || 0))
+      .slice(0, 2);
   }
 
   function openWordDefinition(wordId, { review = false } = {}) {
@@ -968,7 +1023,7 @@
     dom.teacherPreviewWords.lang = getPuzzleSourceLang();
     dom.teacherPreviewWords.replaceChildren(...state.puzzle.words.map(word => {
       const item = document.createElement("li");
-      item.textContent = word.display;
+      item.textContent = wordListText(word, state.puzzle.definitionMode, previewSolution);
       return item;
     }));
     dom.teacherPreviewSolution.textContent = previewSolution ? t.btn_hide_solution : t.btn_show_solution;
@@ -1026,6 +1081,7 @@
       .replace(/\{size\}/g, puzzle.actualSize)
       .replace("{difficulty}", difficultyLabel)];
     if (puzzle.timerDuration > 0) parts.push(formatTimerSummary(puzzle.timerDuration, t));
+    if (puzzle.definitionMode) parts.push(t.definition_mode);
     // Unlimited hints are the default; a limit is worth confirming before class.
     if (puzzle.hintsAllowed !== -1) parts.push(`${t.hints_label}: ${formatHintsSummary(puzzle.hintsAllowed, t)}`);
     return parts.join(" · ");
@@ -1068,6 +1124,7 @@
       size: dom.sizeInput.value,
       timer: dom.timerInput.value,
       hints: dom.hintsInput.value,
+      definitionMode: dom.definitionMode.checked,
       formTemplate: dom.formTemplateInput.value,
     };
   }
@@ -1106,6 +1163,7 @@
     dom.sizeInput.value = form.size;
     dom.timerInput.value = form.timer;
     dom.hintsInput.value = form.hints;
+    dom.definitionMode.checked = form.definitionMode === true;
     dom.formTemplateInput.value = form.formTemplate;
     syncFormTemplateFeedback();
     syncDifficultyPresetState();
@@ -1209,10 +1267,11 @@
     if (event?.currentTarget === dom.hintButton) dom.hintButton.focus({ preventScroll: true });
     const unsolved = state.puzzle.words.filter(word => !state.foundWordIds.has(word.id));
     if (!unsolved.length) return;
+    dom.hintWordLabel.textContent = state.puzzle.definitionMode ? getTranslations().hint_choose_definition : getTranslations().hint_choose_word;
     dom.hintWordSelect.replaceChildren(...unsolved.map(word => {
       const option = document.createElement("option");
       option.value = word.id;
-      option.textContent = word.display;
+      option.textContent = wordListText(word, state.puzzle.definitionMode);
       option.lang = getPuzzleSourceLang();
       return option;
     }));
@@ -1223,23 +1282,32 @@
     openModal(dom.hintModal, dom.hintWordSelect);
   }
 
+  function showHintOnGrid(wordId, level) {
+    clearSelection();
+    if (useHint(wordId, level)) {
+      focusGridCell(setFocusedCell(state.hintCell), { reveal: true });
+    } else if (!state.workspaceConflict) {
+      dom.hintButton.focus();
+    }
+  }
+
+  dom.wordDefinitionHint.addEventListener("click", () => {
+    const wordId = state.activeDefinitionWordId;
+    if (!wordId || dom.wordDefinitionHint.hidden || dom.wordDefinitionHint.disabled) return;
+    closeWordDefinitionModal({ restoreFocus: false });
+    showHintOnGrid(wordId, state.hintStages[wordId] || 1);
+  });
   dom.hintWordSelect.addEventListener("change", updateHintPicker);
   [dom.hintStartButton, dom.hintDirectionButton].forEach((button, index) => {
     button.addEventListener("click", () => {
       const wordId = dom.hintWordSelect.value;
       closeModal(dom.hintModal, { restoreFocus: false });
-      clearSelection();
-      if (useHint(wordId, index + 1)) {
-        focusGridCell(setFocusedCell(state.hintCell), { reveal: true });
-      } else {
-        dom.hintButton.focus();
-      }
+      showHintOnGrid(wordId, index + 1);
     });
   });
   dom.hintCloseButton.addEventListener("click", () => closeModal(dom.hintModal));
   dom.activeHintDirection.addEventListener("click", () => {
-    clearSelection();
-    if (useHint(state.selectedHintWordId, 2)) focusGridCell(setFocusedCell(state.hintCell), { reveal: true });
+    showHintOnGrid(state.selectedHintWordId, 2);
   });
   dom.activeHintHide.addEventListener("click", () => {
     state.hintCell = null;
@@ -1462,6 +1530,7 @@
     serializeWords,
     splitWordEntries: CORE.splitWordEntries,
     getDefinitionOverflows: CORE.getDefinitionOverflows,
+    readActivityVocabulary,
     maxDefinitionLength: CORE.MAX_DEFINITION_LENGTH,
     normalizeWord: CORE.normalizeWord,
     normalizeSampleTitle: APP_HELPERS.normalizeSampleTitle,
@@ -1496,6 +1565,7 @@
     playElapsedSeconds,
     parseResultForm,
     getDefinitionTextForWordId,
+    wordListText,
     openWordDefinition,
     renderWordDefinitionModal,
     getReviewWords,
@@ -1686,7 +1756,7 @@
   async function generatePuzzle({ triggerButton = dom.generateButton } = {}) {
     if (state.generating || !checkWorkspace()) return;
     const t = TRANSLATIONS[state.lang];
-    const parsed = parseWords(dom.wordsInput.value);
+    const { words, sourceLang } = readActivityVocabulary();
     const triggerLabel = triggerButton?.querySelector("[data-t]") || triggerButton;
     const originalTriggerText = triggerLabel?.textContent || "";
 
@@ -1701,9 +1771,9 @@
     dom.titleError.hidden = true;
     dom.titleInput.removeAttribute("aria-invalid");
 
-    if (!teacherController.validateDefinitions()) return;
+    if (!teacherController.validateDefinitions(words)) return;
 
-    if (parsed.words.length < 1) {
+    if (words.length < 1) {
       setStatus(t.words_summary_empty, "error");
       dom.wordsInput.focus();
       return;
@@ -1736,12 +1806,13 @@
         requestedSize: form.size,
         timerDuration: Number(form.timer) || 0,
         hintsAllowed: Number(form.hints) || 0,
-        sourceLang: form.lang,
+        definitionMode: form.definitionMode,
+        sourceLang,
       };
       // Validate before doing work, then validate the complete snapshot before
       // replacing the reviewed activity or clearing any of its progress.
-      encodePuzzleConfig(buildShareConfigFromPuzzle({ ...metadata, words: parsed.words, difficulty: form.difficulty, grid: [], placements: [] }, formTemplate));
-      const puzzle = composePuzzle(await buildPuzzleDataAsync(parsed.words, form.size, form.difficulty, metadata, {
+      encodePuzzleConfig(buildShareConfigFromPuzzle({ ...metadata, words, difficulty: form.difficulty, grid: [], placements: [] }, formTemplate));
+      const puzzle = composePuzzle(await buildPuzzleDataAsync(words, form.size, form.difficulty, metadata, {
         cancelled: () => state.workspaceConflict,
       }));
       encodePuzzleConfig(buildShareConfigFromPuzzle(puzzle, formTemplate));
@@ -2083,12 +2154,14 @@
     const prevSize = dom.sizeInput.value;
     const prevTimer = dom.timerInput ? dom.timerInput.value : "0";
     const prevHints = dom.hintsInput ? dom.hintsInput.value : "0";
+    const prevDefinitionMode = dom.definitionMode.checked;
     const prevFormTemplate = state.formTemplate;
     const prevPuzzle = state.puzzle;
 
     try {
-      const parsed = parseWords(config.words);
+      const parsed = parseWords(config.words, config.version);
       if (parsed.words.length < 1) return false;
+      if (config.definitionMode && parsed.words.some(word => !word.definition)) return false;
       updateLanguage(config.lang);
       dom.titleInput.value = config.title;
       dom.wordsInput.value = config.words;
@@ -2096,6 +2169,7 @@
       dom.sizeInput.value = SAMPLE_SIZES.has(config.requestedSize) ? config.requestedSize : "auto";
       if (dom.timerInput) dom.timerInput.value = config.timer;
       if (dom.hintsInput) dom.hintsInput.value = config.hints;
+      dom.definitionMode.checked = config.definitionMode;
       syncDifficultyPresetState();
       state.formTemplate = config.formTemplate || "";
       state.studentName = { nom: "", cognoms: "" };
@@ -2104,9 +2178,12 @@
       teacherController.syncWordsUi();
       const metadata = {
         title: config.title,
+        // The previous release used v2 keys for progress, even for older links.
+        shareVersion: config.version < 3 ? 2 : SHARED_PUZZLE_VERSION,
         requestedSize: config.requestedSize,
         timerDuration: config.timer,
         hintsAllowed: config.hints,
+        definitionMode: config.definitionMode,
         sourceLang: config.lang,
       };
       // Every link carries its board, so pupils get exactly the grid the teacher reviewed.
@@ -2130,6 +2207,7 @@
       dom.sizeInput.value = prevSize;
       if (dom.timerInput) dom.timerInput.value = prevTimer;
       if (dom.hintsInput) dom.hintsInput.value = prevHints;
+      dom.definitionMode.checked = prevDefinitionMode;
       syncDifficultyPresetState();
       state.formTemplate = prevFormTemplate;
       state.puzzle = prevPuzzle;

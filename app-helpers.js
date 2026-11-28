@@ -84,6 +84,7 @@
       size,
       timerDuration,
       hintsAllowed,
+      definitionMode: rawSample.definitionMode === true,
       formTemplate,
     };
   }

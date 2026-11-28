@@ -51,9 +51,7 @@ test("each category has a label and a words array", () => {
 test("no duplicate words within a category", () => {
   for (const lang of LANGS) {
     for (const [catId, cat] of Object.entries(data.vocabulary[lang])) {
-      const normalized = cat.words.map(w =>
-        w.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      );
+      const normalized = cat.words.map(word => core.normalizeWord(word));
       const unique = new Set(normalized);
       assert.equal(
         unique.size,

@@ -1027,33 +1027,31 @@ body {
    ======================== */
 .vocabulary-library {
   background: linear-gradient(145deg, var(--bg-cream) 0%, var(--paper-soft) 100%);
-  padding: 1.25rem;
   border-radius: 12px 20px 12px 20px;
   border: 2.5px dashed var(--grid-edge);
-  display: flex;
-  flex-direction: column;
 }
 
-.library-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.vocabulary-library:not([open]) {
+  align-self: start;
 }
 
-.library-header span {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--ink-strong);
+.vocabulary-library > summary {
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+}
+
+.library-content {
+  padding: 0 1rem 1rem;
 }
 
 #lib-search {
+  display: block;
+  margin-bottom: 0.75rem;
   padding: 0.5rem 0.75rem;
   border: 1.5px solid var(--panel-border);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
-  width: 140px;
+  width: 100%;
   background: var(--panel);
   font-family: var(--font-body);
 }
@@ -2244,6 +2242,7 @@ body.has-modal {
 }
 
 #word-definition-text {
+  overflow-wrap: anywhere;
   margin-bottom: 1rem;
   line-height: 1.6;
 }
@@ -2435,14 +2434,6 @@ body[data-tab="student"] .panel {
     padding: 0.75rem 0.35rem 1rem;
   }
 
-  body[data-tab="student"] {
-    scroll-padding-bottom: 7rem;
-  }
-
-  body[data-tab="student"] .page-shell {
-    padding-bottom: 6.75rem;
-  }
-
   .panel {
     padding: 1rem 0.75rem;
   }
@@ -2496,7 +2487,6 @@ body[data-tab="student"] .panel {
     font-size: 1.15rem;
   }
 
-  .library-header,
   .board-topbar {
     flex-direction: column;
     align-items: stretch;
@@ -2539,8 +2529,7 @@ body[data-tab="student"] .panel {
     --grid-cell-letter-spacing: 0;
   }
 
-  /* Relative, not static: the board's finishing veil (z-index 1) otherwise paints
-     over the card. The scroll margin keeps its buttons above the fixed game bar. */
+  /* Keep the completion card above the board's finishing veil (z-index 1). */
   .completion-message {
     position: relative;
     inset: auto;
@@ -2548,7 +2537,6 @@ body[data-tab="student"] .panel {
     margin-top: 1rem;
     background: none;
     backdrop-filter: none;
-    scroll-margin-bottom: 6rem;
   }
 
   .completion-card {
@@ -2605,23 +2593,6 @@ body[data-tab="student"] .panel {
     width: 100%;
   }
 
-  #lib-search {
-    width: 100%;
-  }
-
-  .vocabulary-library {
-    padding: 1rem;
-  }
-
-  .library-header {
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .library-header span {
-    font-size: 0.85rem;
-  }
-
   .library-categories {
     margin-bottom: 0.75rem;
   }
@@ -2653,25 +2624,9 @@ body[data-tab="student"] .panel {
     gap: 0.6rem;
   }
 
-  /* A pill that hugs its buttons, not a full-width bar: it covers less of the
-     board while the pupil scrolls, and page padding still lets the last row clear it. */
   .student-gamebar {
-    position: fixed;
-    right: max(0.35rem, env(safe-area-inset-right));
-    bottom: max(0.45rem, env(safe-area-inset-bottom));
-    left: max(0.35rem, env(safe-area-inset-left));
-    z-index: 80;
-    width: fit-content;
-    max-width: calc(100% - 0.7rem);
-    margin: 0 auto;
-    justify-content: center;
-    padding: 0.35rem;
-    border: 2px solid var(--student-border);
-    border-radius: var(--radius-lg);
-    background: var(--panel);
-    background: color-mix(in srgb, var(--panel) 94%, transparent);
-    box-shadow: var(--shadow-lg);
-    backdrop-filter: blur(10px);
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .student-gamebar .timer-pill {
@@ -2684,12 +2639,6 @@ body[data-tab="student"] .panel {
     min-height: 44px;
     padding: 0.55rem 0.65rem;
     font-size: 0.9rem;
-  }
-
-  .grid-cell,
-  .word-definition-button,
-  .student-action-button {
-    scroll-margin-bottom: 7rem;
   }
 
   .puzzle-layout {
@@ -3392,7 +3341,6 @@ body[data-tab="student"] .panel {
     .board-appearance { justify-content: flex-start; }
     .puzzle-layout { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
     .word-bank { gap: 0.5rem; }
-    .student-gamebar { margin: 0 auto; }
     .student-start-card { padding: 1rem; }
     .student-start-card h2 { font-size: 1.45rem; }
   }
@@ -3425,8 +3373,9 @@ body[data-tab="student"] .panel {
 .variants-options .field { min-width: 8rem; }
 /* iPad's native select needs an explicit height as well as its minimum. */
 #variants-count { height: 3.25rem; min-height: 44px; }
-.variants-checkbox { display: flex; gap: 0.5rem; align-items: center; min-height: 44px; flex: 1; }
-.variants-checkbox input { width: 1.25rem; height: 1.25rem; flex-shrink: 0; accent-color: var(--accent-strong); }
+.checkbox-label { display: flex; gap: 0.5rem; align-items: center; min-height: 44px; cursor: pointer; }
+.checkbox-label input { width: 1.25rem; height: 1.25rem; padding: 0; flex-shrink: 0; accent-color: var(--accent-strong); }
+.variants-checkbox { flex: 1; }
 .variants-dialog #variants-status { margin: 1rem 0; color: var(--ink-strong); }
 .variant-previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .variants-actions { display: flex; justify-content: flex-end; gap: 0.75rem; position: sticky; bottom: -1.5rem; background: var(--panel); padding: 1rem 0; margin-bottom: -1rem; border-top: 1px solid var(--panel-border); }
@@ -3448,12 +3397,16 @@ body[data-tab="student"] .panel {
 .variant-mark.wc-3 { stroke: var(--word-3); }
 .variant-mark.wc-4 { stroke: var(--word-4); }
 .variant-words { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.2rem 0.5rem; padding: 0; margin: 0.5rem 0; list-style: none; font-size: 0.8rem; overflow-wrap: anywhere; }
+.variant-words.is-definitions { display: block; padding-inline-start: 1.25em; list-style: disc; }
+.variant-words.is-definitions li { margin-block: 0.25em; break-inside: avoid; }
 #variant-print-root { display: none; }
 #variant-print-root.is-measuring { display: block; position: fixed; top: 0; left: -100000px; width: 180mm; pointer-events: none; }
 /* Use identical dimensions when measuring and printing. Oversized content is
    reported before opening print; it is never silently clipped or shrunk. */
 #variant-print-root .variant-sheet { width: 180mm; height: 266mm; padding: 0; border: 0; box-sizing: border-box; break-after: page; font-size: 10pt; line-height: 1.25; display: flow-root; }
 #variant-print-root .variant-sheet:last-child { break-after: auto; }
+#variant-print-root .definition-handout { height: auto; }
+#variant-print-root .definition-handout .variant-grid { break-inside: avoid; }
 #variant-print-root .variant-label { font-size: 11pt; margin: 0 0 2mm; }
 #variant-print-root .variant-title { font-size: 16pt; margin: 0 0 3mm; }
 #variant-print-root .variant-meta { font-size: 11pt; margin: 0 0 3mm; }
@@ -3514,6 +3467,9 @@ html:fullscreen body[data-tab="student"] .main-tabs {
 /* Independent classroom play: keep help beside the activity and give fingers room. */
 @media screen {
   .word-item.is-definable { padding: 0; }
+  .word-list.is-definitions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .word-list.is-definitions .word-entry-text { min-width: 0; overflow-wrap: anywhere; }
+  .word-list.is-definitions .word-item.is-found::after { display: none; }
   .word-definition-button {
     width: 100%;
     min-height: 44px;
@@ -3563,6 +3519,7 @@ html:fullscreen body[data-tab="student"] .main-tabs {
 }
 
 .active-hint {
+  overflow-wrap: anywhere;
   grid-area: hint;
   min-width: 0;
   padding: 0.85rem;

@@ -102,6 +102,7 @@ test("the word definition modal is accessible and dismissable", async ({ page })
 
   await page.locator("#word-list .word-definition-button").first().click();
   await expect(page.locator("#word-definition-modal")).toBeVisible();
+  await expect(page.locator("#word-definition-hint")).toBeHidden();
   await expectNoAccessibilityViolations(page, "word definition modal");
 
   await page.keyboard.press("Escape");

@@ -24,7 +24,7 @@
   const SAMPLE_LANGS = ["ca", "es", "en"];
   const SAMPLE_DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const SAMPLE_SIZES = new Set(["auto", "8", "10", "12", "14", "16"]);
-  const SHARED_PUZZLE_VERSION = 2;
+  const SHARED_PUZZLE_VERSION = 3;
   const MAX_SHARED_BYTES = 64 * 1024;
 
   function createEmptyCustomSamples() {
@@ -32,20 +32,20 @@
   }
 
   function normalizeWord(value) {
-    // Pasted text may carry "n" + combining tilde; compose it so Ñ survives.
-    // The one-character Catalan Ŀ has no decomposition; keep its L.
+    // Keep Ñ and Ç as letters, including when pasted as separate combining marks.
     return String(value ?? "")
       .normalize("NFC")
       .toUpperCase()
+      // The one-character Catalan Ŀ has no decomposition; keep its L.
       .replace(/Ŀ/g, "L")
       // Ligatures have no NFD decomposition, so spell them out instead of dropping them.
       .replace(/Œ/g, "OE")
       .replace(/Æ/g, "AE")
       .replace(/Ñ/g, "\u0000")
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/C\u0327/g, "Ç")
       .split("\u0000").join("Ñ")
-      .replace(/[^A-ZÑ]/g, "");
+      .replace(/[^A-ZÑÇ]/g, "");
   }
 
   // A "word: definition" line is one entry, so its definition may contain commas.
@@ -64,11 +64,13 @@
     }).filter(entry => entry.token);
   }
 
-  function parseWords(rawText) {
+  function parseWords(rawText, version = SHARED_PUZZLE_VERSION) {
     const words = [];
     const seen = new Set();
     for (const { word, definition } of splitWordEntries(rawText)) {
-      const cleaned = normalizeWord(word);
+      const spelling = normalizeWord(word);
+      // Earlier boards placed C and saved progress under that same spelling.
+      const cleaned = version < 3 ? spelling.replace(/Ç/g, "C") : spelling;
       if (cleaned.length >= 2 && !seen.has(cleaned)) {
         seen.add(cleaned);
         words.push({ id: cleaned, cleaned, display: word, definition });
@@ -90,6 +92,11 @@
 
   function serializeWords(words) {
     return words.map(word => word.definition ? `${word.display}: ${word.definition}` : word.display).join("\n");
+  }
+
+  function wordListText(word, definitionMode, showAnswer = false) {
+    if (!definitionMode) return word.display;
+    return showAnswer ? `${word.display} — ${word.definition}` : word.definition;
   }
 
   function normalizeSharedSize(value) {
@@ -363,7 +370,7 @@
 
   function encodePuzzleConfig(config) {
     const json = JSON.stringify({
-      v: config.version ?? 1,
+      v: config.version ?? SHARED_PUZZLE_VERSION,
       t: config.title,
       w: config.words,
       d: config.difficulty,
@@ -371,6 +378,8 @@
       l: config.lang,
       tm: config.timer,
       h: config.hints,
+      // Omit the default so existing links still match their saved progress keys.
+      clues: config.definitionMode === true || undefined,
       f: config.formTemplate || "",
       g: config.gridRows,
       p: config.placementPaths,
@@ -399,6 +408,7 @@
         lang: SAMPLE_LANGS.includes(obj.l) ? obj.l : "ca",
         timer: Math.max(0, Number(obj.tm) || 0),
         hints: Math.max(-1, Number(obj.h) || 0),
+        definitionMode: obj.clues === true,
         formTemplate: typeof obj.f === "string" ? obj.f : "",
         gridRows: Array.isArray(obj.g) ? obj.g : null,
         placementPaths: Array.isArray(obj.p) ? obj.p : null,
@@ -470,6 +480,7 @@
     getDefinitionOverflows,
     parseWords,
     serializeWords,
+    wordListText,
     countValidWords,
     normalizeSharedSize,
     sameCell,

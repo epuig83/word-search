@@ -177,6 +177,7 @@
       size: core.SAMPLE_SIZES.has(raw.size) ? raw.size : "8",
       timer: ["0", "300", "600", "900", "1200"].includes(raw.timer) ? raw.timer : "0",
       hints: ["-1", "0", "1", "3", "5"].includes(raw.hints) ? raw.hints : "-1",
+      definitionMode: raw.definitionMode === true,
       formTemplate: typeof raw.formTemplate === "string" ? raw.formTemplate : "",
     };
   }

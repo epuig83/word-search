@@ -19,6 +19,7 @@
     playElapsedSeconds,
     parseResultForm,
     getDefinitionTextForWordId,
+    wordListText,
     openWordDefinition,
     renderWordDefinitionModal,
     getReviewWords,
@@ -157,6 +158,7 @@
     function initWordList() {
       if (!state.puzzle) return;
       dom.wordList.innerHTML = "";
+      dom.wordList.classList.toggle("is-definitions", Boolean(state.puzzle.definitionMode));
       dom.wordListItems = new Map();
       const svgCheck = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7"/></svg>`;
       state.puzzle.words.forEach(word => {
@@ -165,7 +167,10 @@
         const isDefinable = Boolean(getDefinitionTextForWordId(word.id));
         item.dataset.definable = String(isDefinable);
         const textElement = document.createElement(isDefinable ? "button" : "span");
-        textElement.textContent = word.display;
+        const label = document.createElement("span");
+        label.className = "word-entry-text";
+        label.textContent = wordListText(word, state.puzzle.definitionMode);
+        textElement.appendChild(label);
         // The check and the strike are visual only; this names the found state.
         const foundLabel = document.createElement("span");
         foundLabel.className = "visually-hidden word-found-label";
@@ -178,7 +183,7 @@
           textElement.type = "button";
           textElement.className = "word-definition-button";
           textElement.setAttribute("aria-haspopup", "dialog");
-          textElement.setAttribute("aria-describedby", "word-definitions-help");
+          if (!state.puzzle.definitionMode) textElement.setAttribute("aria-describedby", "word-definitions-help");
           textElement.insertAdjacentHTML("beforeend", '<svg class="ui-icon definition-icon" aria-hidden="true"><use href="#icon-book"></use></svg>');
           textElement.addEventListener("click", () => openWordDefinition(word.id));
         }
@@ -253,6 +258,10 @@
         "1,1": "down_right", "1,-1": "down_left", "-1,1": "up_right", "-1,-1": "up_left",
       };
       const direction = t[`hint_direction_${directionKeys[`${next.row - first.row},${next.col - first.col}`]}`];
+      if (state.puzzle.definitionMode) {
+        return (level === 2 ? t.hint_clue_direction : t.hint_clue_start)
+          .replace("{row}", first.row + 1).replace("{col}", first.col + 1).replace("{direction}", direction);
+      }
       return (level === 2 ? t.hint_direction_message : t.hint_start_message)
         .replace("{word}", placement.display).replace("{row}", first.row + 1).replace("{col}", first.col + 1)
         .replace("{direction}", direction);
@@ -265,7 +274,11 @@
       if (dom.activeHint.hidden) return;
       const level = state.hintDirectionCell ? 2 : 1;
       const t = getTranslations();
-      dom.activeHintText.textContent = hintMessage(placement, level);
+      const clue = state.puzzle.definitionMode ? `${getDefinitionTextForWordId(placement.wordId)} · ` : "";
+      dom.activeHintClue.lang = state.puzzle.sourceLang || state.lang;
+      if (dom.activeHintClue.textContent !== clue) dom.activeHintClue.textContent = clue;
+      const instruction = hintMessage(placement, level);
+      if (dom.activeHintInstruction.textContent !== instruction) dom.activeHintInstruction.textContent = instruction;
       const canSpend = state.puzzle.hintsAllowed === -1 || state.hintsRemaining > 0;
       dom.activeHintDirection.hidden = level === 2;
       dom.activeHintDirection.disabled = !canSpend && state.hintStages[placement.wordId] < 2;
@@ -490,8 +503,9 @@
         dom.progressBar.value = state.foundWordIds.size;
       }
       dom.wordBankCount.textContent = state.puzzle.words.length;
+      dom.wordBankLabel.textContent = state.puzzle.definitionMode ? t.definition_bank_title : t.word_bank_title;
       if (dom.wordDefinitionsHelp) {
-        dom.wordDefinitionsHelp.hidden = !state.puzzle.words.some(word => getDefinitionTextForWordId(word.id));
+        dom.wordDefinitionsHelp.hidden = state.puzzle.definitionMode || !state.puzzle.words.some(word => getDefinitionTextForWordId(word.id));
       }
       if (dom.timerDisplay) {
         const showTimer = state.puzzle.timerDuration > 0 && (state.studentSessionStarted || state.timerExpired);
@@ -518,6 +532,11 @@
         const colorClass = solved ? (state.foundWordColors.get(word.id) || "wc-0") : "";
         const item = dom.wordListItems.get(word.id);
         if (item) {
+          if (state.puzzle.definitionMode) {
+            const label = item.querySelector(".word-entry-text");
+            const text = wordListText(word, true, solved || state.mode === "teacher");
+            if (label.textContent !== text) label.textContent = text;
+          }
           item.firstElementChild.lang = contentLang;
           item.querySelector(".word-found-label").lang = state.lang;
           item.className = "word-item" +
@@ -629,7 +648,7 @@
           ? t.board_status_progress
             .replace("{found}", state.foundWordIds.size)
             .replace("{total}", state.puzzle.words.length)
-          : t[`board_status_${statusKey}`];
+          : statusKey === "start" && state.puzzle.definitionMode ? t.definition_instructions : t[`board_status_${statusKey}`];
         // "start" is the neutral prompt — it carries no tone class.
         const boardStatusTone = statusKey === "start" ? "" : statusKey;
         dom.boardStatus.textContent = boardStatusText;

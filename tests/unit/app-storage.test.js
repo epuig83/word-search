@@ -63,6 +63,7 @@ test("persistCustomSamples and loadCustomSamples roundtrip custom sample collect
       size: "auto",
       timerDuration: 300,
       hintsAllowed: 3,
+      definitionMode: true,
       formTemplate: "",
     },
   ];
@@ -83,7 +84,7 @@ test("loadCustomSamples returns an empty collection for malformed JSON", () => {
 
 const draft = {
   lang: "ca", title: "Work in progress", words: "gat\ng\n", difficulty: "easy",
-  size: "8", timer: "0", hints: "-1", formTemplate: "",
+  size: "8", timer: "0", hints: "-1", definitionMode: false, formTemplate: "",
 };
 
 test("draft recovery preserves incomplete input and excludes unrelated personal fields", () => {

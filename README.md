@@ -5,12 +5,16 @@ Small dependency-free web app for creating word search activities for primary sc
 ## Usage
 
 1. Open `index.html` in the laptop browser.
-2. Enter a topic and a list of words, or use the side library to add vocabulary.
+2. Enter a topic and a list of words. The vocabulary library starts folded on phones and can be opened to add words.
 3. Click `Create and review activity`, check the `Activity ready` summary, then open the student area, share, or print.
 4. Students can solve the puzzle with mouse, touch, or keyboard (`arrow keys` + `Enter`; `H` opens the hint picker while focus is inside the grid).
-5. On phones, the timer, pause, and hint controls stay available in the bottom game bar.
+5. On phones, the timer, pause, and hint controls have their own row above the word list.
 
 New activities start with the **First steps** preset: an 8×8 grid, words running right or down, no timer, and unlimited hints. Each language includes a six-animal example for getting started. Changing presets keeps the vocabulary you have entered; words can be as short as two letters.
+
+New boards keep Ç and Ñ in words, so a class can search for both `plaça` and `placa`. Previously shared and saved activities keep their original letters and pupil progress.
+
+Select **Play from definitions** below the word list to let pupils work out each word before finding it. For example, enter `sun: The star that gives us light`. The app uses the library definition for words you leave without one and lists any that still need a clue. Pupils see the answer beside its definition once they find it. Shared boards and printed worksheets use the same clues. The printed answer key pairs each clue with its word.
 
 ## Editable Data
 
@@ -40,7 +44,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - The browser keeps one current activity. If another tab changes the draft, activity, pupil progress or saved examples, an older tab pauses and offers **Load the saved work**. Its content stays in memory until that action replaces it; closing it cannot overwrite the newer work. The check also runs before writes and resets, including an import already being read or a pending example deletion when a tab closes.
 - Editing a generated activity shows a pending-changes message and disables opening, sharing, and printing until it is generated again. Reverting the edits re-enables the actions.
 - A saved game offers **Continue** or **New pupil: start fresh**. Starting fresh keeps the same puzzle and resets the score, timer, hints, and any result-submission name. Completed and expired games can also be reviewed or restarted.
-- Hints let students choose an unsolved word, reveal its first letter, then request its direction. Each new clue consumes one hint when hints are limited; repeating a revealed clue is free. Opening or dismissing the picker does not spend a hint.
+- Pupils can choose a word from the hint picker or use **Hint for this word** while reading its definition. The first hint marks the starting letter and takes keyboard focus there. Pupils can then ask for the direction. Each new step costs one hint when hints are limited. Reopening a definition and asking again shows the furthest step already seen for that word for free.
 - Continuing a saved game restores the visible clue. It stays beside the board until its word is found, another clue is chosen, or the pupil hides it. The direction can be requested there immediately, without reopening the picker.
 - Definitions and the hint picker suspend both the countdown and play-time stopwatch. Closing them resumes an active game, preserves a manual pause, and never restarts a finished game.
 - The `Activity ready` card sits directly below the creation form and receives focus after a successful creation or example load. Its actions lead to the student area, sharing, and printing.
@@ -57,7 +61,7 @@ New activities start with the **First steps** preset: an 8×8 grid, words runnin
 - **Full screen** in the pupil area hides the tabs so the board fills the projector.
 - On phones, the word list appears above the grid and the activity actions below it.
 - Tablets up to 1024px also place the words above the board, leaving room for larger cells. Colours live in a compact disclosure; contrast and full screen remain directly available.
-- Found-word tiles remain fully clickable for definitions. At the end, **Review words** walks through up to two available definitions without changing the result; **Repeat this puzzle** resets progress on the same board.
+- Found-word tiles remain fully clickable for definitions. At the end, **Review words** offers up to two words. Words for which the pupil asked for the direction come first, followed by those for which they asked for the first letter. Ties follow the original word list. **Repeat this puzzle** resets progress on the same board.
 - Printable worksheets include the word list and a short vocabulary follow-up. Teachers can also print an answer key.
 - New Google Forms activities require separate questions for first name, surname, result and topic, in that order. The teacher keeps the prefilled examples locally. Shared links contain the form address and empty question fields. Older links with three questions can still send the score. With fewer than three, the pupil can play and the send action stays hidden. When a form is configured, students are asked for a name or alias only when they press `Send results`, and see which data will be submitted; surnames are optional and the dialog can be dismissed. The result field reads `found/total · play time · clues used` (for example `8/8 · 04:12 · 2 hints`), and pupils are reminded to press Submit in the form that opens. Play time is also shown on untimed boards.
 - The teacher PIN is a local classroom lock stored in the browser on that laptop; it is not server-backed authentication.
@@ -90,7 +94,7 @@ After creating an activity, choose **Prepare versions** in the teacher's activit
 2. Prepare and review the grids. Version A is the exact reviewed board; B–D keep its words, size and difficulty with different word placements.
 3. Choose **Print / PDF**. The document contains the worksheets first, then their matching answer keys, labelled A–D. Make as many copies of each model as needed.
 
-Each worksheet and answer key occupies one A4 page. A content-fit check blocks printing if a sheet would overflow at readable type sizes. The dialog explains how to reduce the content; it never silently clips the sheet. Answer cells remain marked when browser background graphics are disabled.
+In a batch, each worksheet and answer key occupies one A4 page. A content-fit check blocks printing if a sheet would overflow at readable type sizes. The dialog explains how to reduce the content. A single worksheet or answer key with long definitions can continue onto additional pages. Answer cells remain marked when browser background graphics are disabled.
 
 Preparing or cancelling a batch leaves the activity, saved draft and pupil progress intact. Models remain available for repeat printing while the page holds the same activity; generating or loading another activity invalidates the batch. A reload clears the temporary batch. Preparation yields between attempts, supports cancellation, and stops after three attempts per new model or a six-second generation budget. A failed batch cannot be printed partially. The existing single worksheet and answer-key actions remain available.
 

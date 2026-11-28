@@ -47,6 +47,60 @@ test("a tap on the board sends no click to whatever appears under the finger", a
   expect(await page.evaluate(() => window.__clicks)).toEqual([]);
 });
 
+test("an iPad pupil can ask for a hint from a definition and review the most-assisted words after reloading", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/es.html");
+  await page.locator("#title-input").fill("El cielo");
+  await page.locator("#words-input").fill("sol\nluna\nnube\nlluvia\nestrella\nviento");
+  await page.getByRole("checkbox", { name: "Jugar por definiciones" }).tap();
+  await page.locator("#advanced-settings-details summary").tap();
+  await page.locator("#hints-input").selectOption("3");
+  await page.locator("#generate-button").tap();
+  await page.locator("#teacher-open-student-button").tap();
+  await page.locator("#student-start-button").tap();
+
+  await page.locator("#hint-button").tap();
+  await page.locator("#hint-word-select").selectOption({ label: "Masa blanca o gris que flota en el cielo." });
+  await page.locator("#hint-start-button").tap();
+  const wind = page.getByRole("button", { name: "Aire que se mueve.", exact: true });
+  const request = page.getByRole("button", { name: "Pista para esta palabra" });
+  await wind.tap();
+  await expect(request).toBeVisible();
+  const target = await request.boundingBox();
+  expect(Math.min(target.width, target.height)).toBeGreaterThanOrEqual(44);
+  await request.tap();
+  await expect(page.locator("#hint-modal")).toBeHidden();
+  await expect(page.locator("#active-hint-text")).toContainText("Aire que se mueve.");
+  await expect(page.locator("#active-hint-text")).not.toContainText(/viento/i);
+  await expect(page.locator(".grid-cell.is-hint")).toHaveCount(1);
+  await page.locator("#active-hint-direction").tap();
+  await expect(page.locator(".grid-cell.is-hint")).toHaveCount(2);
+  await expect(page.locator("#hint-button")).toHaveText("Pista (0)");
+
+  await page.reload();
+  await page.locator("#student-start-button").tap();
+  await wind.tap();
+  await expect(request).toHaveAccessibleDescription("Volver a ver esta pista es gratis.");
+  await request.tap();
+  await expect(page.locator(".grid-cell.is-hint")).toHaveCount(2);
+  const paths = await page.evaluate(() => {
+    const activity = JSON.parse(localStorage.getItem("word-search-activity-v1"));
+    return globalThis.WORD_SEARCH_CORE.decodePuzzleConfig(activity.key).placementPaths;
+  });
+  for (const path of paths) {
+    const cells = path.split(",");
+    for (const cell of [cells[0], cells.at(-1)]) {
+      const [row, col] = cell.split(".");
+      await page.locator(`.grid-cell[data-row="${row}"][data-col="${col}"]`).tap();
+    }
+  }
+  await expect(page.locator("#progress-text")).toHaveText("6 / 6");
+  await page.locator("#review-words-button").tap();
+  await expect(page.locator("#word-definition-title")).toHaveText("viento");
+  await page.locator("#word-review-next").tap();
+  await expect(page.locator("#word-definition-title")).toHaveText("nube");
+});
+
 for (const lang of ["ca", "es", "en"]) {
   test(`${lang} iPad profile supports taps, orientation changes and recovery`, async ({ page }) => {
     // A full classroom round trip (play, rotate, reload, unlock) takes 21-25s on CI

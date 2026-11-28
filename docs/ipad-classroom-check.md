@@ -27,6 +27,8 @@ Use a disposable activity so existing classroom work is not replaced. Allow abou
 10. Share an activity with many words and definitions using Safari's share sheet. Open the complete `#p=` link in a fresh private tab and verify the exact board and definitions; also paste a different shared link into that same tab. If the receiver still runs an older release without fragment support, close every app tab and reopen to activate the update first.
 11. Open two teacher tabs from the same saved draft. Import examples in one and verify that the other pauses. Use **Load the saved work**, import a second file and reload: both sets of examples must remain. Use disposable examples only.
 
+For the pupil observation, enable **Play from definitions** with six familiar words. Let the pupil read a definition and ask for help unaided. Observe whether they find **Hint for this word** and can continue from the marked letter. After they finish, check whether **Review words** starts with a word for which they asked for the direction.
+
 Record each step independently; a pending or unavailable hardware check remains pending after automated tests pass.
 
 For an issue, record the numbered step, expected behaviour, observed behaviour and whether it repeats. A screenshot without pupil information is useful. Do not mark the physical check passed based on automated WebKit results.

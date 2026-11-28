@@ -367,17 +367,30 @@ test("send-results blocks with an inline message when the device is offline", as
   await context.setOffline(false);
 });
 
-test("mobile library opens on one category instead of the full word cloud", async ({ page }) => {
+test("the phone library starts folded and opens on one category", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/index.html");
 
-  // Starting on an empty "choose a category" prompt hit every device, not just mobile.
-  // One category is the useful default; the flat cloud is still opt-in.
+  const summary = page.locator(".vocabulary-library summary");
+  const createTop = () => page.locator("#generate-button").evaluate(el => el.getBoundingClientRect().top + scrollY);
+  await page.locator("#title-input").fill("Mar");
+  await page.locator("#words-input").fill("mar\nsol");
+  await expect(page.locator("#draft-status")).toBeVisible();
+  await expect(page.locator("#lib-search")).toBeHidden();
+  const foldedTop = await createTop();
+  await summary.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#lib-search")).toBeVisible();
+  expect(await createTop() - foldedTop).toBeGreaterThan(300);
   await expect(page.locator("#lib-categories .category-chip.is-active")).toHaveText("Animals");
   await expect(page.locator("#lib-results .lib-word-chip")).toHaveCount(17);
 
   await page.getByRole("button", { name: "Tots", exact: true }).click();
   await expect(page.locator("#lib-results .lib-word-chip").count()).resolves.toBeGreaterThan(17);
+  await summary.click();
+  await expect(page.locator("#lib-search")).toBeHidden();
+  await page.locator("#generate-button").click();
+  await expect(page.locator("#teacher-ready-meta")).toContainText("2 paraules");
 });
 
 test("desktop library narrows to a search across every category", async ({ page }) => {

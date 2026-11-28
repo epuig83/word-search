@@ -300,7 +300,7 @@ test("localized PWA shells remain localized offline without query cache entries 
   await context.setOffline(false);
 });
 
-test("mobile game bar keeps timer, pause, and hint controls in reach", async ({ page }) => {
+test("mobile timer, pause, and hints have their own row clear of the letters", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await generatePuzzle(page, { timer: "300", hints: "3" });
   await startStudentSession(page);
@@ -321,6 +321,7 @@ test("mobile game bar keeps timer, pause, and hint controls in reach", async ({ 
   });
   expect(metrics.top).toBeGreaterThanOrEqual(0);
   expect(metrics.bottom).toBeLessThanOrEqual(844);
+  expect(metrics.bottom).toBeLessThanOrEqual((await page.locator("#word-bank-title").boundingBox()).y);
   expect(metrics.width).toBeLessThanOrEqual(390);
   expect(metrics.targets).toHaveLength(3);
   for (const target of metrics.targets) {

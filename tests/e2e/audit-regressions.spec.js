@@ -218,6 +218,10 @@ test("library search ignores accents and looks beyond the active category", asyn
   // Animals is the active category; a fruit must still be found.
   await page.locator("#lib-search").fill("poma");
   await expect(results).toHaveText(["poma"]);
+  await page.locator("#lib-search").fill("brac");
+  await expect(results).toHaveText(["braç"]);
+  await results.click();
+  await expect(page.locator("#words-input")).toHaveValue("braç");
 });
 
 test("example actions report next to their controls, not far below", async ({ page }) => {
@@ -460,6 +464,61 @@ const savedPlacements = page => page.evaluate(() => {
   }) }));
 });
 
+test("a teacher can share plaça and placa as separate words and the pupil can solve both", async ({ page, browser }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+      writeText: async url => { window.__sharedUrl = url; },
+    } });
+  });
+  await generatePuzzle(page, { title: "Lletres", words: "plaça\nplaca\nbraç", size: "8", timer: "0", openStudent: false });
+  await expect(page.locator("#words-count")).toContainText("3");
+  const grid = await page.locator("#puzzle-grid .grid-cell").allTextContents();
+  await page.locator("#teacher-share-button").click();
+  await expect.poll(() => page.evaluate(() => window.__sharedUrl)).toContain("#p=");
+  const url = await page.evaluate(() => window.__sharedUrl);
+  const pupil = await browser.newPage();
+  try {
+    await pupil.goto(url);
+    await startStudentSession(pupil);
+    expect(await pupil.locator("#puzzle-grid .grid-cell").allTextContents()).toEqual(grid);
+    const placements = await savedPlacements(pupil);
+    expect(placements.map(({ cells }) => cells.map(({ row, col }) => grid[row * 8 + col]).join("")))
+      .toEqual(["PLAÇA", "PLACA", "BRAÇ"]);
+    for (const placement of placements) await solvePlacement(pupil, placement);
+    await expect(pupil.locator("#progress-text")).toHaveText("3 / 3");
+  } finally {
+    await pupil.close();
+  }
+});
+
+test("an earlier board restores its C spelling, definition and saved pupil progress", async ({ page }) => {
+  const url = sharedPath({
+    title: "Cos", lang: "ca", words: "braç\nsol", gridRows: ["BRACXXXX", "SOLXXXXX", ...Array(6).fill("XXXXXXXX")],
+    placementPaths: ["0.0,0.1,0.2,0.3", "1.0,1.1,1.2"],
+  });
+  const key = new URLSearchParams(url.split("?")[1]).get("p");
+  await page.goto("/robots.txt");
+  await page.evaluate(key => {
+    localStorage.setItem("word-search-progress-v1", JSON.stringify({
+      key, foundWordIds: ["BRAC"], foundWordPaths: { BRAC: "0.0,0.1,0.2,0.3" }, started: true,
+    }));
+  }, key);
+  await page.goto(url);
+  await startStudentSession(page);
+  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+  expect(await foundCells(page)).toEqual(["0.0", "0.1", "0.2", "0.3"]);
+  await page.getByRole("button", { name: /braç/i }).click();
+  await expect(page.locator("#word-definition-text")).toContainText("espatlla");
+  await page.locator("#word-definition-close").click();
+  expect((await stored(page, "word-search-activity-v1")).key).toBe(key);
+  // The local activity must reopen with the same spelling even without the shared URL.
+  await page.goto("/index.html");
+  await startStudentSession(page);
+  await expect(page.locator("#progress-text")).toHaveText("1 / 2");
+  await solvePlacement(page, occurrence(1));
+  await expect(page.locator("#progress-text")).toHaveText("2 / 2");
+});
+
 test("a resting thumb or a palm that landed first does not block tracing", async ({ page }) => {
   await page.goto(sharedPath());
   await startStudentSession(page);
@@ -518,7 +577,9 @@ test("on a phone the finished card is readable and clear of the game bar", async
   await expect(page.locator("#completion-message")).not.toHaveCSS("position", "static");
   const button = await page.locator("#view-board-button").boundingBox();
   const bar = await page.locator("#student-gamebar").boundingBox();
-  expect(button.y + button.height).toBeLessThanOrEqual(bar.y);
+  expect(bar.y + bar.height).toBeLessThanOrEqual(button.y);
+  await page.locator("#view-board-button").click();
+  await expect(page.locator("#completion-message")).toBeHidden();
 });
 
 test("on a portrait tablet a big board starts at the top of the pupil area", async ({ page }) => {
